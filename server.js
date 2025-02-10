@@ -10,6 +10,7 @@ const allowedOrigins = [
   'http://localhost:3000',  // Local development
   'https://your-frontend-domain.com', // Your production frontend URL
   'https://psd-ui-omega.vercel.app',
+  'https://practicalsystemdesign.com'
 ];
 
 app.use(cors({
