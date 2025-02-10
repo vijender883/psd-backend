@@ -57,7 +57,7 @@ pool.getConnection()
     const { token } = req.body;
     
     // Replace this with your actual token verification logic
-    const isValidToken = token === 'valid-token';
+    const isValidToken = token === process.env.ACCESS_TOKEN;
     
     res.json({ valid: isValidToken });
   });
