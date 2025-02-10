@@ -52,6 +52,16 @@ pool.getConnection()
     console.error('Error connecting to the database:', err);
   });
 
+
+  app.post('/api/verify-token', (req, res) => {
+    const { token } = req.body;
+    
+    // Replace this with your actual token verification logic
+    const isValidToken = token === 'valid-token';
+    
+    res.json({ valid: isValidToken });
+  });
+
 // In server.js, modify the /api/execute endpoint
 
 app.post('/api/execute', async (req, res) => {
