@@ -2,8 +2,5 @@ services:
   - type: web
     name: psd-backend
     env: node
-    buildCommand: npm install
-    startCommand: node server.js
-    envVars:
-      - key: JAVA_VERSION
-        value: "17"
+    buildCommand: chmod +x build.sh && ./build.sh
+    startCommand: npm start
