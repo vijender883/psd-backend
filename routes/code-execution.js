@@ -13,7 +13,9 @@ dotenv.config();
 const router = express.Router();
 
 // Configuration
-const CODE_EXECUTION_DIR = path.join(__dirname, 'temp');
+const CODE_EXECUTION_DIR = process.env.NODE_ENV === 'production' 
+  ? '/tmp/code-execution'
+  : path.join(__dirname, 'temp');
 const TIMEOUT = 5000;
 // const TEST_CASES_API_URL = process.env.TEST_CASES_API_URL // Uncomment and update when ready
 
@@ -59,8 +61,10 @@ async function ensureTempDir() {
 // Clean up files after execution
 async function cleanup(filePath) {
     try {
-        await fs.unlink(`${filePath}.java`);
-        await fs.unlink(`${filePath}.class`);
+        await Promise.all([
+            fs.unlink(`${filePath}.java`).catch(() => {}),
+            fs.unlink(`${filePath}.class`).catch(() => {})
+        ]);
     } catch (error) {
         console.error('Error during cleanup:', error);
     }
