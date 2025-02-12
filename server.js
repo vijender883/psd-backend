@@ -2,13 +2,16 @@ const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2/promise');
 const dotenv = require('dotenv');
+const codeExecutionRouter = require('./routes/code-execution');
 
 dotenv.config();
 
 const app = express();
 const allowedOrigins = [
   'http://localhost:3000',  // Local development
-  'https://your-frontend-domain.com', // Your production frontend URL
+  'http://localhost:3002',  // Local development
+  
+  // Your production frontend URL
   'https://psd-ui-omega.vercel.app',
   'https://practicalsystemdesign.com'
 ];
@@ -111,9 +114,24 @@ app.post('/api/execute', async (req, res) => {
   }
 });
 
+app.use(cors());
+app.use(express.json());
+
+// Mount the code execution router
+app.use('/api/code', codeExecutionRouter);
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ 
+    success: false, 
+    error: 'Internal Server Error'
+  });
 });
 
 const PORT = process.env.PORT || 3001;
