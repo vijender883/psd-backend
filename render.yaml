@@ -1,6 +1,0 @@
-services:
-  - type: web
-    name: psd-backend
-    env: node
-    buildCommand: chmod +x build.sh && ./build.sh
-    startCommand: npm start

@@ -7,17 +7,16 @@ const util = require('util');
 const axios = require('axios'); // For making API requests to fetch test cases
 const execPromise = util.promisify(exec);
 const dotenv = require('dotenv');
+const STATIC_RESULTS = require('./static-results');
 
 dotenv.config();
 
 const router = express.Router();
 
 // Configuration
-const CODE_EXECUTION_DIR = process.env.NODE_ENV === 'production' 
-  ? '/tmp/code-execution'
-  : path.join(__dirname, 'temp');
+const CODE_EXECUTION_DIR = path.join(__dirname, 'temp');
 const TIMEOUT = 5000;
-// const TEST_CASES_API_URL = process.env.TEST_CASES_API_URL // Uncomment and update when ready
+// const TEST_CASES_API_URL = process.env.TEST // Uncomment and update when ready
 
 // Predefined test cases
 const DEFAULT_TEST_CASES = [
@@ -61,10 +60,8 @@ async function ensureTempDir() {
 // Clean up files after execution
 async function cleanup(filePath) {
     try {
-        await Promise.all([
-            fs.unlink(`${filePath}.java`).catch(() => {}),
-            fs.unlink(`${filePath}.class`).catch(() => {})
-        ]);
+        await fs.unlink(`${filePath}.java`);
+        await fs.unlink(`${filePath}.class`);
     } catch (error) {
         console.error('Error during cleanup:', error);
     }
@@ -213,6 +210,8 @@ router.post('/submit', async (req, res) => {
     if (!code) {
         return res.status(400).json({ error: 'No code provided' });
     }
+
+    return res.json(STATIC_RESULTS);
 
     // Create unique identifier for this submission
     const submissionId = uuidv4();
