@@ -3,7 +3,7 @@ const path = require('path');
 const CODE_EXECUTION_DIR = path.join(__dirname, 'temp');
 
 // Configuration
-const CLEANUP_INTERVAL = 1000 * 60 * 1; // 15 minutes
+const CLEANUP_INTERVAL = 1000 * 60 * 3; // 15 minutes
 const FILE_MAX_AGE = 1000 * 60 * 3; // 30 minutes
 
 // Function to get file age in milliseconds
