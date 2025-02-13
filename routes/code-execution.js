@@ -7,7 +7,8 @@ const util = require('util');
 const axios = require('axios'); // For making API requests to fetch test cases
 const execPromise = util.promisify(exec);
 const dotenv = require('dotenv');
-const STATIC_RESULTS = require('./static-results');
+const {initializeCleanupScheduler} = require('./cleanup')
+// const STATIC_RESULTS = require('./static-results');
 
 dotenv.config();
 
@@ -211,7 +212,7 @@ router.post('/submit', async (req, res) => {
         return res.status(400).json({ error: 'No code provided' });
     }
 
-    return res.json(STATIC_RESULTS);
+    // return res.json(STATIC_RESULTS);
 
     // Create unique identifier for this submission
     const submissionId = uuidv4();
@@ -296,5 +297,7 @@ router.get('/test-cases', async (req, res) => {
     }
 });
 */
+
+initializeCleanupScheduler();
 
 module.exports = router;

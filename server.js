@@ -57,14 +57,20 @@ pool.getConnection()
   });
 
 
-  app.post('/api/verify-token', (req, res) => {
-    const { token } = req.body;
-    
-    // Replace this with your actual token verification logic
-    const isValidToken = token === process.env.ACCESS_TOKEN;
-    
-    res.json({ valid: isValidToken });
+  // In server.js
+app.post('/api/verify-token', (req, res) => {
+  const { token } = req.body;
+  
+  // Check if token is valid
+  const isValidToken = token === process.env.ACCESS_TOKEN;
+  // Check if token is admin token
+  const isAdmin = token === process.env.ADMIN_TOKEN;
+  
+  res.json({ 
+    valid: isValidToken || isAdmin,
+    isAdmin: isAdmin
   });
+});
 
 // In server.js, modify the /api/execute endpoint
 
