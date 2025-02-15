@@ -164,65 +164,96 @@ public class ${className} {
             List<TestCase> testCases = new ArrayList<>();
             ${testCasesStr}
             
-            // Create instance of user's solution class
             ${actualClassName} solution = new ${actualClassName}();
-            
-            // Store results
             List<TestResult> results = new ArrayList<>();
             
-            // Run all test cases
             for (int i = 0; i < testCases.size(); i++) {
                 TestCase testCase = testCases.get(i);
+                TestResult result;
                 
-                long startTime = System.nanoTime();
-                ${returnType} result = solution.${methodName}(testCase.input);
-                long endTime = System.nanoTime();
-                double executionTime = (endTime - startTime) / 1000000.0;
-                
-                boolean passed = String.valueOf(result).equals(String.valueOf(testCase.expectedOutput));
-                
-                results.add(new TestResult(
-                    i + 1,
-                    Arrays.toString(testCase.input),
-                    String.valueOf(testCase.expectedOutput),
-                    String.valueOf(result),
-                    passed,
-                    executionTime,
-                    testCase.description
-                ));
+                try {
+                    long startTime = System.nanoTime();
+                    ${returnType} output = solution.${methodName}(testCase.input);
+                    long endTime = System.nanoTime();
+                    double executionTime = (endTime - startTime) / 1000000.0;
+                    
+                    boolean passed = String.valueOf(output).equals(String.valueOf(testCase.expectedOutput));
+                    
+                    result = new TestResult(
+                        i + 1,
+                        Arrays.toString(testCase.input),
+                        String.valueOf(testCase.expectedOutput),
+                        String.valueOf(output),
+                        passed,
+                        executionTime,
+                        testCase.description,
+                        null
+                    );
+                } catch (Exception e) {
+                    String errorMessage = e.getMessage();
+                    if (errorMessage == null) {
+                        errorMessage = "Runtime Error: " + e.getClass().getSimpleName();
+                    }
+                    result = new TestResult(
+                        i + 1,
+                        Arrays.toString(testCase.input),
+                        String.valueOf(testCase.expectedOutput),
+                        null,
+                        false,
+                        0.0,
+                        testCase.description,
+                        errorMessage
+                    );
+                }
+                results.add(result);
             }
             
-            // Format output as JSON
-            System.out.println("{");
-            System.out.println("  \\"results\\": [");
+            StringBuilder json = new StringBuilder();
+            json.append("{");
+            json.append("  \\"results\\": [");
+            
             for (int i = 0; i < results.size(); i++) {
                 TestResult result = results.get(i);
-                System.out.println("    {");
-                System.out.println("      \\"testCase\\": " + result.testCase + ",");
-                System.out.println("      \\"description\\": \\"" + result.description + "\\",");
-                System.out.println("      \\"input\\": \\"" + result.input + "\\",");
-                System.out.println("      \\"expectedOutput\\": \\"" + result.expectedOutput + "\\",");
-                System.out.println("      \\"yourOutput\\": \\"" + result.yourOutput + "\\",");
-                System.out.println("      \\"passed\\": " + result.passed + ",");
-                System.out.println("      \\"executionTime\\": " + result.executionTime);
-                System.out.println("    }" + (i < results.size() - 1 ? "," : ""));
+                json.append("    {");
+                json.append("\\"testCase\\": ").append(result.testCase).append(",");
+                json.append("\\"description\\": \\"").append(escapeString(result.description)).append("\\",");
+                json.append("\\"input\\": \\"").append(escapeString(result.input)).append("\\",");
+                json.append("\\"expectedOutput\\": \\"").append(escapeString(result.expectedOutput)).append("\\",");
+                
+                if (result.error != null) {
+                    json.append("\\"error\\": \\"").append(escapeString(result.error)).append("\\",");
+                } else {
+                    json.append("\\"yourOutput\\": \\"").append(escapeString(result.yourOutput)).append("\\",");
+                }
+                
+                json.append("\\"passed\\": ").append(result.passed).append(",");
+                json.append("\\"executionTime\\": ").append(result.executionTime);
+                json.append("}").append(i < results.size() - 1 ? "," : "");
             }
-            System.out.println("  ]");
-            System.out.println("}");
+            
+            json.append("  ]");
+            json.append("}");
+            
+            System.out.println(json.toString());
+            
         } catch (Exception e) {
             System.out.println("{");
-            String errorMsg = e.getMessage();
-            if (errorMsg != null) {
-                errorMsg = errorMsg.replace("\\\\", "\\\\\\\\").replace("\\"", "\\\\\\"");
-            } else {
-                errorMsg = "Runtime Error: " + e.getClass().getSimpleName();
-            }
-            System.out.println("  \\"error\\": \\"" + errorMsg + "\\"");
+            System.out.println("  \\"error\\": \\"" + 
+                (e.getMessage() != null ? escapeString(e.getMessage()) : "Runtime Error: " + e.getClass().getSimpleName()) +
+                "\\"");
             System.out.println("}");
         }
     }
     
-    // Test case class
+    private static String escapeString(String str) {
+        if (str == null) return "";
+        return str.replace("\\\\", "\\\\\\\\")
+                 .replace("\\"", "\\\\\\"")
+                 .replace("\\n", "\\\\n")
+                 .replace("\\r", "\\\\r")
+                 .replace("\\t", "\\\\t");
+    }
+    
     static class TestCase {
         int[] input;
         int expectedOutput;
@@ -235,7 +266,6 @@ public class ${className} {
         }
     }
     
-    // Test result class
     static class TestResult {
         int testCase;
         String input;
@@ -244,9 +274,10 @@ public class ${className} {
         boolean passed;
         double executionTime;
         String description;
+        String error;
         
         TestResult(int testCase, String input, String expectedOutput, String yourOutput, 
-                  boolean passed, double executionTime, String description) {
+                  boolean passed, double executionTime, String description, String error) {
             this.testCase = testCase;
             this.input = input;
             this.expectedOutput = expectedOutput;
@@ -254,6 +285,7 @@ public class ${className} {
             this.passed = passed;
             this.executionTime = executionTime;
             this.description = description;
+            this.error = error;
         }
     }
 }`;
@@ -300,7 +332,7 @@ router.put('/problem/:id', (req, res) => {
     try {
         const problemId = parseInt(req.params.id);
         const index = problems.findIndex(p => p.id === problemId);
-        
+
         if (index === -1) {
             return res.status(404).json({ error: 'Problem not found' });
         }
@@ -310,7 +342,7 @@ router.put('/problem/:id', (req, res) => {
             ...req.body,
             id: problemId
         };
-        
+
         problems[index] = updatedProblem;
         res.json(updatedProblem);
     } catch (error) {
@@ -323,19 +355,19 @@ router.delete('/problem/:id', (req, res) => {
     try {
         const problemId = parseInt(req.params.id);
         const index = problems.findIndex(p => p.id === problemId);
-        
+
         if (index === -1) {
             return res.status(404).json({ error: 'Problem not found' });
         }
-        
+
         // Reindex remaining problems
         problems.splice(index, 1);
-        
+
         // Reindex remaining problems in place
         problems.forEach((problem, idx) => {
             problem.id = idx + 1;
         });
-        
+
         res.status(200).json({
             success: true,
             message: 'Problem deleted successfully',
@@ -350,6 +382,8 @@ router.delete('/problem/:id', (req, res) => {
     }
 });
 
+// In code-execution.js, update the submission endpoint
+
 router.post('/submit', async (req, res) => {
     const { code, problemId } = req.body;
 
@@ -358,12 +392,12 @@ router.post('/submit', async (req, res) => {
     }
 
     // Get the current problem
-    const problem = problems.find(p => p.id === problemId) || problems[problems.length - 1];
+    const problem = problems.find(p => p.id === problemId);
     if (!problem) {
         return res.status(400).json({ error: 'Problem not found' });
     }
 
-    // Extract the actual class name from user's code
+    // Extract the class name from user's code
     const classNameMatch = code.match(/public\s+class\s+(\w+)/);
     const actualClassName = classNameMatch ? classNameMatch[1] : problem.functionName;
 
@@ -377,75 +411,82 @@ router.post('/submit', async (req, res) => {
         // Ensure temp directory exists
         await ensureTempDir();
 
-        // First, write the user's code file with the correct class name
+        // Write user's code file
         await fs.writeFile(`${userCodePath}.java`, code);
 
-        // Generate and write the test runner file
+        // Generate and write test runner
         const testRunner = createTestRunner(code, className, problem);
         await fs.writeFile(`${filePath}.java`, testRunner);
 
         try {
             // Compile both files
             const compileCommand = `javac ${filePath}.java ${userCodePath}.java`;
-            await execPromise(compileCommand);
-
-            // Run the compiled code with timeout
-            const { stdout, stderr } = await execPromise(`java -cp ${CODE_EXECUTION_DIR} ${className}`, {
-                timeout: TIMEOUT
-            });
-
-            // Parse results
-            const results = JSON.parse(stdout);
-
-            // Add summary statistics if results exist
-            if (results.results) {
-                const testResults = results.results;
-                const summary = {
-                    totalTests: testResults.length,
-                    passedTests: testResults.filter(r => r.passed).length,
-                    averageExecutionTime: testResults.reduce((acc, r) => acc + r.executionTime, 0) / testResults.length
-                };
-                results.summary = summary;
+            console.log('Compiling with command:', compileCommand);
+            
+            try {
+                await execPromise(compileCommand);
+                console.log('Compilation successful');
+            } catch (compileError) {
+                console.error('Compilation failed:', compileError);
+                // Clean up files
+                await cleanup(filePath);
+                await cleanup(userCodePath);
+                
+                return res.status(400).json({
+                    success: false,
+                    error: compileError.stderr
+                });
             }
 
-            // Cleanup files
-            await cleanup(filePath);
-            await cleanup(userCodePath);
+            // If compilation succeeds, run the code
+            try {
+                console.log('Running code...');
+                const { stdout, stderr } = await execPromise(`java -cp ${CODE_EXECUTION_DIR} ${className}`, {
+                    timeout: TIMEOUT
+                });
 
-            res.json({
-                success: !results.error,
-                ...results,
-                error: stderr || results.error || null
-            });
+                console.log('Code execution completed');
+                const results = JSON.parse(stdout);
 
+                // Clean up files
+                await cleanup(filePath);
+                await cleanup(userCodePath);
+
+                return res.json({
+                    success: !results.error,
+                    ...results
+                });
+            } catch (runtimeError) {
+                console.error('Runtime error:', runtimeError);
+                await cleanup(filePath);
+                await cleanup(userCodePath);
+
+                return res.status(500).json({
+                    success: false,
+                    error: runtimeError.message || 'Runtime error occurred',
+                    details: runtimeError.stderr
+                });
+            }
         } catch (error) {
-            // Cleanup files in case of error
+            console.error('Error during execution:', error);
             await cleanup(filePath);
             await cleanup(userCodePath);
-            throw error;
+
+            return res.status(500).json({
+                success: false,
+                error: 'Error executing code',
+                details: error.message
+            });
         }
     } catch (error) {
-        console.error('Error executing code:', error);
-
-        if (error.code === 'ETIMEDOUT') {
-            return res.status(408).json({
-                success: false,
-                error: 'Code execution timed out'
-            });
-        }
-
-        // Check if it's a compilation error
-        if (error.stderr && error.stderr.includes('error:')) {
-            return res.status(400).json({
-                success: false,
-                error: error.stderr
-            });
-        }
+        console.error('Error in submission process:', error);
+        await cleanup(filePath);
+        await cleanup(userCodePath);
 
         return res.status(500).json({
             success: false,
-            error: error.message || 'Internal server error',
-            details: error.stderr || null
+            error: 'Internal server error',
+            details: error.message
         });
     }
 });
