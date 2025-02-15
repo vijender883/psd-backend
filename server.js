@@ -143,23 +143,23 @@ app.use((err, req, res, next) => {
   });
 });
 
-const options = {
-  key: fs.readFileSync('/etc/letsencrypt/live/api.practicalsystemdesign.com/privkey.pem'),
-  cert: fs.readFileSync('/etc/letsencrypt/live/api.practicalsystemdesign.com/fullchain.pem')
-};
+// const options = {
+//   key: fs.readFileSync('/etc/letsencrypt/live/api.practicalsystemdesign.com/privkey.pem'),
+//   cert: fs.readFileSync('/etc/letsencrypt/live/api.practicalsystemdesign.com/fullchain.pem')
+// };
 
-const server = https.createServer(options, app);
+// const server = https.createServer(options, app);
 
-server.listen(3001, '0.0.0.0', () => {  // Note: explicitly binding to all interfaces
-  console.log('HTTPS Server running on port 3001');
-});
+// server.listen(3001, '0.0.0.0', () => {  // Note: explicitly binding to all interfaces
+//   console.log('HTTPS Server running on port 3001');
+// });
 
 // Add error handling
-server.on('error', (error) => {
-  console.error('Server error:', error);
-})
+// server.on('error', (error) => {
+//   console.error('Server error:', error);
+// })
 
 const PORT = process.env.PORT || 3001;
-//app.listen(PORT, () => {
-  //console.log(`Server running on port ${PORT}`);
-//});
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
