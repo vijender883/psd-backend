@@ -47,6 +47,7 @@ const DEFAULT_TEST_CASES = [
     }
 ];
 
+// In code-execution.js, update the problems array:
 let problems = [
     {
         id: 1,
@@ -56,15 +57,31 @@ let problems = [
         outputFormat: "Single integer (the minimum)",
         functionName: "MinFinder",
         functionTemplate: `public class MinFinder {
-      public int findMin(int[] arr) {
-          // Write your code here
-      }
-  }`,
+    public int findMin(int[] arr) {
+        // Write your code here
+    }
+}`,
         example: {
             input: "[5, 2, 8, 1, 9]",
             output: "1"
         },
-        testCases: DEFAULT_TEST_CASES  // Using your existing test cases
+        testCases: DEFAULT_TEST_CASES,
+        showSolution: false,  // New field to control solution visibility
+        solution: `public class MinFinder {
+    public int findMin(int[] arr) {
+        if (arr == null || arr.length == 0) {
+            throw new IllegalArgumentException("Array cannot be null or empty");
+        }
+        
+        int min = arr[0];
+        for (int i = 1; i < arr.length; i++) {
+            if (arr[i] < min) {
+                min = arr[i];
+            }
+        }
+        return min;
+    }
+}`
     }
 ];
 
@@ -244,26 +261,93 @@ public class ${className} {
 
 
 router.get('/problems', (req, res) => {
-    res.json(problems);
-});
-
-router.get('/problem/:id', (req, res) => {
-    const problem = problems.find(p => p.id === parseInt(req.params.id));
-    if (!problem) {
-        return res.status(404).json({ error: 'Problem not found' });
+    try {
+        res.json(problems);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch problems' });
     }
-    res.json(problem);
-    console.log(problem);
 });
 
+// Get a single problem
+router.get('/problem/:id', (req, res) => {
+    try {
+        const problem = problems.find(p => p.id === parseInt(req.params.id));
+        if (!problem) {
+            return res.status(404).json({ error: 'Problem not found' });
+        }
+        res.json(problem);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch problem' });
+    }
+});
+
+// Create a new problem
 router.post('/problem', (req, res) => {
-    const newProblem = {
-        ...req.body,
-        id: problems.length + 1
-    };
-    problems.push(newProblem);
-    res.json(newProblem);
-    console.log(problems);
+    try {
+        const newProblem = {
+            ...req.body,
+            id: problems.length + 1
+        };
+        problems.push(newProblem);
+        res.status(201).json(newProblem);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to create problem' });
+    }
+});
+
+// Update a problem
+router.put('/problem/:id', (req, res) => {
+    try {
+        const problemId = parseInt(req.params.id);
+        const index = problems.findIndex(p => p.id === problemId);
+        
+        if (index === -1) {
+            return res.status(404).json({ error: 'Problem not found' });
+        }
+
+        // Preserve the ID when updating
+        const updatedProblem = {
+            ...req.body,
+            id: problemId
+        };
+        
+        problems[index] = updatedProblem;
+        res.json(updatedProblem);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update problem' });
+    }
+});
+
+// Delete a problem
+router.delete('/problem/:id', (req, res) => {
+    try {
+        const problemId = parseInt(req.params.id);
+        const index = problems.findIndex(p => p.id === problemId);
+        
+        if (index === -1) {
+            return res.status(404).json({ error: 'Problem not found' });
+        }
+        
+        // Reindex remaining problems
+        problems.splice(index, 1);
+        
+        // Reindex remaining problems in place
+        problems.forEach((problem, idx) => {
+            problem.id = idx + 1;
+        });
+        
+        res.status(200).json({
+            success: true,
+            message: 'Problem deleted successfully',
+        });
+    } catch (error) {
+        console.error('Delete error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete problem',
+            details: error.message
+        });
+    }
 });
 
 router.post('/submit', async (req, res) => {
