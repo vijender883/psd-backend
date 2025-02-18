@@ -82,6 +82,72 @@ let problems = [
         return min;
     }
 }`
+    },
+    {
+        id: 2,
+        title: "Two Sum",
+        description: "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice.",
+        inputFormat: "An array of integers nums and an integer target value",
+        outputFormat: "An array of two integers, the indices of the two numbers that add up to the target",
+        constraints: [
+          "2 ≤ nums.length ≤ 10^4",
+          "-10^9 ≤ nums[i] ≤ 10^9",
+          "-10^9 ≤ target ≤ 10^9",
+          "Only one valid answer exists"
+        ],
+        functionName: "TwoSum",
+        functionTemplate: `public class TwoSum {
+          public int[] twoSum(int[] nums, int target) {
+              // Write your code here
+          }
+      }`,
+        example: {
+          input: "[2, 7, 11, 15], 9",
+          output: "[0, 1]"
+        },
+        testCases: [
+          {
+            input: [[2, 7, 11, 15], 9],
+            expectedOutput: [0, 1],
+            description: "Basic test case"
+          },
+          {
+            input: [[3, 2, 4], 6],
+            expectedOutput: [1, 2],
+            description: "Target in the middle of array"
+          },
+          {
+            input: [[3, 3], 6],
+            expectedOutput: [0, 1],
+            description: "Same elements"
+          },
+          {
+            input: [[-1, -2, -3, -4, -5], -8],
+            expectedOutput: [2, 4],
+            description: "Negative numbers"
+          },
+          {
+            input: [[1, 5, 8, 3, 9, 2], 10],
+            expectedOutput: [1, 4],
+            description: "Larger array"
+          }
+        ],
+        showSolution: false,
+        solution: `public class TwoSum {
+          public int[] twoSum(int[] nums, int target) {
+              java.util.Map<Integer, Integer> map = new java.util.HashMap<>();
+              
+              for (int i = 0; i < nums.length; i++) {
+                  int complement = target - nums[i];
+                  if (map.containsKey(complement)) {
+                      return new int[] { map.get(complement), i };
+                  }
+                  map.put(nums[i], i);
+              }
+              
+              throw new IllegalArgumentException("No solution found");
+          }
+      }`
     }
 ];
 
@@ -139,18 +205,36 @@ function createTestRunner(userCode, className, problem) {
     const actualClassName = classNameMatch ? classNameMatch[1] : problem.functionName;
 
     // Extract method name and return type from user's code
-    const methodMatch = userCode.match(/public\s+(\w+)\s+(\w+)\s*\(/);
-    const methodName = methodMatch ? methodMatch[2] : 'findMin';
-    const returnType = methodMatch ? methodMatch[1] : 'String';
+    const methodMatch = userCode.match(/public\s+(\w+(?:\[\])?\s+)?(\w+)\s*\(/);
+    const methodName = methodMatch ? methodMatch[2] : 'twoSum';
+    const returnType = methodMatch && methodMatch[1] ? methodMatch[1].trim() : 'int[]';
 
-    // Convert test cases to proper Java array syntax
+    // Determine if this is the TwoSum problem
+    const isTwoSum = problem.title === "Two Sum";
+
+    // Convert test cases to proper Java syntax based on problem type
     const testCasesStr = problem.testCases.map(tc => {
-        const inputArrayStr = Array.isArray(tc.input)
-            ? `new int[]{${tc.input.join(', ')}}`
-            : `new int[]{${tc.input}}`;
-
-        return `testCases.add(new TestCase(${inputArrayStr}, ${tc.expectedOutput}, "${tc.description}"));`;
+        if (isTwoSum) {
+            // Handle TwoSum format with array and target value
+            const [numsArray, targetValue] = tc.input;
+            const inputArrayStr = `new int[]{${numsArray.join(', ')}}`;
+            const expectedOutputStr = `new int[]{${tc.expectedOutput.join(', ')}}`;
+            
+            return `testCases.add(new TestCase(${inputArrayStr}, ${targetValue}, ${expectedOutputStr}, "${tc.description}"));`;
+        } else {
+            // Handle original format with single array input
+            const inputArrayStr = Array.isArray(tc.input)
+                ? `new int[]{${tc.input.join(', ')}}`
+                : `new int[]{${tc.input}}`;
+            
+            return `testCases.add(new TestCase(${inputArrayStr}, ${tc.expectedOutput}, "${tc.description}"));`;
+        }
     }).join('\n            ');
+
+    // Determine appropriate test class based on problem type
+    const testClassStr = isTwoSum ? 
+        generateTwoSumTestClass(actualClassName, methodName, returnType) :
+        generateMinFinderTestClass(actualClassName, methodName, returnType);
 
     // Main test runner code
     return `
@@ -167,46 +251,7 @@ public class ${className} {
             ${actualClassName} solution = new ${actualClassName}();
             List<TestResult> results = new ArrayList<>();
             
-            for (int i = 0; i < testCases.size(); i++) {
-                TestCase testCase = testCases.get(i);
-                TestResult result;
-                
-                try {
-                    long startTime = System.nanoTime();
-                    ${returnType} output = solution.${methodName}(testCase.input);
-                    long endTime = System.nanoTime();
-                    double executionTime = (endTime - startTime) / 1000000.0;
-                    
-                    boolean passed = String.valueOf(output).equals(String.valueOf(testCase.expectedOutput));
-                    
-                    result = new TestResult(
-                        i + 1,
-                        Arrays.toString(testCase.input),
-                        String.valueOf(testCase.expectedOutput),
-                        String.valueOf(output),
-                        passed,
-                        executionTime,
-                        testCase.description,
-                        null
-                    );
-                } catch (Exception e) {
-                    String errorMessage = e.getMessage();
-                    if (errorMessage == null) {
-                        errorMessage = "Runtime Error: " + e.getClass().getSimpleName();
-                    }
-                    result = new TestResult(
-                        i + 1,
-                        Arrays.toString(testCase.input),
-                        String.valueOf(testCase.expectedOutput),
-                        null,
-                        false,
-                        0.0,
-                        testCase.description,
-                        errorMessage
-                    );
-                }
-                results.add(result);
-            }
+            ${testClassStr}
             
             StringBuilder json = new StringBuilder();
             json.append("{");
@@ -254,17 +299,7 @@ public class ${className} {
                  .replace("\\t", "\\\\t");
     }
     
-    static class TestCase {
-        int[] input;
-        int expectedOutput;
-        String description;
-        
-        TestCase(int[] input, int expectedOutput, String description) {
-            this.input = input;
-            this.expectedOutput = expectedOutput;
-            this.description = description;
-        }
-    }
+    ${isTwoSum ? generateTwoSumTestCaseClass() : generateMinFinderTestCaseClass()}
     
     static class TestResult {
         int testCase;
@@ -289,6 +324,126 @@ public class ${className} {
         }
     }
 }`;
+}
+
+function generateMinFinderTestClass(className, methodName, returnType) {
+    return `for (int i = 0; i < testCases.size(); i++) {
+                TestCase testCase = testCases.get(i);
+                TestResult result;
+                
+                try {
+                    long startTime = System.nanoTime();
+                    ${returnType} output = solution.${methodName}(testCase.input);
+                    long endTime = System.nanoTime();
+                    double executionTime = (endTime - startTime) / 1000000.0;
+                    
+                    boolean passed = String.valueOf(output).equals(String.valueOf(testCase.expectedOutput));
+                    
+                    result = new TestResult(
+                        i + 1,
+                        Arrays.toString(testCase.input),
+                        String.valueOf(testCase.expectedOutput),
+                        String.valueOf(output),
+                        passed,
+                        executionTime,
+                        testCase.description,
+                        null
+                    );
+                } catch (Exception e) {
+                    String errorMessage = e.getMessage();
+                    if (errorMessage == null) {
+                        errorMessage = "Runtime Error: " + e.getClass().getSimpleName();
+                    }
+                    result = new TestResult(
+                        i + 1,
+                        Arrays.toString(testCase.input),
+                        String.valueOf(testCase.expectedOutput),
+                        null,
+                        false,
+                        0.0,
+                        testCase.description,
+                        errorMessage
+                    );
+                }
+                results.add(result);
+            }`;
+}
+
+// Helper function to generate TwoSum test class
+function generateTwoSumTestClass(className, methodName, returnType) {
+    return `for (int i = 0; i < testCases.size(); i++) {
+                TestCase testCase = testCases.get(i);
+                TestResult result;
+                
+                try {
+                    long startTime = System.nanoTime();
+                    ${returnType} output = solution.${methodName}(testCase.nums, testCase.target);
+                    long endTime = System.nanoTime();
+                    double executionTime = (endTime - startTime) / 1000000.0;
+                    
+                    // Special comparison for int[] outputs
+                    boolean passed = Arrays.equals(output, testCase.expectedOutput);
+                    
+                    result = new TestResult(
+                        i + 1,
+                        "nums: " + Arrays.toString(testCase.nums) + ", target: " + testCase.target,
+                        Arrays.toString(testCase.expectedOutput),
+                        Arrays.toString(output),
+                        passed,
+                        executionTime,
+                        testCase.description,
+                        null
+                    );
+                } catch (Exception e) {
+                    String errorMessage = e.getMessage();
+                    if (errorMessage == null) {
+                        errorMessage = "Runtime Error: " + e.getClass().getSimpleName();
+                    }
+                    result = new TestResult(
+                        i + 1,
+                        "nums: " + Arrays.toString(testCase.nums) + ", target: " + testCase.target,
+                        Arrays.toString(testCase.expectedOutput),
+                        null,
+                        false,
+                        0.0,
+                        testCase.description,
+                        errorMessage
+                    );
+                }
+                results.add(result);
+            }`;
+}
+
+// Helper function to generate TestCase class for MinFinder
+function generateMinFinderTestCaseClass() {
+    return `static class TestCase {
+        int[] input;
+        int expectedOutput;
+        String description;
+        
+        TestCase(int[] input, int expectedOutput, String description) {
+            this.input = input;
+            this.expectedOutput = expectedOutput;
+            this.description = description;
+        }
+    }`;
+}
+
+// Helper function to generate TestCase class for TwoSum
+function generateTwoSumTestCaseClass() {
+    return `static class TestCase {
+        int[] nums;
+        int target;
+        int[] expectedOutput;
+        String description;
+        
+        TestCase(int[] nums, int target, int[] expectedOutput, String description) {
+            this.nums = nums;
+            this.target = target;
+            this.expectedOutput = expectedOutput;
+            this.description = description;
+        }
+    }`;
 }
 
 
