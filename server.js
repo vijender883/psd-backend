@@ -2,9 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2/promise');
 const dotenv = require('dotenv');
-const codeExecutionRouter = require('./routes/code-execution');
 const fs = require('fs');
 const https = require('https');
+const { initializeDirectories } = require('./services/codeExecutor');
+const codeExecutionRouter = require('./routes/code-execution');
 
 dotenv.config();
 
@@ -59,8 +60,12 @@ pool.getConnection()
     console.error('Error connecting to the database:', err);
   });
 
+// Initialize code execution directories
+initializeDirectories()
+  .then(() => console.log('Code execution directories initialized'))
+  .catch(err => console.error('Failed to initialize code execution directories:', err));
 
-  // In server.js
+// In server.js
 app.post('/api/verify-token', (req, res) => {
   const { token } = req.body;
   
@@ -76,14 +81,13 @@ app.post('/api/verify-token', (req, res) => {
 });
 
 // In server.js, modify the /api/execute endpoint
-
 app.post('/api/execute', async (req, res) => {
   const { query } = req.body;
 
   const disallowedKeywords = ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'TRUNCATE'];
   const containsDisallowedKeyword = disallowedKeywords.some(keyword =>
     query?.toString().toUpperCase().includes(keyword) ?? false
-);
+  );
 
   if (containsDisallowedKeyword) {
     return res.status(400).json({ 
@@ -122,9 +126,6 @@ app.post('/api/execute', async (req, res) => {
     res.status(500).json({ error: `Database connection error: ${error.message}` });
   }
 });
-
-app.use(cors());
-app.use(express.json());
 
 // Mount the code execution router
 app.use('/api/code', codeExecutionRouter);
