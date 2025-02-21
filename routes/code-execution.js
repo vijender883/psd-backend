@@ -1,6 +1,7 @@
 const express = require('express');
 const { executeJavaCode } = require('../services/codeExecutor');
 const router = express.Router();
+const Submission = require('../models/Submission');
 
 // Sample problem definitions
 const problems = {
@@ -91,15 +92,15 @@ router.get('/problems/:id', (req, res) => {
 
 // Submit code for execution
 router.post('/submit', async (req, res) => {
-  const { code, problemId } = req.body;
+  const { code, problemId, username } = req.body;
   
   // Input validation
-  if (!code || !problemId) {
+  if (!code || !problemId || !username) {
     return res.status(400).json({
       success: false,
       error: {
         message: 'Missing required fields',
-        stack: 'Code and problemId are required'
+        stack: 'Code, problemId, and username are required'
       }
     });
   }
@@ -118,7 +119,33 @@ router.post('/submit', async (req, res) => {
   try {
     // Execute code against test cases
     const result = await executeJavaCode(code, problem.testCases);
-    console.log(result);
+    
+    if (!result.success) {
+      return res.json(result);
+    }
+
+    // Calculate summary
+    const totalTests = result.results.length;
+    const passedTests = result.results.filter(result => result.passed).length;
+    const averageExecutionTime = result.results.reduce((sum, result) => 
+      sum + result.executionTime, 0) / totalTests;
+    const score = (passedTests / totalTests) * 100;
+
+    // Create submission record
+    const submission = new Submission({
+      username,
+      problemId,
+      code,
+      executionTime: averageExecutionTime,
+      score,
+      passedTests,
+      totalTests,
+      results: result.results
+    });
+
+    // Save to MongoDB
+    await submission.save();
+
     res.json(result);
   } catch (error) {
     console.error('Code execution error:', error);
@@ -126,6 +153,29 @@ router.post('/submit', async (req, res) => {
       success: false,
       error: {
         message: 'Execution failed',
+        stack: error.message
+      }
+    });
+  }
+});
+
+router.get('/submissions', async (req, res) => {
+  try {
+    const { username } = req.query;
+    const query = username ? { username } : {};
+    
+    const submissions = await Submission.find(query)
+      .sort({ score: -1, createdAt: -1 })
+      // .select('username problemId score passedTests totalTests executionTime createdAt');
+    console.log('Fetching submissions with query:', query); // Debug log
+    
+    res.json(submissions);
+  } catch (error) {
+    console.error('Error fetching submissions:', error); // Debug log
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to fetch submissions',
         stack: error.message
       }
     });

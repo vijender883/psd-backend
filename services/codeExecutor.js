@@ -3,7 +3,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-const BASE_DIR = './tmp/code-runner';
+const BASE_DIR = '/tmp/code-runner';
 
 // Initialize the execution directory
 async function initializeDirectories() {

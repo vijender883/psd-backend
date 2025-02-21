@@ -6,6 +6,7 @@ const fs = require('fs');
 const https = require('https');
 const { initializeDirectories } = require('./services/codeExecutor');
 const codeExecutionRouter = require('./routes/code-execution');
+const mongoose = require('mongoose');
 
 dotenv.config();
 
@@ -13,7 +14,7 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:3000',  // Local development
   'http://localhost:3002',  // Local development
-  
+
   // Your production frontend URL
   'https://api.practicalsystemdesign.com',
   'https://psd-ui-omega.vercel.app',
@@ -21,7 +22,7 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -48,7 +49,7 @@ const pool = mysql.createPool(dbConfig);
 // Test database connection on startup
 pool.getConnection()
   .then(connection => {
-    console.log('Database connected successfully');
+    console.log('Database connected successfully \n');
     console.log('Connection config:', {
       host: process.env.DB_HOST,
       user: process.env.DB_USER,
@@ -60,6 +61,14 @@ pool.getConnection()
     console.error('Error connecting to the database:', err);
   });
 
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+  .then(() => console.log('MongoDB connected successfully \n'))
+  .catch(err => console.error('MongoDB connection error:', err));
+
+
 // Initialize code execution directories
 initializeDirectories()
   .then(() => console.log('Code execution directories initialized'))
@@ -68,13 +77,13 @@ initializeDirectories()
 // In server.js
 app.post('/api/verify-token', (req, res) => {
   const { token } = req.body;
-  
+
   // Check if token is valid
   const isValidToken = token === process.env.ACCESS_TOKEN;
   // Check if token is admin token
   const isAdmin = token === process.env.ADMIN_TOKEN;
-  
-  res.json({ 
+
+  res.json({
     valid: isValidToken || isAdmin,
     isAdmin: isAdmin
   });
@@ -90,8 +99,8 @@ app.post('/api/execute', async (req, res) => {
   );
 
   if (containsDisallowedKeyword) {
-    return res.status(400).json({ 
-      error: 'Query contains disallowed keywords for data modification' 
+    return res.status(400).json({
+      error: 'Query contains disallowed keywords for data modification'
     });
   }
 
@@ -99,19 +108,19 @@ app.post('/api/execute', async (req, res) => {
     const connection = await pool.getConnection();
     try {
       console.log('Executing query:', query);
-      
+
       const startTime = process.hrtime();
       const [rows, fields] = await connection.query(query);
       const endTime = process.hrtime(startTime);
-      
+
       // Convert to milliseconds
       const executionTime = (endTime[0] * 1000 + endTime[1] / 1000000).toFixed(2);
-      
+
       const columns = fields.map(field => field.name);
       console.log(`Query executed successfully in ${executionTime}ms`);
-      
-      res.json({ 
-        columns, 
+
+      res.json({
+        columns,
         rows,
         executionTime: `${executionTime}ms`
       });
@@ -138,11 +147,18 @@ app.get('/health', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ 
-    success: false, 
+  res.status(500).json({
+    success: false,
     error: 'Internal Server Error'
   });
 });
+
+app._router.stack.forEach(function(r){
+  if (r.route && r.route.path){
+      console.log(r.route.path)
+  }
+});
+
 
 // const options = {
 //   key: fs.readFileSync('/etc/letsencrypt/live/api.practicalsystemdesign.com/privkey.pem'),
