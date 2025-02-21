@@ -1,3 +1,4 @@
+// File: routes/code-execution.js
 const express = require('express');
 const { executeJavaCode } = require('../services/codeExecutor');
 const router = express.Router();
@@ -5,53 +6,85 @@ const Submission = require('../models/Submission');
 
 // Sample problem definitions
 const problems = {
-  'two-sum': {
-    id: 'two-sum',
-    title: 'Two Sum',
-    description: 'Given an array of integers nums and a target value, find the indices of two numbers in the array that add up to the target.',
-    inputFormat: 'The first line contains space-separated integers representing the array.\nThe second line contains a single integer representing the target sum.',
-    outputFormat: 'Output two space-separated integers representing the indices of the two numbers that add up to the target.',
+  'minimumpathsum': {
+    id: 'minimumpathsum',
+    title: 'Minimum Path Sum',
+    description: 'Given a m x n grid filled with non-negative numbers, find a path from top left to bottom right, which minimizes the sum of all numbers along its path.\n\nNote: You can only move either down or right at any point in time.',
+    inputFormat: 'The first line contains two space-separated integers m and n representing the grid dimensions.\nThe next m lines contain n space-separated integers each representing the grid values.',
+    outputFormat: 'Output a single integer representing the minimum path sum.',
     constraints: [
-      '2 ≤ array length ≤ 100', 
-      '-1000 ≤ array elements ≤ 1000',
-      'The input will have exactly one valid solution',
-      'You may not use the same element twice'
+      '1 ≤ m, n ≤ 200',
+      '0 ≤ grid[i][j] ≤ 100'
     ],
     example: {
-      input: '2 7 11 15\n9',
-      output: '0 1'
+      input: '3 3\n1 3 1\n1 5 1\n4 2 1',
+      output: '7'
     },
-    functionTemplate: 'class TwoSum {\n    public int[] twoSum(int[] nums, int target) {\n        // Write your code here\n    }\n}',
-    solution: 'class TwoSum {\n    public int[] twoSum(int[] nums, int target) {\n        for (int i = 0; i < nums.length; i++) {\n            for (int j = i + 1; j < nums.length; j++) {\n                if (nums[i] + nums[j] == target) {\n                    return new int[] {i, j};\n                }\n            }\n        }\n        return new int[] {}; // No solution found\n    }\n}',
+    functionTemplate: 'class MinPathSum {\n    public int minPathSum(int[][] grid) {\n        // Write your code here\n    }\n}',
+    solution: 'class MinPathSum {\n    public int minPathSum(int[][] grid) {\n        int m = grid.length;\n        int n = grid[0].length;\n        \n        // Calculate cumulative sums\n        for(int i = 0; i < m; i++) {\n            for(int j = 0; j < n; j++) {\n                if(i == 0 && j == 0) continue;\n                else if(i == 0) grid[i][j] += grid[i][j-1];\n                else if(j == 0) grid[i][j] += grid[i-1][j];\n                else grid[i][j] += Math.min(grid[i-1][j], grid[i][j-1]);\n            }\n        }\n        \n        return grid[m-1][n-1];\n    }\n}',
     testCases: [
       {
-        input: '2 7 11 15\n9',
-        expectedOutput: '0 1',
+        input: '3 3\n1 3 1\n1 5 1\n4 2 1',
+        expectedOutput: '7',
+        description: 'Example test case'
+      },
+      {
+        input: '2 3\n1 2 3\n4 5 6',
+        expectedOutput: '12',
+        description: 'Simple rectangular grid'
+      },
+      {
+        input: '1 1\n5',
+        expectedOutput: '5',
+        description: '1x1 grid'
+      },
+      {
+        input: '3 3\n9 9 9\n9 9 9\n9 9 9',
+        expectedOutput: '45',
+        description: 'Grid with all same values'
+      }
+    ]
+  },
+  'longestcommonprefix': {
+    id: 'longestcommonprefix',
+    title: 'Longest Common Prefix',
+    description: 'Write a function to find the longest common prefix string amongst an array of strings.\n\nIf there is no common prefix, return an empty string "".',
+    inputFormat: 'A single line containing space-separated strings.',
+    outputFormat: 'Output the longest common prefix string. If there is no common prefix, output an empty string.',
+    constraints: [
+      '1 ≤ strs.length ≤ 200',
+      '0 ≤ strs[i].length ≤ 200',
+      'strs[i] consists of only lowercase English letters'
+    ],
+    example: {
+      input: 'flower flow flight',
+      output: 'fl'
+    },
+    functionTemplate: 'class LongestPrefix {\n    public String longestCommonPrefix(String[] strs) {\n        // Write your code here\n    }\n}',
+    solution: 'class LongestPrefix {\n    public String longestCommonPrefix(String[] strs) {\n        if (strs == null || strs.length == 0) return "";\n        \n        String prefix = strs[0];\n        for(int i = 1; i < strs.length; i++) {\n            while(strs[i].indexOf(prefix) != 0) {\n                prefix = prefix.substring(0, prefix.length() - 1);\n                if(prefix.isEmpty()) return "";\n            }\n        }\n        return prefix;\n    }\n}',
+    testCases: [
+      {
+        input: 'flower flow flight',
+        expectedOutput: 'fl',
         description: 'Basic test case'
       },
       {
-        input: '3 2 4\n6',
-        expectedOutput: '1 2',
-        description: 'Target in middle of array'
+        input: 'dog racecar car',
+        expectedOutput: '',
+        description: 'No common prefix'
       },
       {
-        input: '3 3\n6',
-        expectedOutput: '0 1',
-        description: 'Duplicate numbers'
+        input: 'interspecies interstellar interstate',
+        expectedOutput: 'inters',
+        description: 'Longer common prefix'
       },
       {
-        input: '1 5 8 3 9 12\n21',
-        expectedOutput: '2 5',
-        description: 'Larger array'
-      },
-      {
-        input: '-1 -2 -3 -4 -5\n-8',
-        expectedOutput: '2 4',
-        description: 'Negative numbers'
+        input: 'throne throne throne',
+        expectedOutput: 'throne',
+        description: 'All strings are identical'
       }
     ]
   }
-  // You can remove the find-min problem or keep it as needed
 };
 
 const problemList = Object.values(problems).map(problem => ({
@@ -73,7 +106,10 @@ router.get('/problems', (req, res) => {
 
 // Get a specific problem
 router.get('/problems/:id', (req, res) => {
+  console.log('Requested problem ID:', req.params.id);
+  console.log('Available problems:', Object.keys(problems));
   const problem = problems[req.params.id];
+  console.log('Found problem:', problem);
   if (!problem) {
     return res.status(404).json({ 
       success: false,
@@ -88,6 +124,31 @@ router.get('/problems/:id', (req, res) => {
     ...problemData,
     showSolution: !!problem.solution
   });
+});
+
+// Get submissions with optional username filter
+router.get('/submissions', async (req, res) => {
+  try {
+    const { username } = req.query;
+    const query = username ? { username } : {};
+    
+    const submissions = await Submission.find(query)
+      .sort({ score: -1, createdAt: -1 })
+      .select('username problemId score passedTests totalTests executionTime createdAt');
+    
+    console.log('Fetching submissions with query:', query);
+    
+    res.json(submissions);
+  } catch (error) {
+    console.error('Error fetching submissions:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to fetch submissions',
+        stack: error.message
+      }
+    });
+  }
 });
 
 // Submit code for execution
@@ -153,29 +214,6 @@ router.post('/submit', async (req, res) => {
       success: false,
       error: {
         message: 'Execution failed',
-        stack: error.message
-      }
-    });
-  }
-});
-
-router.get('/submissions', async (req, res) => {
-  try {
-    const { username } = req.query;
-    const query = username ? { username } : {};
-    
-    const submissions = await Submission.find(query)
-      .sort({ score: -1, createdAt: -1 })
-      // .select('username problemId score passedTests totalTests executionTime createdAt');
-    console.log('Fetching submissions with query:', query); // Debug log
-    
-    res.json(submissions);
-  } catch (error) {
-    console.error('Error fetching submissions:', error); // Debug log
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Failed to fetch submissions',
         stack: error.message
       }
     });
