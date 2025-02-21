@@ -117,7 +117,8 @@ router.post('/submit', async (req, res) => {
   
   try {
     // Execute code against test cases
-    const result = await executeJavaCode(code, problemId, problem.testCases);
+    const result = await executeJavaCode(code, problem.testCases);
+    console.log(result);
     res.json(result);
   } catch (error) {
     console.error('Code execution error:', error);

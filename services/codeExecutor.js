@@ -3,7 +3,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-const BASE_DIR = '/tmp/code-runner';
+const BASE_DIR = './tmp/code-runner';
 
 // Initialize the execution directory
 async function initializeDirectories() {
@@ -18,7 +18,7 @@ async function initializeDirectories() {
 const { generateJavaWrapper } = require('./javaWrapper');
 
 // Execute Java code
-async function executeJavaCode(code, problemId, testCases) {
+async function executeJavaCode(code, testCases) {
   const submissionId = uuidv4();
   const executionDir = path.join(BASE_DIR, submissionId);
   
