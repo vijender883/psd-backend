@@ -1,6 +1,21 @@
 // models/Submission.js
 const mongoose = require('mongoose');
 
+// Connection error handling
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected');
+});
+
+// Handle application termination
+process.on('SIGINT', async () => {
+  await mongoose.connection.close();
+  process.exit(0);
+});
+
 const submissionSchema = new mongoose.Schema({
   username: {
     type: String,
