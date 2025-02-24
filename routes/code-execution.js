@@ -7,6 +7,167 @@ const { analyzeProblemAndSolution } = require('../services/llmService');
 
 // Sample problem definitions
 const problems = {
+  'diagonaltraversal': {
+    id: 'diagonaltraversal',
+    title: 'Binary Tree Diagonal Traversal',
+    description: `Given the root of a binary tree, return the diagonal traversal of its nodes' values. A diagonal path consists of nodes that can be reached by following only the right child pointers. When you can't go right anymore, you move to the leftmost node of the next diagonal path.
+
+<div style="text-align: center; margin: 20px 0;">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 450">
+    <!-- Background for better visibility -->
+    <rect width="500" height="400" fill="#ffffff"/>
+    
+    <!-- Tree edges -->
+    <g stroke="#666" stroke-width="2">
+        <!-- Level 1 edges -->
+        <path d="M250,50 L150,120" />
+        <path d="M250,50 L350,120" />
+        <!-- Level 2 edges -->
+        <path d="M150,120 L100,190" />
+        <path d="M150,120 L200,190" />
+        <path d="M350,120 L450,190" />
+        <!-- Level 3 edge -->
+        <path d="M200,190 L175,260" />
+        <path d="M450,190 L500,260" />
+    </g>
+
+    <!-- Diagonal path highlights -->
+    <!-- First diagonal path: 1->3->6->8 -->
+    <path d="M250,50 L350,120 L450,190 L500,260" 
+          stroke="#4CAF50" stroke-width="4" fill="none" 
+          stroke-dasharray="5,5"/>
+    <!-- Second diagonal path: 2->5 -->
+    <path d="M150,120 L200,190" 
+          stroke="#2196F3" stroke-width="4" fill="none"
+          stroke-dasharray="5,5"/>
+    <!-- Third diagonal path: 4 -->
+    <path d="M100,190 L100,190" 
+          stroke="#FFC107" stroke-width="4" fill="none"
+          stroke-dasharray="5,5"/>
+    <!-- Fourth diagonal path: 7 -->
+    <path d="M175,260 L175,260" 
+          stroke="#9C27B0" stroke-width="4" fill="none"
+          stroke-dasharray="5,5"/>
+
+    <!-- Tree nodes -->
+    <g>
+        <!-- Level 1 -->
+        <circle cx="250" cy="50" r="20" fill="white" stroke="#333" stroke-width="2"/>
+        <text x="250" y="55" text-anchor="middle" font-family="Arial" font-size="16">1</text>
+        
+        <!-- Level 2 -->
+        <circle cx="150" cy="120" r="20" fill="white" stroke="#333" stroke-width="2"/>
+        <text x="150" y="125" text-anchor="middle" font-family="Arial" font-size="16">2</text>
+        
+        <circle cx="350" cy="120" r="20" fill="white" stroke="#333" stroke-width="2"/>
+        <text x="350" y="125" text-anchor="middle" font-family="Arial" font-size="16">3</text>
+        
+        <!-- Level 3 -->
+        <circle cx="100" cy="190" r="20" fill="white" stroke="#333" stroke-width="2"/>
+        <text x="100" y="195" text-anchor="middle" font-family="Arial" font-size="16">4</text>
+        
+        <circle cx="200" cy="190" r="20" fill="white" stroke="#333" stroke-width="2"/>
+        <text x="200" y="195" text-anchor="middle" font-family="Arial" font-size="16">5</text>
+        
+        <circle cx="450" cy="190" r="20" fill="white" stroke="#333" stroke-width="2"/>
+        <text x="450" y="195" text-anchor="middle" font-family="Arial" font-size="16">6</text>
+        
+        <!-- Level 4 -->
+        <circle cx="175" cy="260" r="20" fill="white" stroke="#333" stroke-width="2"/>
+        <text x="175" y="265" text-anchor="middle" font-family="Arial" font-size="16">7</text>
+        
+        <circle cx="500" cy="260" r="20" fill="white" stroke="#333" stroke-width="2"/>
+        <text x="500" y="265" text-anchor="middle" font-family="Arial" font-size="16">8</text>
+    </g>
+
+    <!-- Legend -->
+    <g transform="translate(20, 320)">
+        <rect width="460" height="60" fill="#f8f9fa" rx="5"/>
+        <text x="10" y="20" font-family="Arial" font-size="14" fill="#333">Diagonal Paths:</text>
+        <g transform="translate(10, 35)">
+            <line x1="0" y1="0" x2="20" y2="0" stroke="#4CAF50" stroke-width="3" stroke-dasharray="5,5"/>
+            <text x="30" y="5" font-family="Arial" font-size="12">Path 1: 1→3→6→8</text>
+            
+            <line x1="150" y1="0" x2="170" y2="0" stroke="#2196F3" stroke-width="3" stroke-dasharray="5,5"/>
+            <text x="180" y="5" font-family="Arial" font-size="12">Path 2: 2→5</text>
+            
+            <line x1="270" y1="0" x2="290" y2="0" stroke="#FFC107" stroke-width="3" stroke-dasharray="5,5"/>
+            <text x="300" y="5" font-family="Arial" font-size="12">Path 3: 4</text>
+            
+            <line x1="370" y1="0" x2="390" y2="0" stroke="#9C27B0" stroke-width="3" stroke-dasharray="5,5"/>
+            <text x="400" y="5" font-family="Arial" font-size="12">Path 4: 7</text>
+        </g>
+    </g>
+</svg>
+</div>
+
+In the above tree:
+- Diagonal 1 (green): 1 → 3 → 6 → 8
+- Diagonal 2 (blue): 2 → 5
+- Diagonal 3 (yellow): 4
+- Diagonal 4 (purple): 7
+
+The output should be: [[1,3,6,8], [2,5], [4], [7]]`,
+    inputFormat: 'The input is provided as a series of space-separated integers representing the tree in level-order format. Use -1 to represent null nodes.',
+    outputFormat: 'Return a list of lists where each inner list represents nodes in a diagonal path from left to right.',
+    constraints: [
+      'The number of nodes in the tree is in the range [0, 104]',
+      '-100 <= Node.val <= 100'
+    ],
+    example: {
+      input: '1 2 3 4 5 -1 6',
+      output: '[[1,3,6],[2,5],[4]]'
+    },
+    functionTemplate: 'class DiagonalTraversal {\n    public List<List<Integer>> diagonalTraversal(TreeNode root) {\n        // Write your code here\n    }\n}',
+    solution: '// Your diagonal traversal solution here',
+    testCases: [
+      {
+        input: '1 2 3 4 5 -1 6',
+        expectedOutput: '[[1,3,6],[2,5],[4]]',
+        description: 'Example test case'
+      },
+      {
+        input: '3 9 20 -1 -1 15 7',
+        expectedOutput: '[[3,20,7],[9,15]]',
+        description: 'Test case with balanced tree'
+      }
+    ]
+  },
+
+  'longestincreasing': {
+    id: 'longestincreasing',
+    title: 'Longest Increasing Subsequence',
+    description: 'Given an integer array nums, return the length of the longest strictly increasing subsequence.\n\nA subsequence is a sequence that can be derived from an array by deleting some or no elements without changing the order of the remaining elements.',
+    inputFormat: 'The first line contains an integer n denoting the size of the array.\nThe second line contains n space-separated integers denoting the elements of the array.',
+    outputFormat: 'Return an integer representing the length of the longest strictly increasing subsequence.',
+    constraints: [
+      '1 <= nums.length <= 2500',
+      '-104 <= nums[i] <= 104'
+    ],
+    example: {
+      input: '8\n10 9 2 5 3 7 101 18',
+      output: '4'
+    },
+    functionTemplate: 'class LengthOfLIS {\n    public int lengthOfLIS(int[] nums) {\n        // Write your code here\n    }\n}',
+    solution: '// Your LIS solution here',
+    testCases: [
+      {
+        input: '8\n10 9 2 5 3 7 101 18',
+        expectedOutput: '4',
+        description: 'Example test case'
+      },
+      {
+        input: '6\n0 1 0 3 2 3',
+        expectedOutput: '4',
+        description: 'Test case with duplicates'
+      },
+      {
+        input: '7\n7 7 7 7 7 7 7',
+        expectedOutput: '1',
+        description: 'Test case with all same numbers'
+      }
+    ]
+  },
   'minimumpathsum': {
     id: 'minimumpathsum',
     title: 'Minimum Path Sum',
@@ -203,41 +364,26 @@ router.post('/run', async (req, res) => {
   }
 });
 
-// Submit code for execution
-router.post('/submit', async (req, res) => {
+router.post('/analyze', async (req, res) => {
   const { code, problemId, username, timeComplexity, spaceComplexity } = req.body;
-  
-  // Input validation
-  if (!code || !problemId || !username || !timeComplexity || !spaceComplexity) {
-    return res.status(400).json({
-      success: false,
-      error: {
-        message: 'Missing required fields',
-        stack: 'Code, problemId, username, timeComplexity, and spaceComplexity are required'
-      }
-    });
-  }
-  
+
   const problem = problems[problemId];
   if (!problem) {
     return res.status(404).json({
       success: false,
-      error: {
-        message: 'Problem not found',
-        stack: `No problem found with ID: ${problemId}`
-      }
+      error: 'Problem not found'
     });
   }
-  
+
   try {
-    // First execute code against test cases
+    // Execute code first
     const result = await executeJavaCode(code, problem.testCases);
-    
+
     if (!result.success) {
       return res.json(result);
     }
 
-    // If code execution is successful, analyze with LLM
+    // Analyze with LLM
     const analysis = await analyzeProblemAndSolution(
       problem,
       code,
@@ -245,14 +391,14 @@ router.post('/submit', async (req, res) => {
       spaceComplexity
     );
 
-    // Calculate submission metrics
+    // Calculate metrics
     const totalTests = result.results.length;
     const passedTests = result.results.filter(r => r.passed).length;
-    const averageExecutionTime = result.results.reduce((sum, r) => 
+    const averageExecutionTime = result.results.reduce((sum, r) =>
       sum + r.executionTime, 0) / totalTests;
     const score = (passedTests / totalTests) * 100;
 
-    // Create submission record with analysis results
+    // Create and save submission
     const submission = new Submission({
       username,
       problemId,
@@ -276,11 +422,12 @@ router.post('/submit', async (req, res) => {
       }
     });
 
-    // Save to MongoDB
+    console.log(submission.isSuspicious);
     await submission.save();
 
-    // Add analysis results to the response
+    // Add analysis to result and send response
     result.analysis = analysis;
+    result.executionTime = averageExecutionTime;
 
     res.json(result);
   } catch (error) {
@@ -294,5 +441,97 @@ router.post('/submit', async (req, res) => {
     });
   }
 });
+
+// Submit code for execution
+// router.post('/submit', async (req, res) => {
+//   const { code, problemId, username, timeComplexity, spaceComplexity } = req.body;
+
+//   // Input validation
+//   if (!code || !problemId || !username || !timeComplexity || !spaceComplexity) {
+//     return res.status(400).json({
+//       success: false,
+//       error: {
+//         message: 'Missing required fields',
+//         stack: 'Code, problemId, username, timeComplexity, and spaceComplexity are required'
+//       }
+//     });
+//   }
+
+//   const problem = problems[problemId];
+//   if (!problem) {
+//     return res.status(404).json({
+//       success: false,
+//       error: {
+//         message: 'Problem not found',
+//         stack: `No problem found with ID: ${problemId}`
+//       }
+//     });
+//   }
+
+//   try {
+//     // First execute code against test cases
+//     const result = await executeJavaCode(code, problem.testCases);
+
+//     if (!result.success) {
+//       return res.json(result);
+//     }
+
+//     // If code execution is successful, analyze with LLM
+//     const analysis = await analyzeProblemAndSolution(
+//       problem,
+//       code,
+//       timeComplexity,
+//       spaceComplexity
+//     );
+
+//     // Calculate submission metrics
+//     const totalTests = result.results.length;
+//     const passedTests = result.results.filter(r => r.passed).length;
+//     const averageExecutionTime = result.results.reduce((sum, r) => 
+//       sum + r.executionTime, 0) / totalTests;
+//     const score = (passedTests / totalTests) * 100;
+
+//     // Create submission record with analysis results
+//     const submission = new Submission({
+//       username,
+//       problemId,
+//       code,
+//       executionTime: averageExecutionTime,
+//       score,
+//       passedTests,
+//       totalTests,
+//       results: result.results,
+//       timeComplexity,
+//       spaceComplexity,
+//       isSuspicious: analysis.isSuspicious,
+//       suspicionLevel: analysis.suspicionLevel,
+//       suspicionReasons: analysis.reasons,
+//       complexityAnalysis: {
+//         isTimeComplexityAccurate: analysis.isTimeComplexityAccurate,
+//         isSpaceComplexityAccurate: analysis.isSpaceComplexityAccurate,
+//         actualTimeComplexity: analysis.actualTimeComplexity,
+//         actualSpaceComplexity: analysis.actualSpaceComplexity,
+//         explanation: analysis.explanation
+//       }
+//     });
+
+//     // Save to MongoDB
+//     await submission.save();
+
+//     // Add analysis results to the response
+//     result.analysis = analysis;
+
+//     res.json(result);
+//   } catch (error) {
+//     console.error('Submission processing error:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: {
+//         message: 'Submission processing failed',
+//         stack: error.message
+//       }
+//     });
+//   }
+// });
 
 module.exports = router;

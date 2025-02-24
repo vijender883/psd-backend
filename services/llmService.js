@@ -30,7 +30,7 @@ async function analyzeProblemAndSolution(problem, code, timeComplexity, spaceCom
     
     Please analyze:
     1. If the code appears to be AI-generated (look for patterns typical in LLM outputs)
-    2. If the claimed time and space complexities are accurate
+    2. If the claimed time and space complexities are accurate also provide ideal time and space complexities(always provide ideal complexities)
     3. If the solution approach is reasonable for the problem
     
     Format your response as a JSON object with the following structure:
