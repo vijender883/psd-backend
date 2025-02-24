@@ -30,11 +30,34 @@ const SubmissionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  executionTime: Number,
-  score: Number,
-  passedTests: Number,
-  totalTests: Number,
-  results: Array,
+  executionTime: {
+    type: Number,
+    required: true
+  },
+  score: {
+    type: Number,
+    required: true
+  },
+  passedTests: {
+    type: Number,
+    required: true
+  },
+  totalTests: {
+    type: Number,
+    required: true
+  },
+  results: [{
+    testCase: Number,
+    passed: Boolean,
+    input: String,
+    expectedOutput: String,
+    yourOutput: String,
+    executionTime: Number,
+    error: {
+      message: String,
+      stack: String
+    }
+  }],
   timeComplexity: {
     type: String,
     required: true
@@ -42,6 +65,45 @@ const SubmissionSchema = new mongoose.Schema({
   spaceComplexity: {
     type: String,
     required: true
+  },
+  // fields for LLM analysis
+  isSuspicious: {
+    type: Boolean,
+    required: true,
+    default: false
+  },
+  suspicionLevel: {
+    type: String,
+    enum: ['low', 'medium', 'high'],
+    required: true,
+    default: 'low'
+  },
+  suspicionReasons: [{
+    type: String
+  }],
+  complexityAnalysis: {
+    isTimeComplexityAccurate: {
+      type: Boolean,
+      required: true,
+      default: true
+    },
+    isSpaceComplexityAccurate: {
+      type: Boolean,
+      required: true,
+      default: true
+    },
+    actualTimeComplexity: {
+      type: String,
+      required: true
+    },
+    actualSpaceComplexity: {
+      type: String,
+      required: true
+    },
+    explanation: {
+      type: String,
+      required: true
+    }
   },
   createdAt: {
     type: Date,

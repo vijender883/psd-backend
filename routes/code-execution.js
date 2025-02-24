@@ -3,6 +3,7 @@ const express = require('express');
 const { executeJavaCode } = require('../services/codeExecutor');
 const router = express.Router();
 const Submission = require('../models/Submission');
+const { analyzeProblemAndSolution } = require('../services/llmService');
 
 // Sample problem definitions
 const problems = {
@@ -229,21 +230,29 @@ router.post('/submit', async (req, res) => {
   }
   
   try {
-    // Execute code against test cases
+    // First execute code against test cases
     const result = await executeJavaCode(code, problem.testCases);
     
     if (!result.success) {
       return res.json(result);
     }
 
-    // Calculate summary
+    // If code execution is successful, analyze with LLM
+    const analysis = await analyzeProblemAndSolution(
+      problem,
+      code,
+      timeComplexity,
+      spaceComplexity
+    );
+
+    // Calculate submission metrics
     const totalTests = result.results.length;
-    const passedTests = result.results.filter(result => result.passed).length;
-    const averageExecutionTime = result.results.reduce((sum, result) => 
-      sum + result.executionTime, 0) / totalTests;
+    const passedTests = result.results.filter(r => r.passed).length;
+    const averageExecutionTime = result.results.reduce((sum, r) => 
+      sum + r.executionTime, 0) / totalTests;
     const score = (passedTests / totalTests) * 100;
 
-    // Create submission record with complexity information
+    // Create submission record with analysis results
     const submission = new Submission({
       username,
       problemId,
@@ -254,19 +263,32 @@ router.post('/submit', async (req, res) => {
       totalTests,
       results: result.results,
       timeComplexity,
-      spaceComplexity
+      spaceComplexity,
+      isSuspicious: analysis.isSuspicious,
+      suspicionLevel: analysis.suspicionLevel,
+      suspicionReasons: analysis.reasons,
+      complexityAnalysis: {
+        isTimeComplexityAccurate: analysis.isTimeComplexityAccurate,
+        isSpaceComplexityAccurate: analysis.isSpaceComplexityAccurate,
+        actualTimeComplexity: analysis.actualTimeComplexity,
+        actualSpaceComplexity: analysis.actualSpaceComplexity,
+        explanation: analysis.explanation
+      }
     });
 
     // Save to MongoDB
     await submission.save();
 
+    // Add analysis results to the response
+    result.analysis = analysis;
+
     res.json(result);
   } catch (error) {
-    console.error('Code execution error:', error);
+    console.error('Submission processing error:', error);
     res.status(500).json({
       success: false,
       error: {
-        message: 'Execution failed',
+        message: 'Submission processing failed',
         stack: error.message
       }
     });
