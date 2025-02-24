@@ -10,7 +10,7 @@ const problems = {
     id: 'minimumpathsum',
     title: 'Minimum Path Sum',
     description: 'Given a m x n grid filled with non-negative numbers, find a path from top left to bottom right, which minimizes the sum of all numbers along its path.<br><br>Note: You can only move either down or right at any point in time.<br><br><img src="https://assets.leetcode.com/uploads/2020/11/05/minpath.jpg" alt="Grid Example" style="width: 180px; height: auto; display: block; margin: 1.5rem 1rem 2rem 1rem">',
-    
+
     inputFormat: 'The first line contains two space-separated integers m and n representing the grid dimensions.\nThe next m lines contain n space-separated integers each representing the grid values.',
     outputFormat: 'Output a single integer representing the minimum path sum.',
     constraints: [
@@ -112,15 +112,15 @@ router.get('/problems/:id', (req, res) => {
   const problem = problems[req.params.id];
   console.log('Found problem:', problem);
   if (!problem) {
-    return res.status(404).json({ 
+    return res.status(404).json({
       success: false,
-      error: 'Problem not found' 
+      error: 'Problem not found'
     });
   }
-  
+
   // Don't send test cases to frontend
   const { testCases, ...problemData } = problem;
-  
+
   res.json({
     ...problemData,
     showSolution: !!problem.solution
@@ -132,13 +132,13 @@ router.get('/submissions', async (req, res) => {
   try {
     const { username } = req.query;
     const query = username ? { username } : {};
-    
+
     const submissions = await Submission.find(query)
       .sort({ score: -1, createdAt: -1 })
       .select('username problemId score passedTests totalTests executionTime createdAt');
-    
+
     console.log('Fetching submissions with query:', query);
-    
+
     res.json(submissions);
   } catch (error) {
     console.error('Error fetching submissions:', error);
@@ -152,17 +152,67 @@ router.get('/submissions', async (req, res) => {
   }
 });
 
-// Submit code for execution
-router.post('/submit', async (req, res) => {
-  const { code, problemId, username } = req.body;
-  
+// Run
+router.post('/run', async (req, res) => {
+  const { code, problemId } = req.body;
+
   // Input validation
-  if (!code || !problemId || !username) {
+  if (!code || !problemId) {
     return res.status(400).json({
       success: false,
       error: {
         message: 'Missing required fields',
-        stack: 'Code, problemId, and username are required'
+        stack: 'Code and problemId are required'
+      }
+    });
+  }
+
+  const problem = problems[problemId];
+  if (!problem) {
+    return res.status(404).json({
+      success: false,
+      error: {
+        message: 'Problem not found',
+        stack: `No problem found with ID: ${problemId}`
+      }
+    });
+  }
+
+  try {
+    // Take only first two test cases
+    const limitedTestCases = problem.testCases.slice(0, 2);
+
+    // Execute code against limited test cases
+    const result = await executeJavaCode(code, limitedTestCases);
+
+    if (!result.success) {
+      return res.json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Code execution error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Execution failed',
+        stack: error.message
+      }
+    });
+  }
+});
+
+// Submit code for execution
+router.post('/submit', async (req, res) => {
+  const { code, problemId, username, timeComplexity, spaceComplexity } = req.body;
+  
+  // Input validation
+  if (!code || !problemId || !username || !timeComplexity || !spaceComplexity) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        message: 'Missing required fields',
+        stack: 'Code, problemId, username, timeComplexity, and spaceComplexity are required'
       }
     });
   }
@@ -193,7 +243,7 @@ router.post('/submit', async (req, res) => {
       sum + result.executionTime, 0) / totalTests;
     const score = (passedTests / totalTests) * 100;
 
-    // Create submission record
+    // Create submission record with complexity information
     const submission = new Submission({
       username,
       problemId,
@@ -202,7 +252,9 @@ router.post('/submit', async (req, res) => {
       score,
       passedTests,
       totalTests,
-      results: result.results
+      results: result.results,
+      timeComplexity,
+      spaceComplexity
     });
 
     // Save to MongoDB

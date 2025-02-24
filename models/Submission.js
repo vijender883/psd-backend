@@ -16,11 +16,11 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-const submissionSchema = new mongoose.Schema({
+
+const SubmissionSchema = new mongoose.Schema({
   username: {
     type: String,
-    required: true,
-    trim: true
+    required: true
   },
   problemId: {
     type: String,
@@ -30,39 +30,23 @@ const submissionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  executionTime: {
-    type: Number,
+  executionTime: Number,
+  score: Number,
+  passedTests: Number,
+  totalTests: Number,
+  results: Array,
+  timeComplexity: {
+    type: String,
     required: true
   },
-  score: {
-    type: Number,
+  spaceComplexity: {
+    type: String,
     required: true
   },
-  passedTests: {
-    type: Number,
-    required: true
-  },
-  totalTests: {
-    type: Number,
-    required: true
-  },
-  results: [{
-    testCase: Number,
-    description: String,
-    input: String,
-    expectedOutput: String,
-    yourOutput: String,
-    passed: Boolean,
-    executionTime: Number,
-    error: {
-      message: String,
-      stack: String
-    }
-  }],
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
 
-module.exports = mongoose.model('Submission', submissionSchema);
+module.exports = mongoose.model('Submission', SubmissionSchema);
