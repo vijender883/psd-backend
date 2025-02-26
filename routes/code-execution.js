@@ -297,7 +297,7 @@ router.get('/submissions', async (req, res) => {
 
     const submissions = await Submission.find(query)
       .sort({ score: -1, createdAt: -1 })
-      .select('username problemId score passedTests totalTests executionTime createdAt');
+      .select('username problemId score passedTests totalTests executionTime createdAt show');
 
     console.log('Fetching submissions with query:', query);
 
@@ -314,7 +314,207 @@ router.get('/submissions', async (req, res) => {
   }
 });
 
-// Run
+// Analyze and submit code
+router.post('/analyze', async (req, res) => {
+  const { code, problemId, username, timeComplexity, spaceComplexity } = req.body;
+
+  const problem = problems[problemId];
+  if (!problem) {
+    return res.status(404).json({
+      success: false,
+      error: 'Problem not found'
+    });
+  }
+
+  try {
+    // Execute code first
+    const result = await executeJavaCode(code, problem.testCases);
+
+    if (!result.success) {
+      return res.json(result);
+    }
+
+    // Analyze with LLM - skip suspicion check for now
+    const analysis = await analyzeProblemAndSolution(
+      problem,
+      code,
+      timeComplexity,
+      spaceComplexity
+    );
+
+    // Calculate metrics
+    const totalTests = result.results.length;
+    const passedTests = result.results.filter(r => r.passed).length;
+    const averageExecutionTime = result.results.reduce((sum, r) =>
+      sum + r.executionTime, 0) / totalTests;
+    const score = (passedTests / totalTests) * 100;
+
+    // Create and save submission
+    const submission = new Submission({
+      username,
+      problemId,
+      code,
+      executionTime: averageExecutionTime,
+      score,
+      passedTests,
+      totalTests,
+      results: result.results,
+      timeComplexity,
+      spaceComplexity,
+      show: false, // Default to not showing results until admin approves
+      isSuspicious: false, // Skip suspicion check as requested
+      suspicionLevel: 'low',
+      suspicionReasons: [],
+      complexityAnalysis: {
+        isTimeComplexityAccurate: analysis.isTimeComplexityAccurate,
+        isSpaceComplexityAccurate: analysis.isSpaceComplexityAccurate,
+        actualTimeComplexity: analysis.actualTimeComplexity,
+        actualSpaceComplexity: analysis.actualSpaceComplexity,
+        explanation: analysis.explanation
+      }
+    });
+
+    await submission.save();
+
+    console.log(submission._id);
+
+    // Return minimal information after submission
+    res.json({
+      success: true,
+      message: "Submission received successfully",
+      submissionId: submission._id,
+      pendingApproval: true
+    });
+    
+  } catch (error) {
+    console.error('Submission processing error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Submission processing failed',
+        stack: error.message
+      }
+    });
+  }
+});
+
+// Admin route to update submission visibility
+router.put('/admin/submission/:id', async (req, res) => {
+  const { show } = req.body;
+  
+  if (typeof show !== 'boolean') {
+    return res.status(400).json({
+      success: false,
+      error: 'Show parameter must be a boolean'
+    });
+  }
+  
+  try {
+    const submission = await Submission.findById(req.params.id);
+    
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        error: 'Submission not found'
+      });
+    }
+    
+    submission.show = show;
+    await submission.save();
+    
+    res.json({
+      success: true,
+      message: `Submission ${show ? 'approved' : 'hidden'} successfully`,
+      id: submission._id,
+      show: submission.show
+    });
+    
+  } catch (error) {
+    console.error('Error updating submission visibility:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to update submission visibility',
+        stack: error.message
+      }
+    });
+  }
+});
+
+// Get a specific submission
+router.get('/submission/:id', async (req, res) => {
+  try {
+    const submission = await Submission.findById(req.params.id);
+    
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        error: 'Submission not found'
+      });
+    }
+    
+    // Check if the submission is allowed to be shown
+    if (!submission.show) {
+      return res.status(403).json({
+        success: false,
+        error: 'Results are not yet available for this submission'
+      });
+    }
+    
+    res.json({
+      success: true,
+      results: submission.results,
+      executionTime: submission.executionTime,
+      score: submission.score,
+      passedTests: submission.passedTests,
+      totalTests: submission.totalTests,
+      timeComplexity: submission.timeComplexity,
+      spaceComplexity: submission.spaceComplexity
+    });
+    
+  } catch (error) {
+    console.error('Error fetching submission:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to fetch submission',
+        stack: error.message
+      }
+    });
+  }
+});
+
+// Check submission status
+router.get('/submission-status/:id', async (req, res) => {
+  try {
+    const submission = await Submission.findById(req.params.id);
+    
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        error: 'Submission not found'
+      });
+    }
+    
+    res.json({
+      id: submission._id,
+      show: submission.show,
+      createdAt: submission.createdAt
+    });
+    
+  } catch (error) {
+    console.error('Error checking submission status:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to check submission status',
+        stack: error.message
+      }
+    });
+  }
+});
+
+// Run code (test run, not submission)
 router.post('/run', async (req, res) => {
   const { code, problemId } = req.body;
 
@@ -358,84 +558,6 @@ router.post('/run', async (req, res) => {
       success: false,
       error: {
         message: 'Execution failed',
-        stack: error.message
-      }
-    });
-  }
-});
-
-router.post('/analyze', async (req, res) => {
-  const { code, problemId, username, timeComplexity, spaceComplexity } = req.body;
-
-  const problem = problems[problemId];
-  if (!problem) {
-    return res.status(404).json({
-      success: false,
-      error: 'Problem not found'
-    });
-  }
-
-  try {
-    // Execute code first
-    const result = await executeJavaCode(code, problem.testCases);
-
-    if (!result.success) {
-      return res.json(result);
-    }
-
-    // Analyze with LLM
-    const analysis = await analyzeProblemAndSolution(
-      problem,
-      code,
-      timeComplexity,
-      spaceComplexity
-    );
-
-    // Calculate metrics
-    const totalTests = result.results.length;
-    const passedTests = result.results.filter(r => r.passed).length;
-    const averageExecutionTime = result.results.reduce((sum, r) =>
-      sum + r.executionTime, 0) / totalTests;
-    const score = (passedTests / totalTests) * 100;
-
-    // Create and save submission
-    const submission = new Submission({
-      username,
-      problemId,
-      code,
-      executionTime: averageExecutionTime,
-      score,
-      passedTests,
-      totalTests,
-      results: result.results,
-      timeComplexity,
-      spaceComplexity,
-      isSuspicious: analysis.isSuspicious,
-      suspicionLevel: analysis.suspicionLevel,
-      suspicionReasons: analysis.reasons,
-      complexityAnalysis: {
-        isTimeComplexityAccurate: analysis.isTimeComplexityAccurate,
-        isSpaceComplexityAccurate: analysis.isSpaceComplexityAccurate,
-        actualTimeComplexity: analysis.actualTimeComplexity,
-        actualSpaceComplexity: analysis.actualSpaceComplexity,
-        explanation: analysis.explanation
-      }
-    });
-
-    console.log(submission.isSuspicious);
-    await submission.save();
-
-    // Add analysis to result and send response
-    result.analysis = analysis;
-    result.executionTime = averageExecutionTime;
-
-    res.json(result);
-  } catch (error) {
-    console.error('Submission processing error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Submission processing failed',
         stack: error.message
       }
     });

@@ -22,6 +22,11 @@ const SubmissionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  show: {
+    type: Boolean,
+    required: true,
+    default: false,
+  },
   problemId: {
     type: String,
     required: true
