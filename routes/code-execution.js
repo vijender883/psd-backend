@@ -1,12 +1,12 @@
 // File: routes/code-execution.js
 const express = require('express');
-const { executeJavaCode } = require('../services/codeExecutor');
+const { executeCode } = require('../services/codeExecutor');
 const router = express.Router();
 const Submission = require('../models/Submission');
 const { analyzeProblemAndSolution } = require('../services/llmService');
 
-// Sample problem definitions
 const problems = {
+  // Existing problems with both Java and Python templates
   'diagonaltraversal': {
     id: 'diagonaltraversal',
     title: 'Binary Tree Diagonal Traversal',
@@ -14,7 +14,7 @@ const problems = {
 
 <div style="text-align: center; margin: 20px 0;">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 450">
-    <!-- Background for better visibility -->
+        <!-- Background for better visibility -->
     <rect width="500" height="400" fill="#ffffff"/>
     
     <!-- Tree edges -->
@@ -36,7 +36,7 @@ const problems = {
     <path d="M250,50 L350,120 L450,190 L500,260" 
           stroke="#4CAF50" stroke-width="4" fill="none" 
           stroke-dasharray="5,5"/>
-    <!-- Second diagonal path: 2->5 -->
+        <!-- Second diagonal path: 2->5 -->
     <path d="M150,120 L200,190" 
           stroke="#2196F3" stroke-width="4" fill="none"
           stroke-dasharray="5,5"/>
@@ -54,7 +54,7 @@ const problems = {
         <!-- Level 1 -->
         <circle cx="250" cy="50" r="20" fill="white" stroke="#333" stroke-width="2"/>
         <text x="250" y="55" text-anchor="middle" font-family="Arial" font-size="16">1</text>
-        
+
         <!-- Level 2 -->
         <circle cx="150" cy="120" r="20" fill="white" stroke="#333" stroke-width="2"/>
         <text x="150" y="125" text-anchor="middle" font-family="Arial" font-size="16">2</text>
@@ -71,8 +71,8 @@ const problems = {
         
         <circle cx="450" cy="190" r="20" fill="white" stroke="#333" stroke-width="2"/>
         <text x="450" y="195" text-anchor="middle" font-family="Arial" font-size="16">6</text>
-        
-        <!-- Level 4 -->
+
+            <!-- Level 4 -->
         <circle cx="175" cy="260" r="20" fill="white" stroke="#333" stroke-width="2"/>
         <text x="175" y="265" text-anchor="middle" font-family="Arial" font-size="16">7</text>
         
@@ -98,7 +98,7 @@ const problems = {
             <text x="400" y="5" font-family="Arial" font-size="12">Path 4: 7</text>
         </g>
     </g>
-</svg>
+  </svg>
 </div>
 
 In the above tree:
@@ -118,7 +118,10 @@ The output should be: [[1,3,6,8], [2,5], [4], [7]]`,
       input: '1 2 3 4 5 -1 6',
       output: '[[1,3,6],[2,5],[4]]'
     },
-    functionTemplate: 'class DiagonalTraversal {\n    public List<List<Integer>> diagonalTraversal(TreeNode root) {\n        // Write your code here\n    }\n}',
+    templates: {
+      java: 'class DiagonalTraversal {\n    public List<List<Integer>> diagonalTraversal(TreeNode root) {\n        // Write your code here\n    }\n}',
+      python: 'class DiagonalTraversal:\n    def diagonal_traversal(self, root):\n        # Write your code here\n        pass'
+    },
     solution: '// Your diagonal traversal solution here',
     testCases: [
       {
@@ -148,7 +151,10 @@ The output should be: [[1,3,6,8], [2,5], [4], [7]]`,
       input: '8\n10 9 2 5 3 7 101 18',
       output: '4'
     },
-    functionTemplate: 'class LengthOfLIS {\n    public int lengthOfLIS(int[] nums) {\n        // Write your code here\n    }\n}',
+    templates: {
+      java: 'class LengthOfLIS {\n    public int lengthOfLIS(int[] nums) {\n        // Write your code here\n    }\n}',
+      python: 'class LengthOfLIS:\n    def length_of_lis(self, nums):\n        # Write your code here\n        pass'
+    },
     solution: '// Your LIS solution here',
     testCases: [
       {
@@ -172,7 +178,6 @@ The output should be: [[1,3,6,8], [2,5], [4], [7]]`,
     id: 'minimumpathsum',
     title: 'Minimum Path Sum',
     description: 'Given a m x n grid filled with non-negative numbers, find a path from top left to bottom right, which minimizes the sum of all numbers along its path.<br><br>Note: You can only move either down or right at any point in time.<br><br><img src="https://assets.leetcode.com/uploads/2020/11/05/minpath.jpg" alt="Grid Example" style="width: 180px; height: auto; display: block; margin: 1.5rem 1rem 2rem 1rem">',
-
     inputFormat: 'The first line contains two space-separated integers m and n representing the grid dimensions.\nThe next m lines contain n space-separated integers each representing the grid values.',
     outputFormat: 'Output a single integer representing the minimum path sum.',
     constraints: [
@@ -183,7 +188,10 @@ The output should be: [[1,3,6,8], [2,5], [4], [7]]`,
       input: '3 3\n1 3 1\n1 5 1\n4 2 1',
       output: '7'
     },
-    functionTemplate: 'class MinPathSum {\n    public int minPathSum(int[][] grid) {\n        // Write your code here\n    }\n}',
+    templates: {
+      java: 'class MinPathSum {\n    public int minPathSum(int[][] grid) {\n        // Write your code here\n    }\n}',
+      python: 'class MinPathSum:\n    def min_path_sum(self, grid):\n        # Write your code here\n        pass'
+    },
     solution: 'class MinPathSum {\n    public int minPathSum(int[][] grid) {\n        int m = grid.length;\n        int n = grid[0].length;\n        \n        // Calculate cumulative sums\n        for(int i = 0; i < m; i++) {\n            for(int j = 0; j < n; j++) {\n                if(i == 0 && j == 0) continue;\n                else if(i == 0) grid[i][j] += grid[i][j-1];\n                else if(j == 0) grid[i][j] += grid[i-1][j];\n                else grid[i][j] += Math.min(grid[i-1][j], grid[i][j-1]);\n            }\n        }\n        \n        return grid[m-1][n-1];\n    }\n}',
     testCases: [
       {
@@ -223,7 +231,10 @@ The output should be: [[1,3,6,8], [2,5], [4], [7]]`,
       input: 'flower flow flight',
       output: 'fl'
     },
-    functionTemplate: 'class LongestPrefix {\n    public String longestCommonPrefix(String[] strs) {\n        // Write your code here\n    }\n}',
+    templates: {
+      java: 'class LongestPrefix {\n    public String longestCommonPrefix(String[] strs) {\n        // Write your code here\n    }\n}',
+      python: 'class LongestPrefix:\n    def longest_common_prefix(self, strs):\n        # Write your code here\n        pass'
+    },
     solution: 'class LongestPrefix {\n    public String longestCommonPrefix(String[] strs) {\n        if (strs == null || strs.length == 0) return "";\n        \n        String prefix = strs[0];\n        for(int i = 1; i < strs.length; i++) {\n            while(strs[i].indexOf(prefix) != 0) {\n                prefix = prefix.substring(0, prefix.length() - 1);\n                if(prefix.isEmpty()) return "";\n            }\n        }\n        return prefix;\n    }\n}',
     testCases: [
       {
@@ -250,6 +261,7 @@ The output should be: [[1,3,6,8], [2,5], [4], [7]]`,
   }
 };
 
+// Convert problem list to include language-specific templates
 const problemList = Object.values(problems).map(problem => ({
   id: problem.id,
   title: problem.title,
@@ -258,7 +270,6 @@ const problemList = Object.values(problems).map(problem => ({
   outputFormat: problem.outputFormat,
   constraints: problem.constraints,
   example: problem.example,
-  functionTemplate: problem.functionTemplate,
   showSolution: !!problem.solution
 }));
 
@@ -267,12 +278,141 @@ router.get('/problems', (req, res) => {
   res.json(problemList);
 });
 
-// Get a specific problem
+// Get a specific submission
+router.get('/submission/:id', async (req, res) => {
+  try {
+    const submission = await Submission.findById(req.params.id);
+
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        error: 'Submission not found'
+      });
+    }
+
+    // Check if the submission is allowed to be shown
+    if (!submission.show) {
+      return res.status(403).json({
+        success: false,
+        error: 'Results are not yet available for this submission'
+      });
+    }
+
+    res.json({
+      success: true,
+      results: submission.results,
+      executionTime: submission.executionTime,
+      score: submission.score,
+      passedTests: submission.passedTests,
+      totalTests: submission.totalTests,
+      timeComplexity: submission.timeComplexity,
+      spaceComplexity: submission.spaceComplexity,
+      language: submission.language || 'java' // Include language info, default to java for backward compatibility
+    });
+
+  } catch (error) {
+    console.error('Error fetching submission:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to fetch submission',
+        stack: error.message
+      }
+    });
+  }
+});
+
+// Check submission status
+router.get('/submission-status/:id', async (req, res) => {
+  try {
+    const submission = await Submission.findById(req.params.id);
+
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        error: 'Submission not found'
+      });
+    }
+
+    res.json({
+      id: submission._id,
+      show: submission.show,
+      createdAt: submission.createdAt,
+      language: submission.language || 'java'
+    });
+
+  } catch (error) {
+    console.error('Error checking submission status:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to check submission status',
+        stack: error.message
+      }
+    });
+  }
+});
+
+// Run code (test run, not submission)
+router.post('/run', async (req, res) => {
+  const { code, problemId, language = 'java' } = req.body;
+
+  // Input validation
+  if (!code || !problemId) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        message: 'Missing required fields',
+        stack: 'Code and problemId are required'
+      }
+    });
+  }
+
+  const problem = problems[problemId];
+  if (!problem) {
+    return res.status(404).json({
+      success: false,
+      error: {
+        message: 'Problem not found',
+        stack: `No problem found with ID: ${problemId}`
+      }
+    });
+  }
+
+  try {
+    // Take only first two test cases
+    const limitedTestCases = problem.testCases.slice(0, 2);
+
+    // Execute code against limited test cases, passing the language parameter
+    const result = await executeCode(code, limitedTestCases, language);
+
+    if (!result.success) {
+      return res.json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Code execution error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Execution failed',
+        stack: error.message
+      }
+    });
+  }
+});
+
+module.exports = router;
+
+// Get a specific problem with language parameter
 router.get('/problems/:id', (req, res) => {
-  console.log('Requested problem ID:', req.params.id);
-  console.log('Available problems:', Object.keys(problems));
-  const problem = problems[req.params.id];
-  console.log('Found problem:', problem);
+  const { id } = req.params;
+  const { language = 'java' } = req.query; // Default to Java if no language specified
+
+  console.log(`Requested problem ID: ${id}, Language: ${language}`);
+
+  const problem = problems[id];
   if (!problem) {
     return res.status(404).json({
       success: false,
@@ -281,10 +421,14 @@ router.get('/problems/:id', (req, res) => {
   }
 
   // Don't send test cases to frontend
-  const { testCases, ...problemData } = problem;
+  const { testCases, templates, ...problemData } = problem;
+
+  // Send language-specific template
+  const functionTemplate = templates[language] || templates.java;
 
   res.json({
     ...problemData,
+    functionTemplate,
     showSolution: !!problem.solution
   });
 });
@@ -297,7 +441,7 @@ router.get('/submissions', async (req, res) => {
 
     const submissions = await Submission.find(query)
       .sort({ score: -1, createdAt: -1 })
-      .select('username problemId score passedTests totalTests executionTime createdAt show');
+      .select('username problemId score passedTests totalTests executionTime createdAt show language');
 
     console.log('Fetching submissions with query:', query);
 
@@ -316,7 +460,7 @@ router.get('/submissions', async (req, res) => {
 
 // Analyze and submit code
 router.post('/analyze', async (req, res) => {
-  const { code, problemId, username, timeComplexity, spaceComplexity } = req.body;
+  const { code, problemId, username, timeComplexity, spaceComplexity, language = 'java' } = req.body;
 
   const problem = problems[problemId];
   if (!problem) {
@@ -327,8 +471,8 @@ router.post('/analyze', async (req, res) => {
   }
 
   try {
-    // Execute code first
-    const result = await executeJavaCode(code, problem.testCases);
+    // Execute code first, passing the language parameter
+    const result = await executeCode(code, problem.testCases, language);
 
     if (!result.success) {
       return res.json(result);
@@ -339,7 +483,8 @@ router.post('/analyze', async (req, res) => {
       problem,
       code,
       timeComplexity,
-      spaceComplexity
+      spaceComplexity,
+      language
     );
 
     // Calculate metrics
@@ -354,6 +499,7 @@ router.post('/analyze', async (req, res) => {
       username,
       problemId,
       code,
+      language, // Save the language used
       executionTime: averageExecutionTime,
       score,
       passedTests,
@@ -385,7 +531,7 @@ router.post('/analyze', async (req, res) => {
       submissionId: submission._id,
       pendingApproval: true
     });
-    
+
   } catch (error) {
     console.error('Submission processing error:', error);
     res.status(500).json({
@@ -401,34 +547,34 @@ router.post('/analyze', async (req, res) => {
 // Admin route to update submission visibility
 router.put('/admin/submission/:id', async (req, res) => {
   const { show } = req.body;
-  
+
   if (typeof show !== 'boolean') {
     return res.status(400).json({
       success: false,
       error: 'Show parameter must be a boolean'
     });
   }
-  
+
   try {
     const submission = await Submission.findById(req.params.id);
-    
+
     if (!submission) {
       return res.status(404).json({
         success: false,
         error: 'Submission not found'
       });
     }
-    
+
     submission.show = show;
     await submission.save();
-    
+
     res.json({
       success: true,
       message: `Submission ${show ? 'approved' : 'hidden'} successfully`,
       id: submission._id,
       show: submission.show
     });
-    
+
   } catch (error) {
     console.error('Error updating submission visibility:', error);
     res.status(500).json({
@@ -440,220 +586,3 @@ router.put('/admin/submission/:id', async (req, res) => {
     });
   }
 });
-
-// Get a specific submission
-router.get('/submission/:id', async (req, res) => {
-  try {
-    const submission = await Submission.findById(req.params.id);
-    
-    if (!submission) {
-      return res.status(404).json({
-        success: false,
-        error: 'Submission not found'
-      });
-    }
-    
-    // Check if the submission is allowed to be shown
-    if (!submission.show) {
-      return res.status(403).json({
-        success: false,
-        error: 'Results are not yet available for this submission'
-      });
-    }
-    
-    res.json({
-      success: true,
-      results: submission.results,
-      executionTime: submission.executionTime,
-      score: submission.score,
-      passedTests: submission.passedTests,
-      totalTests: submission.totalTests,
-      timeComplexity: submission.timeComplexity,
-      spaceComplexity: submission.spaceComplexity
-    });
-    
-  } catch (error) {
-    console.error('Error fetching submission:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Failed to fetch submission',
-        stack: error.message
-      }
-    });
-  }
-});
-
-// Check submission status
-router.get('/submission-status/:id', async (req, res) => {
-  try {
-    const submission = await Submission.findById(req.params.id);
-    
-    if (!submission) {
-      return res.status(404).json({
-        success: false,
-        error: 'Submission not found'
-      });
-    }
-    
-    res.json({
-      id: submission._id,
-      show: submission.show,
-      createdAt: submission.createdAt
-    });
-    
-  } catch (error) {
-    console.error('Error checking submission status:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Failed to check submission status',
-        stack: error.message
-      }
-    });
-  }
-});
-
-// Run code (test run, not submission)
-router.post('/run', async (req, res) => {
-  const { code, problemId } = req.body;
-
-  // Input validation
-  if (!code || !problemId) {
-    return res.status(400).json({
-      success: false,
-      error: {
-        message: 'Missing required fields',
-        stack: 'Code and problemId are required'
-      }
-    });
-  }
-
-  const problem = problems[problemId];
-  if (!problem) {
-    return res.status(404).json({
-      success: false,
-      error: {
-        message: 'Problem not found',
-        stack: `No problem found with ID: ${problemId}`
-      }
-    });
-  }
-
-  try {
-    // Take only first two test cases
-    const limitedTestCases = problem.testCases.slice(0, 2);
-
-    // Execute code against limited test cases
-    const result = await executeJavaCode(code, limitedTestCases);
-
-    if (!result.success) {
-      return res.json(result);
-    }
-
-    res.json(result);
-  } catch (error) {
-    console.error('Code execution error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Execution failed',
-        stack: error.message
-      }
-    });
-  }
-});
-
-// Submit code for execution
-// router.post('/submit', async (req, res) => {
-//   const { code, problemId, username, timeComplexity, spaceComplexity } = req.body;
-
-//   // Input validation
-//   if (!code || !problemId || !username || !timeComplexity || !spaceComplexity) {
-//     return res.status(400).json({
-//       success: false,
-//       error: {
-//         message: 'Missing required fields',
-//         stack: 'Code, problemId, username, timeComplexity, and spaceComplexity are required'
-//       }
-//     });
-//   }
-
-//   const problem = problems[problemId];
-//   if (!problem) {
-//     return res.status(404).json({
-//       success: false,
-//       error: {
-//         message: 'Problem not found',
-//         stack: `No problem found with ID: ${problemId}`
-//       }
-//     });
-//   }
-
-//   try {
-//     // First execute code against test cases
-//     const result = await executeJavaCode(code, problem.testCases);
-
-//     if (!result.success) {
-//       return res.json(result);
-//     }
-
-//     // If code execution is successful, analyze with LLM
-//     const analysis = await analyzeProblemAndSolution(
-//       problem,
-//       code,
-//       timeComplexity,
-//       spaceComplexity
-//     );
-
-//     // Calculate submission metrics
-//     const totalTests = result.results.length;
-//     const passedTests = result.results.filter(r => r.passed).length;
-//     const averageExecutionTime = result.results.reduce((sum, r) => 
-//       sum + r.executionTime, 0) / totalTests;
-//     const score = (passedTests / totalTests) * 100;
-
-//     // Create submission record with analysis results
-//     const submission = new Submission({
-//       username,
-//       problemId,
-//       code,
-//       executionTime: averageExecutionTime,
-//       score,
-//       passedTests,
-//       totalTests,
-//       results: result.results,
-//       timeComplexity,
-//       spaceComplexity,
-//       isSuspicious: analysis.isSuspicious,
-//       suspicionLevel: analysis.suspicionLevel,
-//       suspicionReasons: analysis.reasons,
-//       complexityAnalysis: {
-//         isTimeComplexityAccurate: analysis.isTimeComplexityAccurate,
-//         isSpaceComplexityAccurate: analysis.isSpaceComplexityAccurate,
-//         actualTimeComplexity: analysis.actualTimeComplexity,
-//         actualSpaceComplexity: analysis.actualSpaceComplexity,
-//         explanation: analysis.explanation
-//       }
-//     });
-
-//     // Save to MongoDB
-//     await submission.save();
-
-//     // Add analysis results to the response
-//     result.analysis = analysis;
-
-//     res.json(result);
-//   } catch (error) {
-//     console.error('Submission processing error:', error);
-//     res.status(500).json({
-//       success: false,
-//       error: {
-//         message: 'Submission processing failed',
-//         stack: error.message
-//       }
-//     });
-//   }
-// });
-
-module.exports = router;

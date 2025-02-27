@@ -8,11 +8,11 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-async function analyzeProblemAndSolution(problem, code, timeComplexity, spaceComplexity) {
+async function analyzeProblemAndSolution(problem, code, timeComplexity, spaceComplexity, language = 'java') {
   try {
     const systemPrompt = `You are an expert at analyzing code solutions and detecting AI-generated code. 
-    You will analyze the given problem statement, solution code, and complexity claims.
-    Respond with a JSON object containing your analysis. Please keep the explainations short and straight. Be strict but fair in your assessment.`;
+    You will analyze the given problem statement, solution code (in ${language}), and complexity claims.
+    Respond with a JSON object containing your analysis. Please keep the explanations short and straight. Be strict but fair in your assessment.`;
 
     const userPrompt = `
     Problem Statement:
@@ -22,7 +22,7 @@ async function analyzeProblemAndSolution(problem, code, timeComplexity, spaceCom
     Input: ${problem.example.input}
     Expected Output: ${problem.example.output}
     
-    User's Solution:
+    User's Solution (${language}):
     ${code}
     
     Time Complexity Claimed: ${timeComplexity}

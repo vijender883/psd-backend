@@ -14,8 +14,19 @@ async function initializeDirectories() {
   }
 }
 
-// Import the Java wrapper generator
+// Import the wrapper generators
 const { generateJavaWrapper } = require('./javaWrapper');
+const { generatePythonWrapper } = require('./pythonWrapper');
+
+// Execute code - main function that handles both Java and Python
+async function executeCode(code, testCases, language) {
+  if (language === 'python') {
+    return executePythonCode(code, testCases);
+  } else {
+    // Default to Java
+    return executeJavaCode(code, testCases);
+  }
+}
 
 // Execute Java code
 async function executeJavaCode(code, testCases) {
@@ -33,7 +44,7 @@ async function executeJavaCode(code, testCases) {
     await compileJavaCode(executionDir);
     
     // Run test cases
-    const results = await runTestCases(executionDir, testCases);
+    const results = await runJavaTestCases(executionDir, testCases);
     
     return {
       success: true,
@@ -59,13 +70,39 @@ async function executeJavaCode(code, testCases) {
         stack: error.message
       }
     };
-  } 
-  // finally {
-  //   // Cleanup in the background
-  //   cleanupDirectory(executionDir).catch(err => 
-  //     console.error(`Failed to clean up ${executionDir}:`, err)
-  //   );
-  // }
+  }
+}
+
+// Execute Python code
+async function executePythonCode(code, testCases) {
+  const submissionId = uuidv4();
+  const executionDir = path.join(BASE_DIR, submissionId);
+  
+  try {
+    // Create execution directory
+    await fs.mkdir(executionDir, { recursive: true });
+    
+    // Generate wrapped Python code
+    await generatePythonWrapper(executionDir, code);
+    
+    // Run test cases
+    const results = await runPythonTestCases(executionDir, testCases);
+    
+    return {
+      success: true,
+      results: results
+    };
+  } catch (error) {
+    console.error(`Python execution error for ${submissionId}:`, error);
+    
+    return {
+      success: false,
+      error: {
+        message: 'Python Execution Error',
+        stack: error.message
+      }
+    };
+  }
 }
 
 // Compile Java code
@@ -96,8 +133,8 @@ function compileJavaCode(executionDir) {
   });
 }
 
-// Run test cases
-async function runTestCases(executionDir, testCases) {
+// Run Java test cases
+async function runJavaTestCases(executionDir, testCases) {
   const results = [];
   
   for (let i = 0; i < testCases.length; i++) {
@@ -117,6 +154,55 @@ async function runTestCases(executionDir, testCases) {
       
       // Run Java program with the test case
       const output = await runJavaProgram(executionDir, testCase.input);
+      
+      // Calculate execution time
+      const endTime = process.hrtime(startTime);
+      const executionTime = endTime[0] * 1000 + endTime[1] / 1000000; // Convert to milliseconds
+      
+      // Check if output matches expected output
+      const normalizedOutput = output.trim();
+      const normalizedExpected = testCase.expectedOutput.trim();
+      const passed = normalizedOutput === normalizedExpected;
+      
+      result.passed = passed;
+      result.yourOutput = normalizedOutput;
+      result.executionTime = executionTime;
+    } catch (error) {
+      result.passed = false;
+      result.error = {
+        message: 'Runtime Error',
+        stack: error.message
+      };
+      result.executionTime = 0;
+    }
+    
+    results.push(result);
+  }
+  
+  return results;
+}
+
+// Run Python test cases
+async function runPythonTestCases(executionDir, testCases) {
+  const results = [];
+  
+  for (let i = 0; i < testCases.length; i++) {
+    const testCase = testCases[i];
+    const testCaseNumber = i + 1;
+    
+    const result = {
+      testCase: testCaseNumber,
+      description: testCase.description || `Test case ${testCaseNumber}`,
+      input: testCase.input,
+      expectedOutput: testCase.expectedOutput
+    };
+    
+    try {
+      // Start timing execution
+      const startTime = process.hrtime();
+      
+      // Run Python program with the test case
+      const output = await runPythonProgram(executionDir, testCase.input);
       
       // Calculate execution time
       const endTime = process.hrtime(startTime);
@@ -184,6 +270,45 @@ function runJavaProgram(executionDir, input) {
   });
 }
 
+// Run Python program
+function runPythonProgram(executionDir, input) {
+  return new Promise((resolve, reject) => {
+    const process = spawn('python3', ['solution.py'], {
+      cwd: executionDir,
+      timeout: 5000 // 5 second timeout
+    });
+    
+    let stdout = '';
+    let stderr = '';
+    
+    // Provide input if needed
+    if (input) {
+      process.stdin.write(input);
+      process.stdin.end();
+    }
+    
+    process.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+    
+    process.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+    
+    process.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Python execution failed with code ${code}: ${stderr}`));
+      } else {
+        resolve(stdout);
+      }
+    });
+    
+    process.on('error', (err) => {
+      reject(new Error(`Failed to start Python execution process: ${err.message}`));
+    });
+  });
+}
+
 // Clean up directory
 async function cleanupDirectory(dir) {
   try {
@@ -206,5 +331,7 @@ async function cleanupDirectory(dir) {
 
 module.exports = {
   initializeDirectories,
-  executeJavaCode
+  executeCode,
+  executeJavaCode,
+  executePythonCode
 };
