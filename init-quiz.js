@@ -33,6 +33,7 @@ mongoose.connect(process.env.MONGODB_URI, {
   // Log connection details (without sensitive info)
   const { host, name } = mongoose.connection;
   console.log(`Connected to database: ${name} at host: ${host}`);
+  initQuizzes();
 })
 .catch(err => {
   console.error('MongoDB Atlas connection error:', err);
