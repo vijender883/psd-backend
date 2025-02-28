@@ -1,5 +1,5 @@
 // controllers/quizController.js
-// Handles business logic for quiz operations with improved timing flow
+// Updated to support scheduled quizzes
 const Quiz = require('../models/Quiz');
 const Question = require('../models/Question');
 const QuizAttempt = require('../models/QuizAttempt');
@@ -7,7 +7,9 @@ const QuizAttempt = require('../models/QuizAttempt');
 // Get all available quizzes
 exports.getAllQuizzes = async (req, res) => {
   try {
-    const quizzes = await Quiz.find({ isActive: true }).select('title description createdAt');
+    // Include scheduledStartTime and lateJoinWindowMinutes in the response
+    const quizzes = await Quiz.find({ isActive: true })
+      .select('title description createdAt scheduledStartTime lateJoinWindowMinutes');
     res.status(200).json({ success: true, data: quizzes });
   } catch (error) {
     console.error('Error in getAllQuizzes:', error);
@@ -18,7 +20,9 @@ exports.getAllQuizzes = async (req, res) => {
 // Get a specific quiz with its questions
 exports.getQuizById = async (req, res) => {
   try {
-    const quiz = await Quiz.findById(req.params.id);
+    // Include scheduledStartTime and lateJoinWindowMinutes
+    const quiz = await Quiz.findById(req.params.id)
+      .select('title description isActive scheduledStartTime lateJoinWindowMinutes');
     
     if (!quiz) {
       return res.status(404).json({ success: false, message: 'Quiz not found' });
@@ -26,8 +30,8 @@ exports.getQuizById = async (req, res) => {
     
     // Get quiz questions without revealing correct answers
     const questions = await Question.find({ quizId: quiz._id })
-  .select('text options._id options.text timeLimit order imageUrl')  // Add imageUrl here
-  .sort('order');
+      .select('text options._id options.text timeLimit order imageUrl')
+      .sort('order');
     
     res.status(200).json({
       success: true,
@@ -42,7 +46,7 @@ exports.getQuizById = async (req, res) => {
   }
 };
 
-// Start a new quiz attempt
+// Start a new quiz attempt with late join validation
 exports.startQuizAttempt = async (req, res) => {
   try {
     const { userId, quizId } = req.body;
@@ -55,6 +59,22 @@ exports.startQuizAttempt = async (req, res) => {
     const quiz = await Quiz.findById(quizId);
     if (!quiz) {
       return res.status(404).json({ success: false, message: 'Quiz not found' });
+    }
+    
+    // Validate whether the user can join the quiz based on schedule
+    if (quiz.scheduledStartTime) {
+      const startTime = new Date(quiz.scheduledStartTime).getTime();
+      const now = new Date().getTime();
+      const lateJoinWindow = (quiz.lateJoinWindowMinutes || 5) * 60 * 1000;
+      const lateJoinDeadline = startTime + lateJoinWindow;
+      
+      // If the quiz hasn't started yet and is not within the allowed window
+      if (now > lateJoinDeadline) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'This quiz is no longer available to join. The scheduled start time plus late join window has passed.'
+        });
+      }
     }
     
     // Count total questions
@@ -83,7 +103,87 @@ exports.startQuizAttempt = async (req, res) => {
   }
 };
 
-// Submit answer for a question (modified to not reveal correct answer immediately)
+// Create a new quiz with scheduling info
+exports.createQuiz = async (req, res) => {
+  try {
+    const { title, description, questions, scheduledStartTime, lateJoinWindowMinutes } = req.body;
+    
+    if (!title || !description || !questions || !Array.isArray(questions)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Required fields are missing or invalid format' 
+      });
+    }
+    
+    // Create the quiz with scheduling information
+    const quiz = new Quiz({
+      title,
+      description,
+      scheduledStartTime: scheduledStartTime || null,
+      lateJoinWindowMinutes: lateJoinWindowMinutes || 5
+    });
+    
+    await quiz.save();
+    
+    // Create questions for the quiz
+    for (let i = 0; i < questions.length; i++) {
+      const questionData = questions[i];
+      
+      if (!questionData.text || !questionData.options || !Array.isArray(questionData.options)) {
+        continue; // Skip invalid questions
+      }
+      
+      const question = new Question({
+        quizId: quiz._id,
+        text: questionData.text,
+        options: questionData.options,
+        timeLimit: questionData.timeLimit || 30,
+        order: i + 1,
+        imageUrl: questionData.imageUrl || null
+      });
+      
+      await question.save();
+    }
+    
+    res.status(201).json({
+      success: true,
+      message: 'Quiz created successfully',
+      data: { quizId: quiz._id }
+    });
+  } catch (error) {
+    console.error('Error in createQuiz:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+// Update quiz scheduling information
+exports.updateQuizSchedule = async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const { scheduledStartTime, lateJoinWindowMinutes } = req.body;
+    
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      return res.status(404).json({ success: false, message: 'Quiz not found' });
+    }
+    
+    // Update scheduling information
+    quiz.scheduledStartTime = scheduledStartTime;
+    quiz.lateJoinWindowMinutes = lateJoinWindowMinutes || 5;
+    
+    await quiz.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Quiz schedule updated successfully'
+    });
+  } catch (error) {
+    console.error('Error in updateQuizSchedule:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+// The rest of the controller methods remain the same
 exports.submitAnswer = async (req, res) => {
   try {
     const { attemptId, questionId, selectedOption, timeSpent } = req.body;

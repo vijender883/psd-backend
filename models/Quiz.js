@@ -1,5 +1,4 @@
 // models/Quiz.js
-// Defines the Quiz schema structure
 const mongoose = require('mongoose');
 
 const QuizSchema = new mongoose.Schema({
@@ -19,6 +18,14 @@ const QuizSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  scheduledStartTime: {
+    type: Date,
+    default: null
+  },
+  lateJoinWindowMinutes: {
+    type: Number,
+    default: 5 // Default 5 minutes late join window
   }
 });
 

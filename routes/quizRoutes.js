@@ -1,5 +1,5 @@
 // routes/quizRoutes.js
-// Updated API endpoints for quiz operations with kahoot-like behavior
+// Updated with endpoints for scheduled quizzes
 const express = require('express');
 const router = express.Router();
 const quizController = require('../controllers/quizController');
@@ -10,6 +10,12 @@ router.get('/quizzes', quizController.getAllQuizzes);
 // Get quiz by ID
 router.get('/quizzes/:id', quizController.getQuizById);
 
+// Create a new quiz with scheduling information
+router.post('/quizzes', quizController.createQuiz);
+
+// Update quiz scheduling information
+router.put('/quizzes/:quizId/schedule', quizController.updateQuizSchedule);
+
 // Start a new quiz attempt
 router.post('/attempts', quizController.startQuizAttempt);
 
@@ -17,7 +23,6 @@ router.post('/attempts', quizController.startQuizAttempt);
 router.post('/answers', quizController.submitAnswer);
 
 // Get correct answer (after time expiration)
-// Updated to optionally take attemptId as a query parameter
 router.get('/questions/:questionId/answer', quizController.getCorrectAnswer);
 
 // Complete a quiz attempt
