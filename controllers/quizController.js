@@ -20,7 +20,6 @@ exports.getAllQuizzes = async (req, res) => {
 // Get a specific quiz with its questions
 exports.getQuizById = async (req, res) => {
   try {
-    // Include scheduledStartTime and lateJoinWindowMinutes
     const quiz = await Quiz.findById(req.params.id)
       .select('title description isActive scheduledStartTime lateJoinWindowMinutes');
     
@@ -29,9 +28,21 @@ exports.getQuizById = async (req, res) => {
     }
     
     // Get quiz questions without revealing correct answers
-    const questions = await Question.find({ quizId: quiz._id })
+    let questions = await Question.find({ quizId: quiz._id })
       .select('text options._id options.text timeLimit order imageUrl')
       .sort('order');
+    
+    // Process questions to use public URLs instead of signed URLs
+    questions = questions.map(question => {
+      const questionObj = question.toObject();
+      
+      // If there's an image URL, replace it with the public URL
+      if (questionObj.imageUrl) {
+        questionObj.imageUrl = question.imagePublicUrl;
+      }
+      
+      return questionObj;
+    });
     
     res.status(200).json({
       success: true,
