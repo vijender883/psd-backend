@@ -94,7 +94,7 @@ async function initQuizzes() {
         "title": "General Knowledge Quiz",
         "description": "Test your basic knowledge with these fun and easy questions",
         "scheduledStartTime": startingSoon, // Available immediately
-        "lateJoinWindowMinutes": 15,
+        "lateJoinWindowMinutes": 3,
         "questions": [
           {
             "text": "What is the name of the pet of Harry Potter?",
@@ -269,7 +269,7 @@ async function initQuizzes() {
         "title": "Quiz in Progress",
         "description": "This quiz has already started, but you can still join!",
         "scheduledStartTime": startedRecently,
-        "lateJoinWindowMinutes": 15, // 15 minute late join window
+        "lateJoinWindowMinutes": 5, // 5 minute late join window
         "questions": [
           {
             "text": "What is the capital of Japan?",
