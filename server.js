@@ -18,6 +18,7 @@ const allowedOrigins = [
   'http://localhost:3002',  // Local development
 
   // Your production frontend URL
+  'https://devui.alumnx.com',
   'https://alumnx.com',
   'https://psd-ui-omega.vercel.app',
   'https://practicalsystemdesign.com'
