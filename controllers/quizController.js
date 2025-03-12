@@ -249,14 +249,41 @@ exports.submitAnswer = async (req, res) => {
   }
 };
 
-// Get correct answer after time expires
+// Updated getCorrectAnswer function in quizController.js
+
+// Calculate score based on time taken as a percentage of total time
+function calculateTimeBasedScore(timeSpent, totalTime) {
+  // Convert to percentage of time used
+  const percentageTimeUsed = (timeSpent / totalTime) * 100;
+  
+  // Define score tiers
+  if (percentageTimeUsed <= 5) {
+    return 1000; // Super fast (≤5% of time) = 1000 points
+  } else if (percentageTimeUsed <= 15) {
+    return 980; // Very fast (≤10% of time) = 980 points
+  } else if (percentageTimeUsed <= 25) {
+    return 850; // Fast (≤20% of time) = 850 points
+  } else if (percentageTimeUsed <= 35) {
+    return 750; // Good (≤30% of time) = 750 points
+  } else if (percentageTimeUsed <= 50) {
+    return 600; // Decent (≤50% of time) = 600 points
+  } else if (percentageTimeUsed <= 70) {
+    return 450; // Average (≤70% of time) = 450 points
+  } else if (percentageTimeUsed <= 85) {
+    return 300; // Slow (≤85% of time) = 300 points
+  } else {
+    return 150; // Very slow (>85% of time) = 150 points
+  }
+}
+
+// Get the correct answer for a question (after time expires)
 exports.getCorrectAnswer = async (req, res) => {
   try {
     const { questionId } = req.params;
     const { attemptId } = req.query; // Get attemptId from query parameter
     
     // Get the question
-    const question = await Question.findById(questionId).select('options explanation');
+    const question = await Question.findById(questionId).select('options explanation timeLimit');
     if (!question) {
       return res.status(404).json({ 
         success: false, 
@@ -277,7 +304,7 @@ exports.getCorrectAnswer = async (req, res) => {
       });
     }
     
-    // If attemptId is provided, update the answer's correctness
+    let pointsEarned = 0;
     if (attemptId) {
       try {
         const quizAttempt = await QuizAttempt.findById(attemptId);
@@ -300,10 +327,25 @@ exports.getCorrectAnswer = async (req, res) => {
             
             quizAttempt.answers[answerIndex].isCorrect = isCorrect;
             
-            // Update score if correct
+            // Update score if correct (using time-based scoring)
             if (isCorrect && !quizAttempt.answers[answerIndex].alreadyCounted) {
-              quizAttempt.score += 1;
+              // Calculate score based on time spent and question time limit
+              const timeBasedScore = calculateTimeBasedScore(answer.timeSpent, question.timeLimit);
+              
+              // Add calculated score
+              quizAttempt.score += timeBasedScore;
+              
+              // Store the points earned for this question
+              quizAttempt.answers[answerIndex].pointsEarned = timeBasedScore;
               quizAttempt.answers[answerIndex].alreadyCounted = true;
+              
+              // Set the points earned for the response
+              pointsEarned = timeBasedScore;
+              
+              console.log(`Awarded ${timeBasedScore} points for correct answer in ${answer.timeSpent}/${question.timeLimit} seconds`);
+            } else if (!isCorrect) {
+              // Zero points for wrong answer
+              quizAttempt.answers[answerIndex].pointsEarned = 0;
             }
             
             await quizAttempt.save();
@@ -331,6 +373,7 @@ exports.getCorrectAnswer = async (req, res) => {
       data: {
         correctOptionId: correctOption._id,
         explanation: question.explanation || 'No explanation provided',
+        pointsEarned: pointsEarned, // Include points earned in the response
         leaderboard
       }
     });

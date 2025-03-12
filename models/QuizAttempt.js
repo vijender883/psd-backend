@@ -1,5 +1,5 @@
 // models/QuizAttempt.js
-// Tracks user quiz attempts and scores
+// Updated to include pointsEarned field for time-based scoring
 const mongoose = require('mongoose');
 
 const QuizAttemptSchema = new mongoose.Schema({
@@ -38,6 +38,14 @@ const QuizAttemptSchema = new mongoose.Schema({
     },
     timeSpent: {
       type: Number // Time spent in seconds
+    },
+    pointsEarned: {
+      type: Number,
+      default: 0 // Points earned for this question (time-based)
+    },
+    alreadyCounted: {
+      type: Boolean,
+      default: false
     }
   }]
 });
