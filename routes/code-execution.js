@@ -273,6 +273,19 @@ const problemList = Object.values(problems).map(problem => ({
   showSolution: !!problem.solution
 }));
 
+const testConfigurations = {};
+
+function initializeTestConfig(simulationId) {
+  if (!testConfigurations[simulationId]) {
+    testConfigurations[simulationId] = {
+      // Set this to your desired start time, not relative to now
+      scheduledStartTime: new Date('2025-03-12T11:56:10Z').toISOString(),
+      testDuration: 60 * 60, // 60 minutes
+      allowLateEntry: false
+    };
+  }
+}
+
 // Get all problems
 router.get('/problems', (req, res) => {
   res.json(problemList);
@@ -540,6 +553,26 @@ router.post('/analyze', async (req, res) => {
         message: 'Submission processing failed',
         stack: error.message
       }
+    });
+  }
+});
+
+router.get('/test-config/:simulationId', async (req, res) => {
+  const { simulationId } = req.params;
+  
+  try {
+    // Initialize if not exists
+    initializeTestConfig(simulationId);
+    
+    res.json({
+      success: true,
+      data: testConfigurations[simulationId]
+    });
+  } catch (error) {
+    console.error('Error fetching test configuration:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch test configuration'
     });
   }
 });
