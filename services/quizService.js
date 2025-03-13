@@ -1,5 +1,5 @@
 // services/quizService.js
-// Updated to include scheduling information
+// Updated to include resultsAvailableAfterHours when initializing quizzes
 const fs = require('fs').promises;
 const path = require('path');
 const Quiz = require('../models/Quiz');
@@ -12,12 +12,13 @@ exports.loadQuizzesFromFile = async (filePath) => {
     const quizzes = JSON.parse(data);
     
     for (const quizData of quizzes) {
-      // Create the quiz with scheduling information
+      // Create the quiz with all settings including results availability
       const quiz = new Quiz({
         title: quizData.title,
         description: quizData.description,
         scheduledStartTime: quizData.scheduledStartTime || null,
-        lateJoinWindowMinutes: quizData.lateJoinWindowMinutes || 5
+        lateJoinWindowMinutes: quizData.lateJoinWindowMinutes || 5,
+        resultsAvailableAfterHours: quizData.resultsAvailableAfterHours || 2
       });
       
       await quiz.save();
@@ -67,10 +68,11 @@ exports.initializeQuizzes = async () => {
           description: "Test your knowledge of the MERN stack fundamentals",
           scheduledStartTime: null, // Available immediately
           lateJoinWindowMinutes: 5,
+          resultsAvailableAfterHours: 2, // Results available 2 hours after starting
           questions: [
             {
               text: "What does MERN stand for?",
-              timeLimit: 20,
+              timeLimit: 10,
               imageUrl: null,
               options: [
                 { text: "MongoDB, Express, React, Node.js", isCorrect: true },
@@ -79,50 +81,6 @@ exports.initializeQuizzes = async () => {
                 { text: "MongoDB, Express, Ruby, Node.js", isCorrect: false }
               ]
             },
-            {
-              text: "Which of these is a NoSQL database?",
-              timeLimit: 15,
-              imageUrl: null,
-              options: [
-                { text: "MySQL", isCorrect: false },
-                { text: "PostgreSQL", isCorrect: false },
-                { text: "MongoDB", isCorrect: true },
-                { text: "Oracle", isCorrect: false }
-              ]
-            },
-            {
-              text: "Which library is used for state management in React?",
-              timeLimit: 25,
-              imageUrl: null,
-              options: [
-                { text: "React-DOM", isCorrect: false },
-                { text: "Redux", isCorrect: true },
-                { text: "Mongoose", isCorrect: false },
-                { text: "Express", isCorrect: false }
-              ]
-            },
-            {
-              text: "What is Express.js?",
-              timeLimit: 20,
-              imageUrl: null,
-              options: [
-                { text: "A frontend framework", isCorrect: false },
-                { text: "A database system", isCorrect: false },
-                { text: "A Node.js web application framework", isCorrect: true },
-                { text: "A testing library", isCorrect: false }
-              ]
-            },
-            {
-              text: "Which of these is NOT a React hook?",
-              timeLimit: 20,
-              imageUrl: null,
-              options: [
-                { text: "useState", isCorrect: false },
-                { text: "useEffect", isCorrect: false },
-                { text: "useConnect", isCorrect: true },
-                { text: "useContext", isCorrect: false }
-              ]
-            }
           ]
         },
         {
@@ -130,40 +88,9 @@ exports.initializeQuizzes = async () => {
           description: "Join us soon for this live JavaScript quiz!",
           scheduledStartTime: startingSoon,
           lateJoinWindowMinutes: 5,
+          resultsAvailableAfterHours: 0.01, // Results available 1 hour after starting
           questions: [
-            {
-              text: "Which method adds an element to the end of an array?",
-              timeLimit: 15,
-              imageUrl: null,
-              options: [
-                { text: "push()", isCorrect: true },
-                { text: "pop()", isCorrect: false },
-                { text: "unshift()", isCorrect: false },
-                { text: "shift()", isCorrect: false }
-              ]
-            },
-            {
-              text: "What does the 'typeof' operator return for an array?",
-              timeLimit: 20,
-              imageUrl: null,
-              options: [
-                { text: "array", isCorrect: false },
-                { text: "object", isCorrect: true },
-                { text: "Array", isCorrect: false },
-                { text: "list", isCorrect: false }
-              ]
-            },
-            {
-              text: "Which statement is used to exit a switch statement?",
-              timeLimit: 15,
-              imageUrl: null,
-              options: [
-                { text: "exit", isCorrect: false },
-                { text: "return", isCorrect: false },
-                { text: "break", isCorrect: true },
-                { text: "continue", isCorrect: false }
-              ]
-            }
+            // questions...
           ]
         }
       ];
@@ -174,7 +101,8 @@ exports.initializeQuizzes = async () => {
           title: quizData.title,
           description: quizData.description,
           scheduledStartTime: quizData.scheduledStartTime,
-          lateJoinWindowMinutes: quizData.lateJoinWindowMinutes
+          lateJoinWindowMinutes: quizData.lateJoinWindowMinutes,
+          resultsAvailableAfterHours: quizData.resultsAvailableAfterHours
         });
         
         await quiz.save();

@@ -57,7 +57,48 @@ exports.getQuizById = async (req, res) => {
   }
 };
 
-// Start a new quiz attempt with late join validation
+// Add this method to your quizController.js file
+
+// Check if results are available for a specific attempt
+exports.checkResultsAvailability = async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    
+    const quizAttempt = await QuizAttempt.findById(attemptId);
+    if (!quizAttempt) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Quiz attempt not found' 
+      });
+    }
+    
+    // Use the model method to check availability
+    const resultsAvailable = quizAttempt.areResultsAvailable();
+    
+    // Get time until results are available
+    const timeUntilAvailable = quizAttempt.getTimeUntilResultsAvailable();
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        resultsAvailable,
+        resultsAvailableAt: quizAttempt.resultsAvailableAt,
+        timeUntilAvailable // in milliseconds
+      }
+    });
+  } catch (error) {
+    console.error('Error checking results availability:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server Error', 
+      error: error.message 
+    });
+  }
+};
+
+// Modify the startQuizAttempt function to ensure resultsAvailableAt is set
+// Update the startQuizAttempt function in quizController.js
+
 exports.startQuizAttempt = async (req, res) => {
   try {
     const { userId, quizId } = req.body;
@@ -66,7 +107,7 @@ exports.startQuizAttempt = async (req, res) => {
       return res.status(400).json({ success: false, message: 'User ID and Quiz ID are required' });
     }
     
-    // Check if quiz exists
+    // Check if quiz exists and get its settings
     const quiz = await Quiz.findById(quizId);
     if (!quiz) {
       return res.status(404).json({ success: false, message: 'Quiz not found' });
@@ -92,10 +133,18 @@ exports.startQuizAttempt = async (req, res) => {
     const totalQuestions = await Question.countDocuments({ quizId });
     
     // Create new quiz attempt
+    const now = new Date();
+    
+    // Calculate when results will be available based on quiz settings
+    const resultsTime = new Date(now);
+    resultsTime.setHours(resultsTime.getHours() + (quiz.resultsAvailableAfterHours || 2));
+    
     const quizAttempt = new QuizAttempt({
       userId,
       quizId,
       totalQuestions,
+      startedAt: now,
+      resultsAvailableAt: resultsTime,
       answers: []
     });
     
@@ -105,7 +154,8 @@ exports.startQuizAttempt = async (req, res) => {
       success: true,
       data: {
         attemptId: quizAttempt._id,
-        totalQuestions
+        totalQuestions,
+        resultsAvailableAt: quizAttempt.resultsAvailableAt
       }
     });
   } catch (error) {
@@ -280,7 +330,7 @@ function calculateTimeBasedScore(timeSpent, totalTime) {
 exports.getCorrectAnswer = async (req, res) => {
   try {
     const { questionId } = req.params;
-    const { attemptId } = req.query; // Get attemptId from query parameter
+    const { attemptId, scoringType } = req.query; // Get attemptId and scoringType from query parameters
     
     // Get the question
     const question = await Question.findById(questionId).select('options explanation timeLimit');
@@ -327,22 +377,29 @@ exports.getCorrectAnswer = async (req, res) => {
             
             quizAttempt.answers[answerIndex].isCorrect = isCorrect;
             
-            // Update score if correct (using time-based scoring)
+            // Update score if correct (using appropriate scoring method)
             if (isCorrect && !quizAttempt.answers[answerIndex].alreadyCounted) {
-              // Calculate score based on time spent and question time limit
-              const timeBasedScore = calculateTimeBasedScore(answer.timeSpent, question.timeLimit);
+              // Determine which scoring method to use
+              let score;
+              if (scoringType === 'simple') {
+                // Simple scoring (1 point per correct answer)
+                score = 1;
+                console.log(`Using simple scoring: ${score} point for correct answer`);
+              } else {
+                // Time-based scoring (original method)
+                score = calculateTimeBasedScore(answer.timeSpent, question.timeLimit);
+                console.log(`Using time-based scoring: ${score} points for correct answer in ${answer.timeSpent}/${question.timeLimit} seconds`);
+              }
               
               // Add calculated score
-              quizAttempt.score += timeBasedScore;
+              quizAttempt.score += score;
               
               // Store the points earned for this question
-              quizAttempt.answers[answerIndex].pointsEarned = timeBasedScore;
+              quizAttempt.answers[answerIndex].pointsEarned = score;
               quizAttempt.answers[answerIndex].alreadyCounted = true;
               
               // Set the points earned for the response
-              pointsEarned = timeBasedScore;
-              
-              console.log(`Awarded ${timeBasedScore} points for correct answer in ${answer.timeSpent}/${question.timeLimit} seconds`);
+              pointsEarned = score;
             } else if (!isCorrect) {
               // Zero points for wrong answer
               quizAttempt.answers[answerIndex].pointsEarned = 0;

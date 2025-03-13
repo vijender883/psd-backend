@@ -31,4 +31,6 @@ router.put('/attempts/:attemptId/complete', quizController.completeQuizAttempt);
 // Get quiz results and leaderboard
 router.get('/attempts/:attemptId/results', quizController.getQuizResults);
 
+router.get('/attempts/:attemptId/results-availability', quizController.checkResultsAvailability);
+
 module.exports = router;
