@@ -30,7 +30,7 @@ const QuizSchema = new mongoose.Schema({
   // Add field for when results become available (in hours after quiz starts)
   resultsAvailableAfterHours: {
     type: Number,
-    default: 0.01 // Default 2 hours after quiz starts
+    default: 0.05 // Default 2 hours after quiz starts
   }
 });
 

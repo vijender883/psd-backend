@@ -96,8 +96,7 @@ exports.checkResultsAvailability = async (req, res) => {
   }
 };
 
-// Modify the startQuizAttempt function to ensure resultsAvailableAt is set
-// Update the startQuizAttempt function in quizController.js
+// controllers/quizController.js - Updated startQuizAttempt function
 
 exports.startQuizAttempt = async (req, res) => {
   try {
@@ -140,7 +139,7 @@ exports.startQuizAttempt = async (req, res) => {
     resultsTime.setHours(resultsTime.getHours() + (quiz.resultsAvailableAfterHours || 2));
     
     const quizAttempt = new QuizAttempt({
-      userId,
+      userId, // This now stores the actual user ID
       quizId,
       totalQuestions,
       startedAt: now,
@@ -532,7 +531,7 @@ exports.getQuizResults = async (req, res) => {
     if (allAttempts.length === 0) {
       leaderboard = [{
         rank: 1,
-        userId: quizAttempt.userId,
+        userId: quizAttempt.userId, // Using actual userId
         score: quizAttempt.score,
         isCurrentUser: true
       }];
@@ -549,7 +548,7 @@ exports.getQuizResults = async (req, res) => {
       // Create focused leaderboard (top 3 + user's position)
       leaderboard = allAttempts.slice(0, 3).map((attempt, index) => ({
         rank: index + 1,
-        userId: attempt.userId,
+        userId: attempt.userId, // Using actual userId
         score: attempt.score,
         isCurrentUser: attempt._id.toString() === attemptId
       }));
@@ -560,7 +559,7 @@ exports.getQuizResults = async (req, res) => {
         if (userRank > 1) {
           leaderboard.push({
             rank: userRank - 1,
-            userId: allAttempts[userRank - 2].userId,
+            userId: allAttempts[userRank - 2].userId, // Using actual userId
             score: allAttempts[userRank - 2].score,
             isCurrentUser: false
           });
@@ -569,7 +568,7 @@ exports.getQuizResults = async (req, res) => {
         // Add current user
         leaderboard.push({
           rank: userRank,
-          userId: quizAttempt.userId,
+          userId: quizAttempt.userId, // Using actual userId
           score: quizAttempt.score,
           isCurrentUser: true
         });
@@ -578,7 +577,7 @@ exports.getQuizResults = async (req, res) => {
         if (userRank < allAttempts.length) {
           leaderboard.push({
             rank: userRank + 1,
-            userId: allAttempts[userRank].userId,
+            userId: allAttempts[userRank].userId, // Using actual userId
             score: allAttempts[userRank].score,
             isCurrentUser: false
           });
@@ -592,7 +591,7 @@ exports.getQuizResults = async (req, res) => {
         quizTitle: quizAttempt.quizId ? quizAttempt.quizId.title : 'Quiz',
         score: quizAttempt.score,
         totalQuestions: quizAttempt.totalQuestions,
-        percentage: (quizAttempt.score / quizAttempt.totalQuestions) * 100,
+        percentage: (quizAttempt.score / (quizAttempt.totalQuestions * 1000)) * 100, // Adjusted for time-based scoring
         rank: userRank,
         totalParticipants: allAttempts.length || 1,
         leaderboard: leaderboard
