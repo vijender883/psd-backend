@@ -279,7 +279,7 @@ function initializeTestConfig(simulationId) {
   if (!testConfigurations[simulationId]) {
     testConfigurations[simulationId] = {
       // Set this to your desired start time, not relative to now
-      scheduledStartTime: new Date('2025-03-17T08:23:10Z').toISOString(),
+      scheduledStartTime: new Date('2025-03-17T10:24:10Z').toISOString(),
       testDuration: 3 * 60, // 60 minutes
       allowLateEntry: false
     };
@@ -292,6 +292,53 @@ router.get('/problems', (req, res) => {
 });
 
 // Get a specific submission
+router.get('/submission/results/:id', async (req, res) => {
+  try {
+    const submission = await Submission.findById(req.params.id);
+    const question = problems[submission.problemId];
+    console.log(question);
+
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        error: 'Submission not found'
+      });
+    }
+
+    // Check if the submission is allowed to be shown
+    if (!submission.show) {
+      return res.status(403).json({
+        success: false,
+        error: 'Results are not yet available for this submission'
+      });
+    }
+
+    res.json({
+      success: true,
+      results: submission.results,
+      executionTime: submission.executionTime,
+      solution: question.solution,
+      code: submission.code,
+      score: submission.score,
+      passedTests: submission.passedTests,
+      totalTests: submission.totalTests,
+      timeComplexity: submission.timeComplexity,
+      spaceComplexity: submission.spaceComplexity,
+      language: submission.language || 'java' // Include language info, default to java for backward compatibility
+    });
+
+  } catch (error) {
+    console.error('Error fetching submission:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to fetch submission',
+        stack: error.message
+      }
+    });
+  }
+});
+
 router.get('/submission/:id', async (req, res) => {
   try {
     const submission = await Submission.findById(req.params.id);
