@@ -276,13 +276,68 @@ const problemList = Object.values(problems).map(problem => ({
 const testConfigurations = {};
 
 function initializeTestConfig(simulationId) {
+  let configChanged = false;
+  
   if (!testConfigurations[simulationId]) {
     testConfigurations[simulationId] = {
-      // Set this to your desired start time, not relative to now
-      scheduledStartTime: new Date('2025-03-17T10:24:10Z').toISOString(),
-      testDuration: 3 * 60, // 60 minutes
+      scheduledStartTime: new Date('2025-03-18T07:20:10Z').toISOString(),
+      testDuration: 3 * 60, // 3 minutes (changed from 60 minutes for testing)
       allowLateEntry: false
     };
+    configChanged = true;
+  }
+  
+  // Schedule visibility update if this is the first time loading the config
+  if (configChanged) {
+    scheduleSubmissionVisibility(simulationId);
+  }
+  
+  return testConfigurations[simulationId];
+}
+
+function scheduleSubmissionVisibility(simulationId) {
+  // Initialize the test config if not already done
+  initializeTestConfig(simulationId);
+  
+  const config = testConfigurations[simulationId];
+  const startTime = new Date(config.scheduledStartTime);
+  const endTime = new Date(startTime.getTime() + (config.testDuration + 10) * 1000); // Add 10 seconds buffer
+  
+  const now = new Date();
+  
+  // If end time is in the future, schedule the update
+  if (endTime > now) {
+    const timeUntilEnd = endTime.getTime() - now.getTime();
+    
+    console.log(`Scheduling visibility update for simulation ${simulationId} in ${timeUntilEnd/1000} seconds`);
+    
+    setTimeout(async () => {
+      try {
+        // Update all submissions for this simulation to show=true
+        await Submission.updateMany(
+          { show: false },
+          { show: true }
+        );
+        
+        console.log(`Automatically updated submission visibility for simulation ${simulationId}`);
+      } catch (error) {
+        console.error(`Error updating submission visibility for simulation ${simulationId}:`, error);
+      }
+    }, timeUntilEnd);
+  } else {
+    // Test has already ended, update submissions immediately
+    (async () => {
+      try {
+        await Submission.updateMany(
+          { show: false },
+          { show: true }
+        );
+        
+        console.log(`Immediately updated submission visibility for simulation ${simulationId} (past end time)`);
+      } catch (error) {
+        console.error(`Error updating submission visibility for simulation ${simulationId}:`, error);
+      }
+    })();
   }
 }
 
@@ -296,7 +351,7 @@ router.get('/submission/results/:id', async (req, res) => {
   try {
     const submission = await Submission.findById(req.params.id);
     const question = problems[submission.problemId];
-    console.log(question);
+    // console.log(question);
 
     if (!submission) {
       return res.status(404).json({
@@ -608,12 +663,12 @@ router.get('/test-config/:simulationId', async (req, res) => {
   const { simulationId } = req.params;
   
   try {
-    // Initialize if not exists
-    initializeTestConfig(simulationId);
+    // Initialize if not exists and schedule visibility update
+    const config = initializeTestConfig(simulationId);
     
     res.json({
       success: true,
-      data: testConfigurations[simulationId]
+      data: config
     });
   } catch (error) {
     console.error('Error fetching test configuration:', error);

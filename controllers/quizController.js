@@ -609,3 +609,79 @@ exports.getQuizResults = async (req, res) => {
     });
   }
 };
+
+// Add this to controllers/quizController.js
+
+// Get detailed quiz attempt information including questions and answers
+exports.getQuizAttemptDetails = async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    
+    // Find the quiz attempt
+    const quizAttempt = await QuizAttempt.findById(attemptId);
+    if (!quizAttempt) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Quiz attempt not found' 
+      });
+    }
+    
+    // Find all the questions for this quiz
+    const questions = await Question.find({ 
+      quizId: quizAttempt.quizId 
+    }).sort('order');
+    
+    // Prepare the question details with the user's answers
+    const questionDetails = await Promise.all(questions.map(async (question) => {
+      // Find the user's answer for this question
+      const answer = quizAttempt.answers.find(
+        ans => ans.questionId.toString() === question._id.toString()
+      );
+      
+      // Find the correct option
+      const correctOption = question.options.find(opt => opt.isCorrect);
+      
+      // Transform image URL if needed
+      let imageUrl = question.imageUrl;
+      if (imageUrl) {
+        // Use the virtual getter for public URL if available
+        imageUrl = question.imagePublicUrl || imageUrl;
+      }
+      
+      return {
+        _id: question._id,
+        text: question.text,
+        imageUrl: imageUrl,
+        options: question.options.map(opt => ({
+          _id: opt._id,
+          text: opt.text
+        })),
+        timeLimit: question.timeLimit,
+        explanation: question.explanation || '',
+        selectedOption: answer ? answer.selectedOption : null,
+        correctOptionId: correctOption ? correctOption._id : null,
+        isCorrect: answer ? answer.isCorrect : false,
+        timeSpent: answer ? answer.timeSpent : null,
+        pointsEarned: answer ? answer.pointsEarned : 0
+      };
+    }));
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        quizId: quizAttempt.quizId,
+        score: quizAttempt.score,
+        startedAt: quizAttempt.startedAt,
+        completedAt: quizAttempt.completedAt,
+        questions: questionDetails
+      }
+    });
+  } catch (error) {
+    console.error('Error in getQuizAttemptDetails:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server Error', 
+      error: error.message 
+    });
+  }
+};

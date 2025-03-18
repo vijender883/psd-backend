@@ -1,5 +1,5 @@
 // routes/quizRoutes.js
-// Updated with endpoints for scheduled quizzes
+// Updated with endpoints for scheduled quizzes and detailed quiz attempts
 const express = require('express');
 const router = express.Router();
 const quizController = require('../controllers/quizController');
@@ -31,6 +31,10 @@ router.put('/attempts/:attemptId/complete', quizController.completeQuizAttempt);
 // Get quiz results and leaderboard
 router.get('/attempts/:attemptId/results', quizController.getQuizResults);
 
+// Check if results are available
 router.get('/attempts/:attemptId/results-availability', quizController.checkResultsAvailability);
+
+// New route: Get detailed quiz attempt information including questions and answers
+router.get('/attempts/:attemptId/details', quizController.getQuizAttemptDetails);
 
 module.exports = router;
