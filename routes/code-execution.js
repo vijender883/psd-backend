@@ -280,7 +280,7 @@ function initializeTestConfig(simulationId) {
   
   if (!testConfigurations[simulationId]) {
     testConfigurations[simulationId] = {
-      scheduledStartTime: new Date('2025-03-18T07:20:10Z').toISOString(),
+      scheduledStartTime: new Date('2025-03-18T09:53:10Z').toISOString(),
       testDuration: 3 * 60, // 3 minutes (changed from 60 minutes for testing)
       allowLateEntry: false
     };
@@ -351,7 +351,7 @@ router.get('/submission/results/:id', async (req, res) => {
   try {
     const submission = await Submission.findById(req.params.id);
     const question = problems[submission.problemId];
-    // console.log(question);
+    console.log(question);
 
     if (!submission) {
       return res.status(404).json({
@@ -369,6 +369,11 @@ router.get('/submission/results/:id', async (req, res) => {
     }
 
     res.json({
+      title: question.title,
+      description: question.description,
+      inputFormat: question.inputFormat,
+      outputFormat: question.outputFormat,
+      example: question.example,
       success: true,
       results: submission.results,
       executionTime: submission.executionTime,
