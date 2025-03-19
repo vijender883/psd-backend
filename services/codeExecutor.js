@@ -32,27 +32,27 @@ async function executeCode(code, testCases, language) {
 async function executeJavaCode(code, testCases) {
   const submissionId = uuidv4();
   const executionDir = path.join(BASE_DIR, submissionId);
-  
+
   try {
     // Create execution directory
     await fs.mkdir(executionDir, { recursive: true });
-    
+
     // Generate wrapped Java code
     await generateJavaWrapper(executionDir, code);
-    
+
     // Compile code
     await compileJavaCode(executionDir);
-    
+
     // Run test cases
     const results = await runJavaTestCases(executionDir, testCases);
-    
+
     return {
       success: true,
       results: results
     };
   } catch (error) {
     console.error(`Execution error for ${submissionId}:`, error);
-    
+
     if (error.message.includes('Compilation failed')) {
       return {
         success: false,
@@ -62,7 +62,7 @@ async function executeJavaCode(code, testCases) {
         }
       };
     }
-    
+
     return {
       success: false,
       error: {
@@ -71,30 +71,44 @@ async function executeJavaCode(code, testCases) {
       }
     };
   }
+  // At the end of executeJavaCode and executePythonCode functions
+  finally {
+    // Clean up after execution
+    try {
+      // Use a non-blocking timeout to not delay the response
+      setTimeout(() => {
+        cleanupDirectory(executionDir).catch(err =>
+          console.error(`Failed to clean up directory ${executionDir}: ${err.message}`)
+        );
+      }, 1000);
+    } catch (cleanupError) {
+      console.error(`Error scheduling cleanup: ${cleanupError.message}`);
+    }
+  }
 }
 
 // Execute Python code
 async function executePythonCode(code, testCases) {
   const submissionId = uuidv4();
   const executionDir = path.join(BASE_DIR, submissionId);
-  
+
   try {
     // Create execution directory
     await fs.mkdir(executionDir, { recursive: true });
-    
+
     // Generate wrapped Python code
     await generatePythonWrapper(executionDir, code);
-    
+
     // Run test cases
     const results = await runPythonTestCases(executionDir, testCases);
-    
+
     return {
       success: true,
       results: results
     };
   } catch (error) {
     console.error(`Python execution error for ${submissionId}:`, error);
-    
+
     return {
       success: false,
       error: {
@@ -102,6 +116,20 @@ async function executePythonCode(code, testCases) {
         stack: error.message
       }
     };
+  }
+  // At the end of executeJavaCode and executePythonCode functions
+  finally {
+    // Clean up after execution
+    try {
+      // Use a non-blocking timeout to not delay the response
+      setTimeout(() => {
+        cleanupDirectory(executionDir).catch(err =>
+          console.error(`Failed to clean up directory ${executionDir}: ${err.message}`)
+        );
+      }, 1000);
+    } catch (cleanupError) {
+      console.error(`Error scheduling cleanup: ${cleanupError.message}`);
+    }
   }
 }
 
@@ -112,13 +140,13 @@ function compileJavaCode(executionDir) {
       cwd: executionDir,
       timeout: 10000 // 10 second timeout for compilation
     });
-    
+
     let stderr = '';
-    
+
     process.stderr.on('data', (data) => {
       stderr += data.toString();
     });
-    
+
     process.on('close', (code) => {
       if (code !== 0) {
         reject(new Error(`Compilation failed: ${stderr}`));
@@ -126,7 +154,7 @@ function compileJavaCode(executionDir) {
         resolve();
       }
     });
-    
+
     process.on('error', (err) => {
       reject(new Error(`Failed to start compilation process: ${err.message}`));
     });
@@ -136,34 +164,34 @@ function compileJavaCode(executionDir) {
 // Run Java test cases
 async function runJavaTestCases(executionDir, testCases) {
   const results = [];
-  
+
   for (let i = 0; i < testCases.length; i++) {
     const testCase = testCases[i];
     const testCaseNumber = i + 1;
-    
+
     const result = {
       testCase: testCaseNumber,
       description: testCase.description || `Test case ${testCaseNumber}`,
       input: testCase.input,
       expectedOutput: testCase.expectedOutput
     };
-    
+
     try {
       // Start timing execution
       const startTime = process.hrtime();
-      
+
       // Run Java program with the test case
       const output = await runJavaProgram(executionDir, testCase.input);
-      
+
       // Calculate execution time
       const endTime = process.hrtime(startTime);
       const executionTime = endTime[0] * 1000 + endTime[1] / 1000000; // Convert to milliseconds
-      
+
       // Check if output matches expected output
       const normalizedOutput = output.trim();
       const normalizedExpected = testCase.expectedOutput.trim();
       const passed = normalizedOutput === normalizedExpected;
-      
+
       result.passed = passed;
       result.yourOutput = normalizedOutput;
       result.executionTime = executionTime;
@@ -175,44 +203,44 @@ async function runJavaTestCases(executionDir, testCases) {
       };
       result.executionTime = 0;
     }
-    
+
     results.push(result);
   }
-  
+
   return results;
 }
 
 // Run Python test cases
 async function runPythonTestCases(executionDir, testCases) {
   const results = [];
-  
+
   for (let i = 0; i < testCases.length; i++) {
     const testCase = testCases[i];
     const testCaseNumber = i + 1;
-    
+
     const result = {
       testCase: testCaseNumber,
       description: testCase.description || `Test case ${testCaseNumber}`,
       input: testCase.input,
       expectedOutput: testCase.expectedOutput
     };
-    
+
     try {
       // Start timing execution
       const startTime = process.hrtime();
-      
+
       // Run Python program with the test case
       const output = await runPythonProgram(executionDir, testCase.input);
-      
+
       // Calculate execution time
       const endTime = process.hrtime(startTime);
       const executionTime = endTime[0] * 1000 + endTime[1] / 1000000; // Convert to milliseconds
-      
+
       // Check if output matches expected output
       const normalizedOutput = output.trim();
       const normalizedExpected = testCase.expectedOutput.trim();
       const passed = normalizedOutput === normalizedExpected;
-      
+
       result.passed = passed;
       result.yourOutput = normalizedOutput;
       result.executionTime = executionTime;
@@ -224,10 +252,10 @@ async function runPythonTestCases(executionDir, testCases) {
       };
       result.executionTime = 0;
     }
-    
+
     results.push(result);
   }
-  
+
   return results;
 }
 
@@ -238,24 +266,24 @@ function runJavaProgram(executionDir, input) {
       cwd: executionDir,
       timeout: 5000 // 5 second timeout
     });
-    
+
     let stdout = '';
     let stderr = '';
-    
+
     // Provide input if needed
     if (input) {
       process.stdin.write(input);
       process.stdin.end();
     }
-    
+
     process.stdout.on('data', (data) => {
       stdout += data.toString();
     });
-    
+
     process.stderr.on('data', (data) => {
       stderr += data.toString();
     });
-    
+
     process.on('close', (code) => {
       if (code !== 0) {
         reject(new Error(`Execution failed with code ${code}: ${stderr}`));
@@ -263,7 +291,7 @@ function runJavaProgram(executionDir, input) {
         resolve(stdout);
       }
     });
-    
+
     process.on('error', (err) => {
       reject(new Error(`Failed to start execution process: ${err.message}`));
     });
@@ -277,24 +305,24 @@ function runPythonProgram(executionDir, input) {
       cwd: executionDir,
       timeout: 5000 // 5 second timeout
     });
-    
+
     let stdout = '';
     let stderr = '';
-    
+
     // Provide input if needed
     if (input) {
       process.stdin.write(input);
       process.stdin.end();
     }
-    
+
     process.stdout.on('data', (data) => {
       stdout += data.toString();
     });
-    
+
     process.stderr.on('data', (data) => {
       stderr += data.toString();
     });
-    
+
     process.on('close', (code) => {
       if (code !== 0) {
         reject(new Error(`Python execution failed with code ${code}: ${stderr}`));
@@ -302,7 +330,7 @@ function runPythonProgram(executionDir, input) {
         resolve(stdout);
       }
     });
-    
+
     process.on('error', (err) => {
       reject(new Error(`Failed to start Python execution process: ${err.message}`));
     });
@@ -313,7 +341,7 @@ function runPythonProgram(executionDir, input) {
 async function cleanupDirectory(dir) {
   try {
     const entries = await fs.readdir(dir, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
@@ -322,7 +350,7 @@ async function cleanupDirectory(dir) {
         await fs.unlink(fullPath);
       }
     }
-    
+
     await fs.rmdir(dir);
   } catch (error) {
     console.error(`Error cleaning up directory ${dir}:`, error);
