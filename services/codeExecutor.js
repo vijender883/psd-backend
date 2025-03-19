@@ -3,6 +3,44 @@ const fs = require('fs').promises;
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
+// Add a simple queue implementation
+class ExecutionQueue {
+  constructor(maxConcurrent = 10) {
+    this.queue = [];
+    this.running = 0;
+    this.maxConcurrent = maxConcurrent;
+  }
+
+  enqueue(fn) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ fn, resolve, reject });
+      this.processQueue();
+    });
+  }
+
+  async processQueue() {
+    if (this.running >= this.maxConcurrent || this.queue.length === 0) {
+      return;
+    }
+
+    this.running++;
+    const { fn, resolve, reject } = this.queue.shift();
+
+    try {
+      const result = await fn();
+      resolve(result);
+    } catch (error) {
+      reject(error);
+    } finally {
+      this.running--;
+      this.processQueue();
+    }
+  }
+}
+
+// Create an execution queue with capacity based on your server resources
+const executionQueue = new ExecutionQueue(5);
+
 const BASE_DIR = '/tmp/code-runner';
 
 // Initialize the execution directory
@@ -20,12 +58,14 @@ const { generatePythonWrapper } = require('./pythonWrapper');
 
 // Execute code - main function that handles both Java and Python
 async function executeCode(code, testCases, language) {
-  if (language === 'python') {
-    return executePythonCode(code, testCases);
-  } else {
-    // Default to Java
-    return executeJavaCode(code, testCases);
-  }
+  // Queue the execution and return the promise
+  return executionQueue.enqueue(() => {
+    if (language === 'python') {
+      return executePythonCode(code, testCases);
+    } else {
+      return executeJavaCode(code, testCases);
+    }
+  });
 }
 
 // Execute Java code
@@ -133,12 +173,15 @@ async function executePythonCode(code, testCases) {
   }
 }
 
+const COMPILATION_TIMEOUT = 15000;  // Increase from 10000
+const EXECUTION_TIMEOUT = 8000;     // Increase from 5000
+
 // Compile Java code
 function compileJavaCode(executionDir) {
   return new Promise((resolve, reject) => {
     const process = spawn('javac', ['Solution.java'], {
       cwd: executionDir,
-      timeout: 10000 // 10 second timeout for compilation
+      timeout: COMPILATION_TIMEOUT
     });
 
     let stderr = '';
@@ -264,7 +307,7 @@ function runJavaProgram(executionDir, input) {
   return new Promise((resolve, reject) => {
     const process = spawn('java', ['-Xmx256m', '-Xss64m', 'Solution'], {
       cwd: executionDir,
-      timeout: 5000 // 5 second timeout
+      timeout: EXECUTION_TIMEOUT
     });
 
     let stdout = '';
@@ -303,7 +346,7 @@ function runPythonProgram(executionDir, input) {
   return new Promise((resolve, reject) => {
     const process = spawn('python3', ['solution.py'], {
       cwd: executionDir,
-      timeout: 5000 // 5 second timeout
+      timeout: EXECUTION_TIMEOUT
     });
 
     let stdout = '';

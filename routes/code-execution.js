@@ -5,6 +5,9 @@ const router = express.Router();
 const Submission = require('../models/Submission');
 const { analyzeProblemAndSolution } = require('../services/llmService');
 
+const problemsCache = new Map();
+const CACHE_TTL = 3600000;
+
 const problems = {
   // Existing problems with both Java and Python templates
   'diagonaltraversal': {
@@ -343,6 +346,14 @@ function scheduleSubmissionVisibility(simulationId) {
 
 // Get all problems
 router.get('/problems', (req, res) => {
+  const cacheKey = 'all_problems';
+  if (problemsCache.has(cacheKey)) {
+    return res.json(problemsCache.get(cacheKey));
+  }
+  
+  problemsCache.set(cacheKey, problemList);
+  setTimeout(() => problemsCache.delete(cacheKey), CACHE_TTL);
+  
   res.json(problemList);
 });
 
@@ -530,10 +541,13 @@ module.exports = router;
 // Get a specific problem with language parameter
 router.get('/problems/:id', (req, res) => {
   const { id } = req.params;
-  const { language = 'java' } = req.query; // Default to Java if no language specified
-
-  console.log(`Requested problem ID: ${id}, Language: ${language}`);
-
+  const { language = 'java' } = req.query;
+  const cacheKey = `problem_${id}_${language}`;
+  
+  if (problemsCache.has(cacheKey)) {
+    return res.json(problemsCache.get(cacheKey));
+  }
+  
   const problem = problems[id];
   if (!problem) {
     return res.status(404).json({
@@ -542,17 +556,18 @@ router.get('/problems/:id', (req, res) => {
     });
   }
 
-  // Don't send test cases to frontend
   const { testCases, templates, ...problemData } = problem;
-
-  // Send language-specific template
   const functionTemplate = templates[language] || templates.java;
-
-  res.json({
+  const responseData = {
     ...problemData,
     functionTemplate,
     showSolution: !!problem.solution
-  });
+  };
+  
+  problemsCache.set(cacheKey, responseData);
+  setTimeout(() => problemsCache.delete(cacheKey), CACHE_TTL);
+  
+  res.json(responseData);
 });
 
 // Get submissions with optional username filter
