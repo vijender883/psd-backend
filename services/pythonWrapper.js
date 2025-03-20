@@ -6,6 +6,8 @@ async function generatePythonWrapper(executionDir, code) {
   const isMinPathSum = code.includes('min_path_sum');
   const isDiagonalTraversal = code.includes('diagonal_traversal');
   const isLIS = code.includes('length_of_lis');
+  const isConsecutiveChars = code.includes('count_consecutive_chars');
+  const isClosestValue = code.includes('find_closest_element');
   
   let wrapperCode;
   if (isMinPathSum) {
@@ -14,11 +16,55 @@ async function generatePythonWrapper(executionDir, code) {
     wrapperCode = generateDiagonalTraversalWrapper(code);
   } else if (isLIS) {
     wrapperCode = generateLISWrapper(code);
+  } else if (isConsecutiveChars) {
+    wrapperCode = generateConsecutiveCharsWrapper(code);
+  } else if (isClosestValue) {
+    wrapperCode = generateClosestValueWrapper(code);
   } else {
     wrapperCode = generateLongestCommonPrefixWrapper(code);
   }
   
   await fs.writeFile(path.join(executionDir, 'solution.py'), wrapperCode);
+}
+
+function generateClosestValueWrapper(code) {
+  return `
+import sys
+
+${code}
+
+if __name__ == "__main__":
+    # Read input
+    n = int(input().strip())
+    nums = list(map(int, input().strip().split()))
+    target = int(input().strip())
+    
+    # Create solution object and call function
+    solver = ClosestValueFinder()
+    result = solver.find_closest_element(nums, target)
+    
+    # Output result
+    print(result)
+`
+}
+
+function generateConsecutiveCharsWrapper(code) {
+  return `
+import sys
+
+${code}
+
+if __name__ == "__main__":
+    # Read input
+    s = input().strip()
+    
+    # Create solution object and call function
+    solver = CountConsecutive()
+    result = solver.count_consecutive_chars(s)
+    
+    # Output result
+    print(result)
+`
 }
 
 function generateDiagonalTraversalWrapper(code) {

@@ -6,6 +6,8 @@ async function generateJavaWrapper(executionDir, code) {
   const isMinPathSum = code.includes('MinPathSum');
   const isDiagonalTraversal = code.includes('DiagonalTraversal');
   const isLIS = code.includes('LengthOfLIS');
+  const isConsecutiveChars = code.includes('countConsecutiveChars');
+  const isClosestValue = code.includes('ClosestValueFinder');
   
   let wrapperCode;
   if (isMinPathSum) {
@@ -14,6 +16,10 @@ async function generateJavaWrapper(executionDir, code) {
     wrapperCode = generateDiagonalTraversalWrapper(code);
   } else if (isLIS) {
     wrapperCode = generateLISWrapper(code);
+  } else if (isConsecutiveChars) {
+    wrapperCode = generateConsecutiveCharsWrapper(code);
+  } else if (isClosestValue) {
+    wrapperCode = generateClosestValueWrapper(code);
   } else {
     wrapperCode = generateLongestCommonPrefixWrapper(code);
   }
@@ -21,9 +27,59 @@ async function generateJavaWrapper(executionDir, code) {
   await fs.writeFile(path.join(executionDir, 'Solution.java'), wrapperCode);
 }
 
-// Add these functions in javaWrapper.js:
+function generateClosestValueWrapper(code) {
+  return `
+import java.util.*;
 
-// In javaWrapper.js, update the formatResult function in generateDiagonalTraversalWrapper:
+${code}
+
+public class Solution {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        
+        // Read array size
+        int n = Integer.parseInt(scanner.nextLine());
+        
+        // Read array elements
+        String[] numsStr = scanner.nextLine().split("\\s+");
+        int[] nums = new int[n];
+        for(int i = 0; i < n; i++) {
+            nums[i] = Integer.parseInt(numsStr[i]);
+        }
+        
+        // Read target value
+        int target = Integer.parseInt(scanner.nextLine());
+        
+        // Call solution
+        ClosestValueFinder solver = new ClosestValueFinder();
+        int result = solver.findClosestElement(nums, target);
+        
+        // Output result
+        System.out.println(result);
+    }
+}`;
+}
+
+function generateConsecutiveCharsWrapper(code) {
+  return `
+import java.util.*;
+
+${code}
+
+public class Solution {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        String s = scanner.nextLine().trim();
+        
+        // Call solution
+        CountConsecutive solver = new CountConsecutive();
+        int[] result = solver.countConsecutiveChars(s);
+        
+        // Format and print result
+        System.out.println(Arrays.toString(result));
+    }
+}`;
+}
 
 function generateDiagonalTraversalWrapper(code) {
   return `
