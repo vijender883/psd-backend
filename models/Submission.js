@@ -116,10 +116,21 @@ const SubmissionSchema = new mongoose.Schema({
       required: true
     }
   },
+  processingComplete: {
+    type: Boolean,
+    required: true,
+    default: false
+  },
+  error: {
+    message: String,
+    stack: String
+  },
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
+
+SubmissionSchema.index({ username: 1, problemId: 1 }, { unique: true })
 
 module.exports = mongoose.model('Submission', SubmissionSchema);

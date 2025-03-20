@@ -16,7 +16,7 @@ function initializeTestConfig(simulationId) {
   
   if (!testConfigurations[simulationId]) {
     testConfigurations[simulationId] = {
-      scheduledStartTime: new Date('2025-03-20T04:38:10Z').toISOString(),
+      scheduledStartTime: new Date('2025-03-20T06:28:10Z').toISOString(),
       testDuration: 2 * 60, // 3 minutes (changed from 60 minutes for testing)
       allowLateEntry: false
     };
@@ -140,6 +140,52 @@ router.get('/submission/results/:id', async (req, res) => {
       success: false,
       error: {
         message: 'Failed to fetch submission',
+        stack: error.message
+      }
+    });
+  }
+});
+
+router.get('/check-submission/:username/:problemId', async (req, res) => {
+  try {
+    const { username, problemId } = req.params;
+    
+    // Validate inputs
+    if (!username || !problemId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Username and problemId are required'
+      });
+    }
+
+    // Find submission for this user and problem
+    const submission = await Submission.findOne({ 
+      username: username.trim(), 
+      problemId: problemId 
+    });
+
+    if (submission) {
+      // User has already submitted
+      return res.json({
+        success: true,
+        hasSubmitted: true,
+        submissionId: submission._id,
+        show: submission.show, // Whether results are viewable
+        createdAt: submission.createdAt
+      });
+    } else {
+      // No submission found
+      return res.json({
+        success: true,
+        hasSubmitted: false
+      });
+    }
+  } catch (error) {
+    console.error('Error checking submission status:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to check submission status',
         stack: error.message
       }
     });
@@ -328,6 +374,7 @@ router.get('/submissions', async (req, res) => {
 });
 
 // Analyze and submit code
+// Modify the analyze endpoint in code-execution.js to separate submission and processing
 router.post('/analyze', async (req, res) => {
   const { code, problemId, username, timeComplexity, spaceComplexity, language = 'java' } = req.body;
 
@@ -340,60 +387,56 @@ router.post('/analyze', async (req, res) => {
   }
 
   try {
-    // Execute code first, passing the language parameter
-    const result = await executeCode(code, problem.testCases, language);
+    // First, check if this user has already submitted for this problem
+    const existingSubmission = await Submission.findOne({ 
+      username: username.trim(), 
+      problemId: problemId 
+    });
 
-    if (!result.success) {
-      return res.json(result);
+    if (existingSubmission) {
+      // User has already submitted for this problem
+      return res.json({
+        success: true,
+        message: "You have already submitted a solution for this problem",
+        submissionId: existingSubmission._id,
+        alreadySubmitted: true
+      });
     }
 
-    // Analyze with LLM - skip suspicion check for now
-    const analysis = await analyzeProblemAndSolution(
-      problem,
-      code,
-      timeComplexity,
-      spaceComplexity,
-      language
-    );
-
-    // Calculate metrics
-    const totalTests = result.results.length;
-    const passedTests = result.results.filter(r => r.passed).length;
-    const averageExecutionTime = result.results.reduce((sum, r) =>
-      sum + r.executionTime, 0) / totalTests;
-    const score = (passedTests / totalTests) * 100;
-
-    // Create and save submission
+    // Create a submission record immediately without waiting for execution
     const submission = new Submission({
       username,
       problemId,
       code,
-      language, // Save the language used
-      executionTime: averageExecutionTime,
-      score,
-      passedTests,
-      totalTests,
-      results: result.results,
+      language,
+      executionTime: 0, // Will be updated after processing
+      score: 0, // Will be updated after processing
+      passedTests: 0, // Will be updated after processing
+      totalTests: problem.testCases.length,
+      results: [], // Will be updated after processing
       timeComplexity,
       spaceComplexity,
-      show: false, // Default to not showing results until admin approves
-      isSuspicious: false, // Skip suspicion check as requested
+      show: false,
+      isSuspicious: false,
       suspicionLevel: 'low',
       suspicionReasons: [],
       complexityAnalysis: {
-        isTimeComplexityAccurate: analysis.isTimeComplexityAccurate,
-        isSpaceComplexityAccurate: analysis.isSpaceComplexityAccurate,
-        actualTimeComplexity: analysis.actualTimeComplexity,
-        actualSpaceComplexity: analysis.actualSpaceComplexity,
-        explanation: analysis.explanation
-      }
+        isTimeComplexityAccurate: true, // Will be updated after analysis
+        isSpaceComplexityAccurate: true, // Will be updated after analysis
+        actualTimeComplexity: timeComplexity, // Will be updated after analysis
+        actualSpaceComplexity: spaceComplexity, // Will be updated after analysis
+        explanation: "Processing" // Will be updated after analysis
+      },
+      processingComplete: false // New field to track processing status
     });
 
     await submission.save();
 
-    console.log(submission._id);
+    // Start processing in the background without waiting for it to complete
+    processSubmissionAsync(submission._id, code, problem, language, timeComplexity, spaceComplexity)
+      .catch(err => console.error(`Background processing error for submission ${submission._id}:`, err));
 
-    // Return minimal information after submission
+    // Return success immediately
     res.json({
       success: true,
       message: "Submission received successfully",
@@ -402,11 +445,124 @@ router.post('/analyze', async (req, res) => {
     });
 
   } catch (error) {
+    // Check if this is a duplicate key error (MongoDB error code 11000)
+    if (error.code === 11000) {
+      // This means the user tried to submit the same problem twice
+      try {
+        // Find the existing submission
+        const existingSubmission = await Submission.findOne({ 
+          username: username.trim(), 
+          problemId: problemId 
+        });
+        
+        if (existingSubmission) {
+          return res.json({
+            success: true,
+            message: "You have already submitted a solution for this problem",
+            submissionId: existingSubmission._id,
+            alreadySubmitted: true
+          });
+        }
+      } catch (findError) {
+        console.error('Error finding existing submission:', findError);
+      }
+    }
+    
     console.error('Submission processing error:', error);
     res.status(500).json({
       success: false,
       error: {
         message: 'Submission processing failed',
+        stack: error.message
+      }
+    });
+  }
+});
+
+// Add this function to process the submission asynchronously
+async function processSubmissionAsync(submissionId, code, problem, language, timeComplexity, spaceComplexity) {
+  try {
+    console.log(`Starting background processing for submission ${submissionId}`);
+    
+    // Execute code
+    const result = await executeCode(code, problem.testCases, language);
+    
+    // Analyze with LLM if necessary
+    const analysis = await analyzeProblemAndSolution(
+      problem,
+      code,
+      timeComplexity,
+      spaceComplexity,
+      language
+    );
+    
+    // Calculate metrics
+    const totalTests = result.results ? result.results.length : 0;
+    const passedTests = result.results ? result.results.filter(r => r.passed).length : 0;
+    const averageExecutionTime = totalTests > 0 
+      ? result.results.reduce((sum, r) => sum + r.executionTime, 0) / totalTests 
+      : 0;
+    const score = totalTests > 0 ? (passedTests / totalTests) * 100 : 0;
+    
+    // Update the submission with results
+    await Submission.findByIdAndUpdate(submissionId, {
+      executionTime: averageExecutionTime,
+      score,
+      passedTests,
+      results: result.results || [],
+      complexityAnalysis: {
+        isTimeComplexityAccurate: analysis.isTimeComplexityAccurate,
+        isSpaceComplexityAccurate: analysis.isSpaceComplexityAccurate,
+        actualTimeComplexity: analysis.actualTimeComplexity,
+        actualSpaceComplexity: analysis.actualSpaceComplexity,
+        explanation: analysis.explanation
+      },
+      processingComplete: true
+    });
+    
+    console.log(`Background processing completed for submission ${submissionId}`);
+  } catch (error) {
+    console.error(`Background processing failed for submission ${submissionId}:`, error);
+    
+    // Update submission to mark processing as complete, even with error
+    try {
+      await Submission.findByIdAndUpdate(submissionId, {
+        processingComplete: true,
+        error: {
+          message: error.message,
+          stack: error.stack
+        }
+      });
+    } catch (updateError) {
+      console.error(`Failed to update submission ${submissionId} after processing error:`, updateError);
+    }
+  }
+}
+
+router.get('/submission/processing-status/:id', async (req, res) => {
+  try {
+    const submission = await Submission.findById(req.params.id);
+
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        error: 'Submission not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      id: submission._id,
+      processingComplete: submission.processingComplete,
+      show: submission.show
+    });
+
+  } catch (error) {
+    console.error('Error checking processing status:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to check processing status',
         stack: error.message
       }
     });
