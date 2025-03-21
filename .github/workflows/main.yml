@@ -6,20 +6,20 @@ on:
       - main  # Runs on push to main branch
 
 jobs:
-  # test:
-  #   runs-on: PSD-EC2-RUNNER  # Self-hosted EC2 runner
-  #   steps:
-  #     - name: Pull Latest Code
-  #       run: cd /home/ubuntu/practicalsystemdesign && git pull origin main
+  test:
+    runs-on: PSD-EC2-RUNNER  # Self-hosted EC2 runner
+    steps:
+      - name: Pull Latest Code
+        run: cd /home/ubuntu/practicalsystemdesign && git pull origin main
 
-  #     - name: Install Dependencies
-  #       run: cd /home/ubuntu/practicalsystemdesign && npm install --omit=dev --silent
+      - name: Install Dependencies
+        run: cd /home/ubuntu/practicalsystemdesign && npm install --omit=dev --silent
 
-  #     - name: Run Tests
-  #       run: cd /home/ubuntu/practicalsystemdesign && npm test
+      - name: Run Tests
+        run: cd /home/ubuntu/practicalsystemdesign && npm test
 
   deploy:
-    # needs: test  # Deploys only if tests pass
+    needs: test  # Deploys only if tests pass
     runs-on: PSD-EC2-RUNNER  # Self-hosted EC2 runner
     steps:
       - name: Restart PM2 Server
