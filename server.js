@@ -9,6 +9,7 @@ const codeExecutionRouter = require('./routes/code-execution');
 const mongoose = require('mongoose');
 const quizRoutes = require('./routes/quizRoutes');
 const { initializeQuizzes } = require('./services/quizService');
+const simulationRoutes = require('./routes/simulationRoutes');
 
 dotenv.config();
 
@@ -162,6 +163,7 @@ app.post('/api/execute', async (req, res) => {
 });
 
 // Mount the code execution router
+app.use('/api/simulations', simulationRoutes);
 app.use('/api/code', codeExecutionRouter);
 app.use('/api/quiz', quizRoutes);
 
