@@ -170,14 +170,21 @@ router.get('/participants/:userId/:simulationId', async (req, res) => {
     if (isRegistered) {
       console.log('User is registered:', { userId, simulationId });
       
-      // Get participant details for backward compatibility
+      // Get detailed participant info for the frontend
       const participant = await SimulationParticipant.findOne({ userId, simulationId });
       
+      // Include all relevant information in the response
       res.json({
         success: true,
         registered: true,
         simulation,
-        participant
+        participant: {
+          userId: participant?.userId,
+          simulationId: participant?.simulationId,
+          mcqAttemptId: participant?.mcqAttemptId || null,
+          dsaSubmissionIds: participant?.dsaSubmissionIds || [],
+          createdAt: participant?.createdAt
+        }
       });
     } else {
       console.log('User is NOT registered:', { userId, simulationId });
@@ -195,6 +202,7 @@ router.get('/participants/:userId/:simulationId', async (req, res) => {
     });
   }
 });
+
 
 // Update MCQ attempt ID
 router.put('/participants/:userId/:simulationId/mcq', async (req, res) => {
@@ -229,7 +237,7 @@ router.put('/participants/:userId/:simulationId/mcq', async (req, res) => {
       );
     }
     
-    // Update the SimulationParticipant for backward compatibility
+    // Update the SimulationParticipant
     const participant = await SimulationParticipant.findOneAndUpdate(
       { userId, simulationId },
       { 
@@ -241,7 +249,13 @@ router.put('/participants/:userId/:simulationId/mcq', async (req, res) => {
     
     res.json({
       success: true,
-      participant
+      participant: {
+        userId: participant.userId,
+        simulationId: participant.simulationId,
+        mcqAttemptId: participant.mcqAttemptId,
+        dsaSubmissionIds: participant.dsaSubmissionIds || [],
+        createdAt: participant.createdAt
+      }
     });
   } catch (error) {
     console.error('Error updating MCQ attempt ID:', error);
@@ -285,7 +299,7 @@ router.put('/participants/:userId/:simulationId/dsa', async (req, res) => {
       );
     }
     
-    // Update the SimulationParticipant for backward compatibility
+    // Update the SimulationParticipant
     const participant = await SimulationParticipant.findOneAndUpdate(
       { userId, simulationId },
       { 
@@ -297,7 +311,13 @@ router.put('/participants/:userId/:simulationId/dsa', async (req, res) => {
     
     res.json({
       success: true,
-      participant
+      participant: {
+        userId: participant.userId,
+        simulationId: participant.simulationId,
+        mcqAttemptId: participant.mcqAttemptId || null,
+        dsaSubmissionIds: participant.dsaSubmissionIds || [],
+        createdAt: participant.createdAt
+      }
     });
   } catch (error) {
     console.error('Error adding DSA submission ID:', error);
