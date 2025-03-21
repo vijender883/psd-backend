@@ -19,7 +19,7 @@ const SimulationSchema = new mongoose.Schema({
     mcqTests: [String],
     dsaTests: [String] 
   },
-  userIds: {
+  participationIds: {
     type: [String],
     default: []
   },

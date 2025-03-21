@@ -21,7 +21,7 @@ const initializeSimulations = async () => {
             mcqTests: [], // Will be dynamically populated
             dsaTests: ["countconsecutive", "closestvalueinrotatedarray"]
           },
-          userIds: []
+          participationIds: []
         },
         {
           simulationId: "2",
@@ -31,7 +31,7 @@ const initializeSimulations = async () => {
             mcqTests: [], // Will be dynamically populated
             dsaTests: ["longestincreasing", "longestcommonprefix"]
           },
-          userIds: []
+          participationIds: []
         }
       ]);
       
@@ -70,7 +70,7 @@ router.post('/participants', async (req, res) => {
     }
     
     // Check if user is already registered
-    if (simulation.userIds.includes(userId)) {
+    if (simulation.participationIds.includes(userId)) {
       console.log('User already registered:', { userId, simulationId });
       
       // Still create/update SimulationParticipant for backward compatibility
@@ -96,7 +96,7 @@ router.post('/participants', async (req, res) => {
     // Add user to the simulation
     simulation = await Simulation.findOneAndUpdate(
       { simulationId },
-      { $addToSet: { userIds: userId } },
+      { $addToSet: { participationIds: userId } },
       { new: true }
     );
     
@@ -165,7 +165,7 @@ router.get('/participants/:userId/:simulationId', async (req, res) => {
     }
     
     // Check if user is registered
-    const isRegistered = simulation.userIds.includes(userId);
+    const isRegistered = simulation.participationIds.includes(userId);
     
     if (isRegistered) {
       console.log('User is registered:', { userId, simulationId });
@@ -222,10 +222,10 @@ router.put('/participants/:userId/:simulationId/mcq', async (req, res) => {
     }
     
     // If user is not registered, add them
-    if (!simulation.userIds.includes(userId)) {
+    if (!simulation.participationIds.includes(userId)) {
       await Simulation.updateOne(
         { simulationId },
-        { $addToSet: { userIds: userId } }
+        { $addToSet: { participationIds: userId } }
       );
     }
     
@@ -278,10 +278,10 @@ router.put('/participants/:userId/:simulationId/dsa', async (req, res) => {
     }
     
     // If user is not registered, add them
-    if (!simulation.userIds.includes(userId)) {
+    if (!simulation.participationIds.includes(userId)) {
       await Simulation.updateOne(
         { simulationId },
-        { $addToSet: { userIds: userId } }
+        { $addToSet: { participationIds: userId } }
       );
     }
     
