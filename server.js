@@ -10,6 +10,7 @@ const mongoose = require('mongoose');
 const quizRoutes = require('./routes/quizRoutes');
 const { initializeQuizzes } = require('./services/quizService');
 const simulationRoutes = require('./routes/simulationRoutes');
+const leaderboardRoutes = require('./routes/leaderboardRoutes');
 
 dotenv.config();
 
@@ -166,6 +167,7 @@ app.post('/api/execute', async (req, res) => {
 app.use('/api/simulations', simulationRoutes);
 app.use('/api/code', codeExecutionRouter);
 app.use('/api/quiz', quizRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
