@@ -22,6 +22,10 @@ const SubmissionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  userId: {
+    type: String,
+    required: true
+  },
   show: {
     type: Boolean,
     required: true,
@@ -77,21 +81,7 @@ const SubmissionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  // fields for LLM analysis
-  isSuspicious: {
-    type: Boolean,
-    required: true,
-    default: false
-  },
-  suspicionLevel: {
-    type: String,
-    enum: ['low', 'medium', 'high'],
-    required: true,
-    default: 'low'
-  },
-  suspicionReasons: [{
-    type: String
-  }],
+  // Enhanced fields for LLM analysis
   complexityAnalysis: {
     isTimeComplexityAccurate: {
       type: Boolean,
@@ -114,6 +104,14 @@ const SubmissionSchema = new mongoose.Schema({
     explanation: {
       type: String,
       required: true
+    },
+    improvement: {
+      type: String,
+      default: ""
+    },
+    optimizedSolution: {
+      type: String,
+      default: ""
     }
   },
   processingComplete: {
@@ -131,6 +129,6 @@ const SubmissionSchema = new mongoose.Schema({
   }
 });
 
-SubmissionSchema.index({ username: 1, problemId: 1 }, { unique: true })
+SubmissionSchema.index({ userId: 1, problemId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Submission', SubmissionSchema);

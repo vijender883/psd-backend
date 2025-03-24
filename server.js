@@ -37,9 +37,9 @@ app.use(cors({
 }));
 app.use(express.json());
 
-initializeQuizzes()
-  .then(() => console.log('Sample quizzes initialized successfully'))
-  .catch(err => console.error('Error initializing quizzes:', err));
+// initializeQuizzes()
+//   .then(() => console.log('Sample quizzes initialized successfully'))
+//   .catch(err => console.error('Error initializing quizzes:', err));
 
 // Database connection configuration
 const dbConfig = {
