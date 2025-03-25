@@ -23,6 +23,14 @@ const QuizSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  scheduledEndTime: {
+    type: Date,
+    default: null
+  },
+  resultsDeclarationTime: {
+    type: Date,
+    default: null
+  },
   lateJoinWindowMinutes: {
     type: Number,
     default: 5 // Default 5 minutes late join window
@@ -30,7 +38,7 @@ const QuizSchema = new mongoose.Schema({
   // Add field for when results become available (in hours after quiz starts)
   resultsAvailableAfterHours: {
     type: Number,
-    default: 0.05 // Default 2 hours after quiz starts
+    default: 0.08 // Default 2 hours after quiz starts
   }
 });
 

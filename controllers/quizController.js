@@ -21,7 +21,7 @@ exports.getAllQuizzes = async (req, res) => {
 exports.getQuizById = async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.id)
-      .select('title description isActive scheduledStartTime lateJoinWindowMinutes');
+      .select('title description isActive scheduledStartTime lateJoinWindowMinutes scheduledEndTime resultsDeclarationTime');
     
     if (!quiz) {
       return res.status(404).json({ success: false, message: 'Quiz not found' });
