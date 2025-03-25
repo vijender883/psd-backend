@@ -23,6 +23,14 @@ const QuizSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  scheduledEndTime: {
+    type: Date,
+    default: null
+  },
+  resultsDeclarationTime: {
+    type: Date,
+    default: null
+  },
   lateJoinWindowMinutes: {
     type: Number,
     default: 5 // Default 5 minutes late join window
