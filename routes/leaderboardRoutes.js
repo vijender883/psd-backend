@@ -7,6 +7,10 @@ const SimulationParticipant = require('../models/SimulationParticipant');
 const Simulation = require('../models/Simulation');
 const QuizAttempt = require('../models/QuizAttempt');
 
+// Constants for score weighting
+const MCQ_WEIGHT = 0.3;  // 30% weight for MCQ scores
+const DSA_WEIGHT = 0.7;  // 70% weight for DSA scores
+
 // Helper function to calculate MCQ score from a quiz attempt
 async function calculateMcqScore(attemptId) {
   try {
@@ -29,11 +33,8 @@ async function calculateMcqScore(attemptId) {
     const correctAnswers = attempt.answers.filter(answer => answer.isCorrect).length;
     const totalQuestions = attempt.totalQuestions || attempt.answers.length;
     
-    // Convert to a score out of 100
-    let score = 0;
-    if (totalQuestions > 0) {
-      score = Math.round((correctAnswers / totalQuestions) * 100);
-    }
+    // Use the score from the attempt
+    let score = attempt.score;
     
     console.log(`MCQ score calculation: ${correctAnswers} correct out of ${totalQuestions}, score: ${score}`);
     return score;
@@ -52,6 +53,16 @@ async function getProblemsForSimulation(simulationId) {
     console.error('Error fetching simulation problems:', error);
     return [];
   }
+}
+
+// Calculate weighted total score
+function calculateWeightedTotalScore(mcqScore, dsaScore) {
+  // Normalize MCQ and DSA scores to a 0-100 scale if needed
+  const normalizedMcqScore = mcqScore;
+  const normalizedDsaScore = dsaScore;
+  
+  // Apply weights and return the weighted total
+  return (normalizedMcqScore * MCQ_WEIGHT) + (normalizedDsaScore * DSA_WEIGHT);
 }
 
 // Endpoint to update leaderboard for a user
@@ -130,8 +141,9 @@ router.post('/simulations/:simulationId/leaderboard/update', async (req, res) =>
 
     console.log(`Final values - username: ${usernameFinal}, college: ${collegeFinal}`);
 
-    // Calculate total score
-    const totalScore = mcqScore + totalDsaScore;
+    // Calculate weighted total score
+    const totalScore = calculateWeightedTotalScore(mcqScore, totalDsaScore);
+    console.log(`Weighted score calculation - MCQ (${mcqScore} × ${MCQ_WEIGHT}) + DSA (${totalDsaScore} × ${DSA_WEIGHT}) = ${totalScore}`);
 
     // Find latest submission time
     const lastSubmissionTime = dsaSubmissions.length > 0
@@ -316,9 +328,9 @@ router.post('/simulations/:simulationId/leaderboard/refresh', async (req, res) =
           console.log(`DSA score for user ${userId}, problem ${submission.problemId}: ${score}`);
         }
 
-        // Calculate total score
-        const totalScore = mcqScore + totalDsaScore;
-        console.log(`Total score for user ${userId}: ${totalScore} (MCQ: ${mcqScore}, DSA: ${totalDsaScore})`);
+        // Calculate weighted total score using the new formula
+        const totalScore = calculateWeightedTotalScore(mcqScore, totalDsaScore);
+        console.log(`Weighted score calculation - MCQ (${mcqScore} × ${MCQ_WEIGHT}) + DSA (${totalDsaScore} × ${DSA_WEIGHT}) = ${totalScore}`);
 
         // Find latest submission time
         const lastSubmissionTime = dsaSubmissions.length > 0
