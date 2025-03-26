@@ -7,6 +7,10 @@ const SimulationParticipant = require('../models/SimulationParticipant');
 const Simulation = require('../models/Simulation');
 const QuizAttempt = require('../models/QuizAttempt');
 
+// Constants for score weighting
+const MCQ_WEIGHT = 0.3;  // 30% weight for MCQ scores
+const DSA_WEIGHT = 0.7;  // 70% weight for DSA scores
+
 // Helper function to calculate MCQ score from a quiz attempt
 async function calculateMcqScore(attemptId) {
   try {
@@ -29,11 +33,8 @@ async function calculateMcqScore(attemptId) {
     const correctAnswers = attempt.answers.filter(answer => answer.isCorrect).length;
     const totalQuestions = attempt.totalQuestions || attempt.answers.length;
     
-    // Convert to a score out of 100
-    let score = 0;
-    if (totalQuestions > 0) {
-      score = Math.round((correctAnswers / totalQuestions) * 100);
-    }
+    // Use the score from the attempt
+    let score = attempt.score;
     
     console.log(`MCQ score calculation: ${correctAnswers} correct out of ${totalQuestions}, score: ${score}`);
     return score;
@@ -54,11 +55,21 @@ async function getProblemsForSimulation(simulationId) {
   }
 }
 
+// Calculate weighted total score
+function calculateWeightedTotalScore(mcqScore, dsaScore) {
+  // Normalize MCQ and DSA scores to a 0-100 scale if needed
+  const normalizedMcqScore = mcqScore;
+  const normalizedDsaScore = dsaScore;
+  
+  // Apply weights and return the weighted total
+  return (normalizedMcqScore * MCQ_WEIGHT) + (normalizedDsaScore * DSA_WEIGHT);
+}
+
 // Endpoint to update leaderboard for a user
 router.post('/simulations/:simulationId/leaderboard/update', async (req, res) => {
   try {
     const { simulationId } = req.params;
-    const { userId } = req.body;
+    const { userId, username, college } = req.body;
 
     if (!userId || !simulationId) {
       return res.status(400).json({
@@ -66,6 +77,9 @@ router.post('/simulations/:simulationId/leaderboard/update', async (req, res) =>
         error: 'userId and simulationId are required'
       });
     }
+
+    console.log(`Updating leaderboard for user ${userId} in simulation ${simulationId}`);
+    console.log(`Received user data: username=${username}, college=${college}`);
 
     // Get participant data
     const participant = await SimulationParticipant.findOne({ userId, simulationId });
@@ -75,6 +89,15 @@ router.post('/simulations/:simulationId/leaderboard/update', async (req, res) =>
         success: false,
         error: 'Participant not found'
       });
+    }
+
+    // If a college name was provided in the request, let's update the participant record
+    if (college) {
+      await SimulationParticipant.findOneAndUpdate(
+        { userId, simulationId },
+        { college }
+      );
+      console.log(`Updated participant record with college: ${college}`);
     }
 
     // Calculate MCQ score directly from the quiz attempt
@@ -103,12 +126,24 @@ router.post('/simulations/:simulationId/leaderboard/update', async (req, res) =>
       totalDsaScore += score;
     }
 
-    // Get user info
-    let username = dsaSubmissions.username || 'User';
-    let college = participant.college || 'Not specified';
+    // Determine the username to use
+    // Priority: 1. Request param 2. Submission username 3. Fallback
+    let usernameFinal = username;
+    if (!usernameFinal && dsaSubmissions.length > 0) {
+      usernameFinal = dsaSubmissions[0].username;
+    }
+    if (!usernameFinal) {
+      usernameFinal = "User_" + userId.substring(0, 6);
+    }
+    
+    // Use provided college or fallback to participant's college
+    let collegeFinal = college || participant.college || 'Not specified';
 
-    // Calculate total score
-    const totalScore = mcqScore + totalDsaScore;
+    console.log(`Final values - username: ${usernameFinal}, college: ${collegeFinal}`);
+
+    // Calculate weighted total score
+    const totalScore = calculateWeightedTotalScore(mcqScore, totalDsaScore);
+    console.log(`Weighted score calculation - MCQ (${mcqScore} × ${MCQ_WEIGHT}) + DSA (${totalDsaScore} × ${DSA_WEIGHT}) = ${totalScore}`);
 
     // Find latest submission time
     const lastSubmissionTime = dsaSubmissions.length > 0
@@ -119,8 +154,8 @@ router.post('/simulations/:simulationId/leaderboard/update', async (req, res) =>
     const leaderboardEntry = await Leaderboard.findOneAndUpdate(
       { userId, simulationId },
       {
-        username,
-        college,
+        username: usernameFinal,
+        college: collegeFinal,
         mcqScore,
         dsaScores,
         totalScore,
@@ -177,7 +212,12 @@ router.get('/simulations/:simulationId/leaderboard', async (req, res) => {
 router.post('/simulations/:simulationId/leaderboard/refresh', async (req, res) => {
   try {
     const { simulationId } = req.params;
+    const { currentUser } = req.body; // Receive current user data from frontend
+    
     console.log(`Starting leaderboard refresh for simulation ${simulationId}`);
+    if (currentUser) {
+      console.log(`Current user data received:`, currentUser);
+    }
 
     // Get all participants for this simulation
     const simulation = await Simulation.findOne({ simulationId });
@@ -203,7 +243,17 @@ router.post('/simulations/:simulationId/leaderboard/refresh', async (req, res) =
       try {
         console.log(`Processing user ${userId} for simulation ${simulationId}`);
 
-        // Instead of API call, directly call the update logic
+        // Check if this is the current user with additional data
+        let username = null;
+        let college = null;
+        
+        if (currentUser && currentUser.userId === userId) {
+          username = currentUser.username;
+          college = currentUser.college;
+          console.log(`Using current user data: username=${username}, college=${college}`);
+        }
+
+        // Find participant data
         const participant = await SimulationParticipant.findOne({ userId, simulationId });
         if (!participant) {
           console.log(`Participant not found for user ${userId} in simulation ${simulationId}`);
@@ -212,6 +262,17 @@ router.post('/simulations/:simulationId/leaderboard/refresh', async (req, res) =
         }
 
         console.log(`Found participant data for user ${userId}: MCQ attempt ID: ${participant.mcqAttemptId}, DSA submissions: ${participant.dsaSubmissionIds?.length || 0}`);
+
+        // If college was provided through currentUser, update the participant record
+        if (college) {
+          await SimulationParticipant.findOneAndUpdate(
+            { userId, simulationId },
+            { college }
+          );
+          console.log(`Updated participant record with college: ${college}`);
+        } else {
+          college = participant.college || 'Not specified';
+        }
 
         // Calculate MCQ score directly from the quiz attempt
         let mcqScore = 0;
@@ -233,6 +294,29 @@ router.post('/simulations/:simulationId/leaderboard/refresh', async (req, res) =
         });
         console.log(`Found ${dsaSubmissions.length} DSA submissions for user ${userId}`);
 
+        // Get username from different sources
+        if (!username && dsaSubmissions.length > 0) {
+          // Find the newest submission
+          const newestSubmission = dsaSubmissions.reduce((newest, current) => {
+            return new Date(current.createdAt) > new Date(newest.createdAt) ? current : newest;
+          }, dsaSubmissions[0]);
+          
+          username = newestSubmission.username;
+          console.log(`Got username from submission: ${username}`);
+        }
+        
+        // If no username found, use participant.username if available
+        if (!username && participant.username) {
+          username = participant.username;
+          console.log(`Got username from participant record: ${username}`);
+        }
+        
+        // Default fallback
+        if (!username) {
+          username = "User_" + userId.substring(0, 6);
+          console.log(`Using fallback username: ${username}`);
+        }
+
         // Calculate DSA scores
         const dsaScores = {};
         let totalDsaScore = 0;
@@ -244,9 +328,9 @@ router.post('/simulations/:simulationId/leaderboard/refresh', async (req, res) =
           console.log(`DSA score for user ${userId}, problem ${submission.problemId}: ${score}`);
         }
 
-        // Calculate total score
-        const totalScore = mcqScore + totalDsaScore;
-        console.log(`Total score for user ${userId}: ${totalScore} (MCQ: ${mcqScore}, DSA: ${totalDsaScore})`);
+        // Calculate weighted total score using the new formula
+        const totalScore = calculateWeightedTotalScore(mcqScore, totalDsaScore);
+        console.log(`Weighted score calculation - MCQ (${mcqScore} × ${MCQ_WEIGHT}) + DSA (${totalDsaScore} × ${DSA_WEIGHT}) = ${totalScore}`);
 
         // Find latest submission time
         const lastSubmissionTime = dsaSubmissions.length > 0
@@ -257,8 +341,8 @@ router.post('/simulations/:simulationId/leaderboard/refresh', async (req, res) =
         const leaderboardEntry = await Leaderboard.findOneAndUpdate(
           { userId, simulationId },
           {
-            username: participant.username || userId,
-            college: participant.college || 'Not specified',
+            username,
+            college,
             mcqScore,
             dsaScores,
             totalScore,

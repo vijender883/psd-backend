@@ -7,6 +7,10 @@ const QuizAttemptSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  username: {
+    type: String,
+  }
+  ,
   quizId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Quiz',
@@ -19,6 +23,9 @@ const QuizAttemptSchema = new mongoose.Schema({
   totalQuestions: {
     type: Number,
     required: true
+  },
+  correctQuestions: {
+    type: Number,
   },
   startedAt: {
     type: Date,
@@ -45,6 +52,9 @@ const QuizAttemptSchema = new mongoose.Schema({
     },
     timeSpent: {
       type: Number // Time spent in seconds
+    },
+    totalTime: {
+      type: Number
     },
     pointsEarned: {
       type: Number,

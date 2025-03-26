@@ -278,7 +278,8 @@ exports.submitAnswer = async (req, res) => {
       questionId,
       selectedOption,
       isCorrect: false, // We'll update this later
-      timeSpent
+      timeSpent,
+      totalTime: question.timeLimit
     });
     
     await quizAttempt.save();
@@ -381,8 +382,7 @@ exports.getCorrectAnswer = async (req, res) => {
               // Determine which scoring method to use
               let score;
               if (scoringType === 'simple') {
-                // Simple scoring (1 point per correct answer)
-                score = 1;
+                score = 10 * (question.timeLimit - answer.timeSpent);
                 console.log(`Using simple scoring: ${score} point for correct answer`);
               } else {
                 // Time-based scoring (original method)
