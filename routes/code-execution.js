@@ -16,8 +16,8 @@ function initializeTestConfig(simulationId) {
   
   if (!testConfigurations[simulationId]) {
     testConfigurations[simulationId] = {
-      scheduledStartTime: new Date('2025-03-26T10:17:00Z').toISOString(),
-      testDuration: 2 * 60, // 3 minutes (changed from 60 minutes for testing)
+      scheduledStartTime: new Date('2025-03-26T13:45:00Z').toISOString(),
+      testDuration: 60 * 60, // 3 minutes (changed from 60 minutes for testing)
       allowLateEntry: false
     };
     configChanged = true;
