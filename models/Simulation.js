@@ -23,6 +23,11 @@ const SimulationSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
+  // Single field for controlling visibility
+  resultsAvailableTime: {
+    type: Date,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -35,5 +40,12 @@ const SimulationSchema = new mongoose.Schema({
 
 // Create index on simulationId for faster lookups
 SimulationSchema.index({ simulationId: 1 });
+
+// Add method to check if results are available
+SimulationSchema.methods.areResultsAvailable = function() {
+  if (!this.resultsAvailableTime) return true; // If not set, default to available
+  const now = new Date();
+  return now >= this.resultsAvailableTime;
+};
 
 module.exports = mongoose.model('Simulation', SimulationSchema);
