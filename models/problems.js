@@ -217,7 +217,7 @@ The output should be: [[1,3,6,8], [2,5], [4], [7]]`,
         input: 'tptptptp',
         expectedOutput: '[1, 1, 1, 1, 1, 1, 1, 1]',
         description: 'Alternating characters'
-      }
+      },
     ]
   },
   
@@ -381,6 +381,21 @@ Find the element in the array that is closest in value to the target. If there a
         input: '5\n5 6 7 1 3\n4',
         expectedOutput: '3',
         description: 'Target between rotation points'
+      },
+      {
+        input: '6\n11 13 15 17 2 5\n1',
+        expectedOutput: '2',
+        description: 'Target just below smallest value'
+      },
+      {
+        input: '4\n20 30 10 15\n17',
+        expectedOutput: '15',
+        description: 'Small array with target between elements after pivot'
+      },
+      {
+        input: '7\n50 60 70 80 90 10 20\n55',
+        expectedOutput: '50',
+        description: 'Target equidistant between two elements, return smaller'
       }
     ]
   }
