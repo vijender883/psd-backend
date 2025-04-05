@@ -685,3 +685,33 @@ exports.getQuizAttemptDetails = async (req, res) => {
     });
   }
 };
+
+// Add this to controllers/quizController.js
+
+// Get all attempts for a specific quiz
+exports.getQuizAttempts = async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    
+    // Find all quiz attempts for this quiz
+    const attempts = await QuizAttempt.find({ 
+      quizId,
+      completedAt: { $exists: true } // Only include completed attempts
+    }).select('userId score completedAt').sort('-score');
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        attempts,
+        totalAttempts: attempts.length
+      }
+    });
+  } catch (error) {
+    console.error('Error in getQuizAttempts:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server Error', 
+      error: error.message 
+    });
+  }
+};

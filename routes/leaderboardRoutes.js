@@ -44,6 +44,21 @@ async function calculateMcqScore(attemptId) {
   }
 }
 
+async function areResultsAvailable(simulationId) {
+  try {
+    const simulation = await Simulation.findOne({ simulationId });
+    
+    if (!simulation) {
+      return true; // Default to available if simulation not found
+    }
+    
+    return simulation.areResultsAvailable();
+  } catch (error) {
+    console.error('Error checking results availability:', error);
+    return true; // Default to available in case of error
+  }
+}
+
 // Helper function to get problems for a simulation
 async function getProblemsForSimulation(simulationId) {
   try {
@@ -183,6 +198,16 @@ router.get('/simulations/:simulationId/leaderboard', async (req, res) => {
   try {
     const { simulationId } = req.params;
 
+    const resultsAvailable = await areResultsAvailable(simulationId);
+    
+    if (!resultsAvailable) {
+      return res.status(403).json({
+        success: false,
+        error: 'Leaderboard is not yet available for this simulation',
+        available: false
+      });
+    }
+    
     // Fetch from the leaderboard collection
     const leaderboardEntries = await Leaderboard.find({ simulationId })
       .sort({ totalScore: -1, lastSubmissionTime: 1 });

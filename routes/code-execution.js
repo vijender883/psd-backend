@@ -5,6 +5,7 @@ const router = express.Router();
 const Submission = require('../models/Submission');
 const { analyzeProblemAndSolution } = require('../services/llmService');
 const { problems, getProblemList } = require('../models/problems'); // Import from the new file
+const Simulation = require('../models/Simulation');
 
 const problemsCache = new Map();
 const CACHE_TTL = 3600000;
@@ -16,7 +17,7 @@ function initializeTestConfig(simulationId) {
   
   if (!testConfigurations[simulationId]) {
     testConfigurations[simulationId] = {
-      scheduledStartTime: new Date('2025-03-26T13:45:00Z').toISOString(),
+      scheduledStartTime: new Date('2025-03-27T09:42:00Z').toISOString(),
       testDuration: 60 * 60, // 3 minutes (changed from 60 minutes for testing)
       allowLateEntry: false
     };
@@ -29,6 +30,21 @@ function initializeTestConfig(simulationId) {
   }
   
   return testConfigurations[simulationId];
+}
+
+async function areResultsAvailable(simulationId) {
+  try {
+    const simulation = await Simulation.findOne({ simulationId });
+    
+    if (!simulation) {
+      return true; // Default to available if simulation not found
+    }
+    
+    return simulation.areResultsAvailable();
+  } catch (error) {
+    console.error('Error checking results availability:', error);
+    return true; // Default to available in case of error
+  }
 }
 
 function scheduleSubmissionVisibility(simulationId) {
@@ -251,13 +267,22 @@ router.get('/submission-status/:id', async (req, res) => {
       });
     }
 
+    // Get the simulationId from query params or default to "1"
+    const simulationId = req.query.simulationId || "1";
+    
+    // Check if results are available for this simulation
+    const resultsAvailable = await areResultsAvailable(simulationId);
+    
+    // Override the show status based on simulation settings
+    const showResults = submission.show && resultsAvailable;
+
     res.json({
       id: submission._id,
-      show: submission.show,
+      show: showResults, // Combine DB status with simulation availability
       createdAt: submission.createdAt,
-      language: submission.language || 'java'
+      language: submission.language || 'java',
+      resultsAvailable // Include explicit flag about availability
     });
-
   } catch (error) {
     console.error('Error checking submission status:', error);
     res.status(500).json({

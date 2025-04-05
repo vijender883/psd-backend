@@ -11,6 +11,8 @@ const initializeSimulations = async () => {
     const count = await Simulation.countDocuments();
     
     if (count === 0) {
+      console.log('No simulations found. Creating initial simulations...');
+      
       // Create initial simulations if none exist
       await Simulation.create([
         {
@@ -21,7 +23,9 @@ const initializeSimulations = async () => {
             mcqTests: [], // Will be dynamically populated
             dsaTests: ["countconsecutive", "closestvalueinrotatedarray"]
           },
-          participationIds: []
+          participationIds: [],
+          // Add the new field with null default (results available immediately)
+          resultsAvailableTime: null
         },
         {
           simulationId: "2",
@@ -31,14 +35,24 @@ const initializeSimulations = async () => {
             mcqTests: [], // Will be dynamically populated
             dsaTests: ["longestincreasing", "longestcommonprefix"]
           },
-          participationIds: []
+          participationIds: [],
+          // Add the new field with null default (results available immediately)
+          resultsAvailableTime: null
         }
       ]);
       
       console.log('Simulations initialized successfully');
+    } else {
+      console.log(`Found ${count} existing simulations. Skipping initialization.`);
     }
   } catch (error) {
     console.error('Error initializing simulations:', error);
+    // Log more detailed error information
+    if (error.name === 'ValidationError') {
+      console.error('Validation error details:', error.errors);
+    } else if (error.code) {
+      console.error('MongoDB error code:', error.code);
+    }
   }
 };
 
@@ -427,6 +441,84 @@ router.put('/:simulationId/dsa-tests', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to update simulation DSA tests'
+    });
+  }
+});
+
+// Get simulation status (availability of results and leaderboard)
+router.get('/:simulationId/status', async (req, res) => {
+  try {
+    const { simulationId } = req.params;
+    
+    const simulation = await Simulation.findOne({ simulationId });
+    
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Simulation not found'
+      });
+    }
+    
+    // Get current date/time
+    const now = new Date();
+    
+    // Simple status check
+    const resultsAvailable = simulation.areResultsAvailable();
+    const timeUntilAvailable = simulation.resultsAvailableTime ? 
+      Math.max(0, simulation.resultsAvailableTime - now) : 0;
+    
+    res.json({
+      success: true,
+      data: {
+        simulation,
+        status: {
+          resultsAvailable,
+          timeUntilAvailable
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching simulation status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch simulation status'
+    });
+  }
+});
+
+router.put('/:simulationId/availability', async (req, res) => {
+  try {
+    const { simulationId } = req.params;
+    const { resultsAvailableTime } = req.body;
+    
+    const updates = {};
+    
+    if (resultsAvailableTime !== undefined) {
+      updates.resultsAvailableTime = resultsAvailableTime ? new Date(resultsAvailableTime) : null;
+    }
+    
+    const simulation = await Simulation.findOneAndUpdate(
+      { simulationId },
+      { $set: updates },
+      { new: true }
+    );
+    
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Simulation not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      simulation
+    });
+  } catch (error) {
+    console.error('Error updating simulation availability:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update simulation availability'
     });
   }
 });
