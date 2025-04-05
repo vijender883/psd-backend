@@ -37,4 +37,7 @@ router.get('/attempts/:attemptId/results-availability', quizController.checkResu
 // New route: Get detailed quiz attempt information including questions and answers
 router.get('/attempts/:attemptId/details', quizController.getQuizAttemptDetails);
 
+// Get all quiz attempts for a specific quiz
+router.get('/quizzes/:quizId/attempts', quizController.getQuizAttempts);
+
 module.exports = router;
