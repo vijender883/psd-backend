@@ -398,6 +398,195 @@ Find the element in the array that is closest in value to the target. If there a
         description: 'Target equidistant between two elements, return smaller'
       }
     ]
+  },
+  
+  'permutationinstring': {
+    id: 'permutationinstring',
+    title: 'Permutation in String',
+    description: 'Given two strings `s1` and `s2`, return `true` if `s2` contains a permutation of `s1`, or `false` otherwise.\n\nIn other words, return `true` if one of `s1`\'s permutations is the substring of `s2`.',
+    inputFormat: 'Two lines containing strings s1 and s2, each consisting of lowercase English letters.',
+    outputFormat: 'Return true if s2 contains a permutation of s1, or false otherwise.',
+    constraints: [
+      '1 <= s1.length, s2.length <= 10^4',
+      's1 and s2 consist of lowercase English letters'
+    ],
+    example: {
+      input: 'ab\neidbaooo',
+      output: 'true'
+    },
+    templates: {
+      java: 'class PermutationInString {\n    public boolean checkInclusion(String s1, String s2) {\n        // Write your code here\n    }\n}',
+      python: 'class PermutationInString:\n    def check_inclusion(self, s1, s2):\n        # Write your code here\n        pass'
+    },
+    solution: `class PermutationInString {
+    public boolean checkInclusion(String s1, String s2) {
+        if (s1.length() > s2.length()) {
+            return false;
+        }
+        
+        int[] s1Count = new int[26];
+        int[] windowCount = new int[26];
+        
+        // Count characters in s1
+        for (int i = 0; i < s1.length(); i++) {
+            s1Count[s1.charAt(i) - 'a']++;
+        }
+        
+        // Initialize the sliding window
+        for (int i = 0; i < s1.length(); i++) {
+            windowCount[s2.charAt(i) - 'a']++;
+        }
+        
+        // Check if the initial window is a permutation
+        if (matches(s1Count, windowCount)) {
+            return true;
+        }
+        
+        // Slide the window
+        for (int i = s1.length(); i < s2.length(); i++) {
+            // Add the new character to the window
+            windowCount[s2.charAt(i) - 'a']++;
+            // Remove the leftmost character from the window
+            windowCount[s2.charAt(i - s1.length()) - 'a']--;
+            
+            // Check if current window is a permutation
+            if (matches(s1Count, windowCount)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    private boolean matches(int[] s1Count, int[] windowCount) {
+        for (int i = 0; i < 26; i++) {
+            if (s1Count[i] != windowCount[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+}`,
+    testCases: [
+      {
+        input: 'ab\neidbaooo',
+        expectedOutput: 'true',
+        description: 'Example test case 1'
+      },
+      {
+        input: 'ab\neidboaoo',
+        expectedOutput: 'false',
+        description: 'Example test case 2'
+      },
+      {
+        input: 'adc\ndcda',
+        expectedOutput: 'true',
+        description: 'Permutation at the end'
+      },
+      {
+        input: 'abc\nccccbbbbaaaa',
+        expectedOutput: 'false',
+        description: 'Characters match but not as a permutation'
+      },
+      {
+        input: 'hello\noolhel',
+        expectedOutput: 'true',
+        description: 'Not a complete permutation'
+      },
+      {
+        input: 'a\na',
+        expectedOutput: 'true',
+        description: 'Single character match'
+      }
+    ]
+  },
+  
+  'fruitintobaskets': {
+    id: 'fruitintobaskets',
+    title: 'Fruit Into Baskets',
+    description: 'You are visiting a farm that has a single row of fruit trees arranged from left to right. The trees are represented by an integer array `fruits` where `fruits[i]` is the **type** of fruit the `ith` tree produces.\n\nYou want to collect as much fruit as possible. However, the owner has some strict rules that you must follow:\n\n* You only have **two** baskets, and each basket can only hold a **single type** of fruit. There is no limit on the amount of fruit each basket can hold.\n* Starting from any tree of your choice, you must pick **exactly one fruit** from **every** tree (including the start tree) while moving to the right. The picked fruits must fit in one of your baskets.\n* Once you reach a tree with fruit that cannot fit in your baskets, you must stop.\n\nGiven the integer array `fruits`, return *the **maximum** number of fruits you can pick*.',
+    inputFormat: 'The first line contains an integer n denoting the size of the array.\nThe second line contains n space-separated integers denoting the types of fruit in each tree.',
+    outputFormat: 'Return an integer representing the maximum number of fruits you can pick.',
+    constraints: [
+      '1 <= fruits.length <= 10^5',
+      '0 <= fruits[i] < fruits.length'
+    ],
+    example: {
+      input: '3\n1 2 1',
+      output: '3'
+    },
+    templates: {
+      java: 'class FruitIntoBaskets {\n    public int totalFruit(int[] fruits) {\n        // Write your code here\n    }\n}',
+      python: 'class FruitIntoBaskets:\n    def total_fruit(self, fruits):\n        # Write your code here\n        pass'
+    },
+    solution: `class FruitIntoBaskets {
+    public int totalFruit(int[] fruits) {
+        if (fruits == null || fruits.length == 0) {
+            return 0;
+        }
+        
+        int maxFruits = 0;
+        int left = 0;
+        
+        // Use a map to store the count of each fruit type in the current window
+        Map<Integer, Integer> basket = new HashMap<>();
+        
+        // Expand the window to the right
+        for (int right = 0; right < fruits.length; right++) {
+            // Add the current fruit to the basket
+            basket.put(fruits[right], basket.getOrDefault(fruits[right], 0) + 1);
+            
+            // If we have more than 2 types of fruits, shrink the window from the left
+            while (basket.size() > 2) {
+                int leftFruit = fruits[left];
+                basket.put(leftFruit, basket.get(leftFruit) - 1);
+                
+                if (basket.get(leftFruit) == 0) {
+                    basket.remove(leftFruit);
+                }
+                
+                left++;
+            }
+            
+            // Update the maximum fruits we can pick
+            maxFruits = Math.max(maxFruits, right - left + 1);
+        }
+        
+        return maxFruits;
+    }
+}`,
+    testCases: [
+      {
+        input: '3\n1 2 1',
+        expectedOutput: '3',
+        description: 'Example test case 1'
+      },
+      {
+        input: '4\n0 1 2 2',
+        expectedOutput: '3',
+        description: 'Example test case 2'
+      },
+      {
+        input: '5\n1 2 3 2 2',
+        expectedOutput: '4',
+        description: 'Example test case 3'
+      },
+      {
+        input: '5\n3 3 3 1 2',
+        expectedOutput: '4',
+        description: 'Contiguous same fruit type'
+      },
+      {
+        input: '8\n1 2 3 4 5 6 7 8',
+        expectedOutput: '2',
+        description: 'All different fruit types'
+      },
+      {
+        input: '7\n0 0 0 0 0 0 0',
+        expectedOutput: '7',
+        description: 'All same fruit type'
+      }
+    ]
   }
 };
 
