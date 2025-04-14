@@ -8,6 +8,8 @@ async function generateJavaWrapper(executionDir, code) {
   const isLIS = code.includes('LengthOfLIS');
   const isConsecutiveChars = code.includes('countConsecutiveChars');
   const isClosestValue = code.includes('ClosestValueFinder');
+  const isPermutationInString = code.includes('PermutationInString'); // Add this
+  const isFruitIntoBaskets = code.includes('FruitIntoBaskets'); // Add this
   
   let wrapperCode;
   if (isMinPathSum) {
@@ -20,6 +22,10 @@ async function generateJavaWrapper(executionDir, code) {
     wrapperCode = generateConsecutiveCharsWrapper(code);
   } else if (isClosestValue) {
     wrapperCode = generateClosestValueWrapper(code);
+  } else if (isPermutationInString) {
+    wrapperCode = generatePermutationInStringWrapper(code);
+  } else if (isFruitIntoBaskets) {
+    wrapperCode = generateFruitIntoBasketsWrapper(code);
   } else {
     wrapperCode = generateLongestCommonPrefixWrapper(code);
   }
@@ -179,6 +185,62 @@ public class Solution {
         // Call solution
         LengthOfLIS solver = new LengthOfLIS();
         int result = solver.lengthOfLIS(arr);
+        
+        // Output result
+        System.out.println(result);
+    }
+}`;
+}
+
+// Add new wrapper generator for Permutation in String
+function generatePermutationInStringWrapper(code) {
+  return `
+import java.util.*;
+
+${code}
+
+public class Solution {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        
+        // Read input strings
+        String s1 = scanner.nextLine().trim();
+        String s2 = scanner.nextLine().trim();
+        
+        // Call solution
+        PermutationInString solver = new PermutationInString();
+        boolean result = solver.checkInclusion(s1, s2);
+        
+        // Output result
+        System.out.println(result);
+    }
+}`;
+}
+
+// Add new wrapper generator for Fruit Into Baskets
+function generateFruitIntoBasketsWrapper(code) {
+  return `
+import java.util.*;
+
+${code}
+
+public class Solution {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        
+        // Read array size
+        int n = Integer.parseInt(scanner.nextLine());
+        
+        // Read array elements
+        String[] numsStr = scanner.nextLine().split("\\s+");
+        int[] fruits = new int[n];
+        for(int i = 0; i < n; i++) {
+            fruits[i] = Integer.parseInt(numsStr[i]);
+        }
+        
+        // Call solution
+        FruitIntoBaskets solver = new FruitIntoBaskets();
+        int result = solver.totalFruit(fruits);
         
         // Output result
         System.out.println(result);
