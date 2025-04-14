@@ -8,7 +8,10 @@ async function generatePythonWrapper(executionDir, code) {
   const isLIS = code.includes('length_of_lis');
   const isConsecutiveChars = code.includes('count_consecutive_chars');
   const isClosestValue = code.includes('find_closest_element');
-  
+  const isPermutationInString = code.includes('check_inclusion'); // Add this
+  const isFruitIntoBaskets = code.includes('total_fruit'); // Add this
+
+
   let wrapperCode;
   if (isMinPathSum) {
     wrapperCode = generateMinPathSumWrapper(code);
@@ -20,11 +23,57 @@ async function generatePythonWrapper(executionDir, code) {
     wrapperCode = generateConsecutiveCharsWrapper(code);
   } else if (isClosestValue) {
     wrapperCode = generateClosestValueWrapper(code);
+  } else if (isPermutationInString) {
+    wrapperCode = generatePermutationInStringWrapper(code);
+  } else if (isFruitIntoBaskets) {
+    wrapperCode = generateFruitIntoBasketsWrapper(code);
   } else {
     wrapperCode = generateLongestCommonPrefixWrapper(code);
   }
-  
+
   await fs.writeFile(path.join(executionDir, 'solution.py'), wrapperCode);
+}
+
+// Add new wrapper generator for Permutation in String
+function generatePermutationInStringWrapper(code) {
+  return `
+import sys
+
+${code}
+
+if __name__ == "__main__":
+  # Read input
+  s1 = input().strip()
+  s2 = input().strip()
+  
+  # Create solution object and call function
+  solver = PermutationInString()
+  result = solver.check_inclusion(s1, s2)
+  
+  # Output result
+  print(str(result).lower())
+`
+}
+
+// Add new wrapper generator for Fruit Into Baskets
+function generateFruitIntoBasketsWrapper(code) {
+  return `
+import sys
+
+${code}
+
+if __name__ == "__main__":
+  # Read input
+  n = int(input().strip())
+  fruits = list(map(int, input().strip().split()))
+  
+  # Create solution object and call function
+  solver = FruitIntoBaskets()
+  result = solver.total_fruit(fruits)
+  
+  # Output result
+  print(result)
+`
 }
 
 function generateClosestValueWrapper(code) {
