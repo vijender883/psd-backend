@@ -8,6 +8,7 @@ const { initializeDirectories } = require('./services/codeExecutor');
 const codeExecutionRouter = require('./routes/code-execution');
 const mongoose = require('mongoose');
 const quizRoutes = require('./routes/quizRoutes');
+const courseRoutes = require('./routes/courseRoutes');
 const { initializeQuizzes } = require('./services/quizService');
 const simulationRoutes = require('./routes/simulationRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
@@ -167,6 +168,7 @@ app.post('/api/execute', async (req, res) => {
 app.use('/api/simulations', simulationRoutes);
 app.use('/api/code', codeExecutionRouter);
 app.use('/api/quiz', quizRoutes);
+app.use('/api/course', courseRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 
 // Health check endpoint
