@@ -12,6 +12,7 @@ const courseRoutes = require('./routes/courseRoutes');
 const { initializeQuizzes } = require('./services/quizService');
 const simulationRoutes = require('./routes/simulationRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
+const mailRoutes = require('./routes/mailRoutes');
 
 dotenv.config();
 
@@ -170,6 +171,7 @@ app.use('/api/code', codeExecutionRouter);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/course', courseRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/mail', mailRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
