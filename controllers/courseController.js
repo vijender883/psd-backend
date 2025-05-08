@@ -1,5 +1,6 @@
 // controllers/courseUserController.js
 const CourseRegisteredUsers = require('../models/CourseRegisteredUsers');
+const emailService = require('../services/emailService');
 
 // Register a new course user
 exports.addCourseRegisteredUser = async (req, res) => {
@@ -24,7 +25,6 @@ exports.addCourseRegisteredUser = async (req, res) => {
     }
     
     // Create new user
-    // Password will be automatically hashed by the pre-save middleware in the model
     const newUser = new CourseRegisteredUsers({
       name,
       phone,
@@ -33,6 +33,19 @@ exports.addCourseRegisteredUser = async (req, res) => {
     });
     
     await newUser.save();
+
+    // Send welcome email
+    try {
+      await emailService.sendWelcomeEmail({
+        name,
+        email,
+        phone
+      });
+      console.log('Welcome email sent to:', email);
+    } catch (emailError) {
+      // Log email error but don't fail the registration
+      console.error('Error sending welcome email:', emailError);
+    }
     
     // Return success without sending back the password
     res.status(201).json({
