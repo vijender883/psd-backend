@@ -1,5 +1,6 @@
 // controllers/eventbotController.js
 const EventBotRegisteredUsers = require('../models/EventBotRegisteredUsers');
+const EventBotUserChats = require('../models/EventBotUserChats');
 
 // Register a new event user
 exports.addRegisteredUser = async (req, res) => {
@@ -147,6 +148,125 @@ exports.checkinUser = async (req, res) => {
     console.error('Error in checkinUser:', error);
     
     // Handle invalid ObjectId
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user ID format'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+};
+
+exports.saveChat = async (req, res) => {
+  try {
+    const { userId, message } = req.body;
+    
+    // Validate required fields
+    if (!userId || !message) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'All fields are required: userId and message' 
+      });
+    }
+    
+    // Find existing chat document for this user or create a new one
+    let userChat = await EventBotUserChats.findOne({ userId });
+    
+    if (!userChat) {
+      // Create new chat document if it doesn't exist
+      userChat = new EventBotUserChats({ 
+        userId,
+        chats: []
+      });
+    }
+    
+    // Add new message to chats array
+    userChat.chats.push({
+      message_source: 'user', // Assuming the message is from the user
+      message,
+      chat_time: new Date()
+    });
+    
+    // Save the updated document
+    await userChat.save();
+    
+    // Return success
+    res.status(201).json({
+      success: true,
+      message: 'Chat saved successfully',
+      data: {
+        userId: userChat.userId,
+        chatMessage: userChat.chats[userChat.chats.length - 1]
+      }
+    });
+  } catch (error) {
+    console.error('Error in saveChat:', error);
+    
+    // Handle specific validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation Error',
+        errors: messages
+      });
+    }
+    
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server Error', 
+      error: error.message 
+    });
+  }
+};
+
+// Get chat history for a user
+exports.getChatList = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    
+    // Validate user ID
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+    
+    // Find chats for this user
+    const userChat = await EventBotUserChats.findOne({ userId });
+    
+    // If no chats found, return empty array
+    if (!userChat) {
+      return res.status(200).json({
+        success: true,
+        message: 'No chat history found for this user',
+        data: {
+          userId,
+          chats: []
+        }
+      });
+    }
+    
+    // Return chats
+    res.status(200).json({
+      success: true,
+      count: userChat.chats.length,
+      data: {
+        userId: userChat.userId,
+        chats: userChat.chats
+      }
+    });
+  } catch (error) {
+    console.error('Error in getChatList:', error);
+    
+    // Handle invalid ObjectId if userId is used as MongoDB ObjectId
     if (error.name === 'CastError') {
       return res.status(400).json({
         success: false,
