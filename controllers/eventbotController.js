@@ -73,7 +73,27 @@ exports.addRegisteredUser = async (req, res) => {
 // Get list of registered users
 exports.getRegisteredUserList = async (req, res) => {
   try {
-    const users = await EventBotRegisteredUsers.find();
+    // Log all users for debugging
+    const allUsers = await EventBotRegisteredUsers.find();
+    console.log('All users in DB:', allUsers);
+    
+    let query = {};
+    
+    // Check if name parameter exists and is not empty
+    if (req.body && req.body.name !== undefined && req.body.name !== "") {
+      // Create a case-insensitive regex query that matches any part of the name
+      query = { 
+        name: { $regex: new RegExp(req.body.name, 'i') }
+      };
+    }
+    
+    // Log the query being used
+    console.log('Query:', JSON.stringify(query));
+    
+    // Find users based on the query
+    const users = await EventBotRegisteredUsers.find(query);
+    
+    console.log('Matching users found:', users.length);
     
     res.status(200).json({
       success: true,
