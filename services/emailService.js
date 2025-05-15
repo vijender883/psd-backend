@@ -79,7 +79,7 @@ const sendWelcomeEmail = async (user) => {
     mergeInfo: {
       contact_number: phone,
       company: "ALUMNX",
-      "product name": "eventbot course",
+      "name": "Abhishek S",
       "product": "eventbot course",
       "support id": "support@alumnx.com",
       "brand": "ALUMNX",
