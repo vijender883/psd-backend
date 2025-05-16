@@ -1,9 +1,15 @@
-
-// models/EventBotRegisteredUsers.js
 const mongoose = require('mongoose');
 
 const EventBotRegisteredUsersSchema = new mongoose.Schema({
   name: {
+    type: String,
+    required: true
+  },
+  email: {
+    type: String,
+    required: true
+  },
+  phone: {
     type: String,
     required: true
   },

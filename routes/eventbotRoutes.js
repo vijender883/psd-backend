@@ -8,4 +8,5 @@ router.post('/getRegisteredUserList', eventbotController.getRegisteredUserList);
 router.post('/checkinUser', eventbotController.checkinUser);
 router.post('/chat/save', eventbotController.saveChat);
 router.post('/chat/list', eventbotController.getChatList);
+router.post('/validateRegisteredEmailId', eventbotController.validateRegisteredUserEmailId);
 module.exports = router;

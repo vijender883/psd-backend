@@ -17,7 +17,13 @@ const eventbotRoutes = require('./routes/eventbotRoutes');
 
 dotenv.config();
 
-const app = express();
+// Import socket implementation
+const { app, server, io } = require('./socket');
+
+// Import eventbotController to set io instance
+const eventbotController = require('./controllers/eventbotController');
+eventbotController.setIo(io); // Pass the io instance to the controller
+
 const allowedOrigins = [
   'http://localhost:3000',  // Local development
   'http://localhost:3002',  // Local development
@@ -40,10 +46,6 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
-
-// initializeQuizzes()
-//   .then(() => console.log('Sample quizzes initialized successfully'))
-//   .catch(err => console.error('Error initializing quizzes:', err));
 
 // Database connection configuration
 const dbConfig = {
@@ -90,14 +92,6 @@ mongoose.connect(process.env.MONGODB_URI, {
   console.error('MongoDB Atlas connection error:', err);
   process.exit(1); // Exit if cannot connect to database
 });
-
-// mongoose.connect(process.env.MONGODB_LOCAL_URI, {
-//   useNewUrlParser: true,
-//   useUnifiedTopology: true
-// })
-//   .then(() => console.log('MongoDB connected successfully \n'))
-//   .catch(err => console.error('MongoDB connection error:', err));
-
 
 // Initialize code execution directories
 initializeDirectories()
@@ -166,7 +160,7 @@ app.post('/api/execute', async (req, res) => {
   }
 });
 
-// Mount the code execution router
+// Mount all your routes
 app.use('/api/simulations', simulationRoutes);
 app.use('/api/code', codeExecutionRouter);
 app.use('/api/quiz', quizRoutes);
@@ -189,31 +183,14 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Print routes for debugging
 app._router.stack.forEach(function(r){
   if (r.route && r.route.path){
       console.log(r.route.path)
   }
 });
 
-
-// const options = {
-//   key: fs.readFileSync('/etc/letsencrypt/live/api.practicalsystemdesign.com/privkey.pem'),
-//   cert: fs.readFileSync('/etc/letsencrypt/live/api.practicalsystemdesign.com/fullchain.pem')
-// };
-
-// const server = https.createServer(options, app);
-
-// server.listen(3001, '0.0.0.0', () => {  // Note: explicitly binding to all interfaces
-//   console.log('HTTPS Server running on port 3001');
-// });
-
-// Add error handling
-// server.on('error', (error) => {
-//   console.error('Server error:', error);
-// })
-
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+server.listen(PORT, () => {
+  console.log(`Server with Socket.IO running on port ${PORT}`);
 });
-
