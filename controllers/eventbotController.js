@@ -165,13 +165,13 @@ exports.checkinUser = async (req, res) => {
 
 exports.saveChat = async (req, res) => {
   try {
-    const { userId, message } = req.body;
+    const { userId, message, message_source } = req.body;
     
     // Validate required fields
-    if (!userId || !message) {
+    if (!userId || !message || !message_source) {
       return res.status(400).json({ 
         success: false, 
-        message: 'All fields are required: userId and message' 
+        message: 'All fields are required: userId, message, and message_source' 
       });
     }
     
@@ -188,7 +188,7 @@ exports.saveChat = async (req, res) => {
     
     // Add new message to chats array
     userChat.chats.push({
-      message_source: 'user', // Assuming the message is from the user
+      message_source,
       message,
       chat_time: new Date()
     });
