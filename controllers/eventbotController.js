@@ -1,6 +1,12 @@
 // controllers/eventbotController.js
 const EventBotRegisteredUsers = require('../models/EventBotRegisteredUsers');
 const EventBotUserChats = require('../models/EventBotUserChats');
+let io; // Will be set after import
+
+// Function to set io from server.js
+exports.setIo = (socketIo) => {
+  io = socketIo;
+};
 
 // Register a new event user
 exports.addRegisteredUser = async (req, res) => {
@@ -71,6 +77,7 @@ exports.addRegisteredUser = async (req, res) => {
     });
   }
 };
+
 // Get list of registered users
 exports.getRegisteredUserList = async (req, res) => {
   try {
@@ -111,6 +118,46 @@ exports.getRegisteredUserList = async (req, res) => {
   }
 };
 
+exports.validateRegisteredUserEmailId = async (req, res) => {
+  try {
+    // Log the incoming request for debugging
+    console.log('Validating email request:', req.body);
+    
+    // Check if email parameter exists in the request body
+    if (!req.body || !req.body.email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+    
+    // Find a user with the provided email
+    const user = await EventBotRegisteredUsers.findOne({ 
+      email: req.body.email 
+    });
+    
+    console.log('User found:', user ? 'Yes' : 'No');
+    
+    // Return appropriate response based on whether user exists
+    if (user) {
+      res.status(200).json({
+        response: "registered"
+      });
+    } else {
+      res.status(200).json({
+        response: "not_registered"
+      });
+    }
+  } catch (error) {
+    console.error('Error in validateRegisteredUserEmailId:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+};
+// Updated checkinUser function with socket emit
 exports.checkinUser = async (req, res) => {
   try {
     // Get userId from request body instead of params
@@ -137,6 +184,14 @@ exports.checkinUser = async (req, res) => {
         success: false,
         message: 'User not found'
       });
+    }
+    
+    // Emit socket message if socket.io is available
+    if (io) {
+      console.log('Emitting system_message: Hello Sockets');
+      io.emit('system_message', 'Hello Sockets');
+    } else {
+      console.warn('Socket.io instance not available for emitting message');
     }
     
     res.status(200).json({
