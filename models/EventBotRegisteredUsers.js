@@ -13,6 +13,10 @@ const EventBotRegisteredUsersSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  linkedinUrl:{
+    type:String,
+    required:true
+  },
   additional_details: {
     type: String,
     required: true

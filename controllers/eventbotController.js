@@ -141,7 +141,15 @@ exports.validateRegisteredUserEmailId = async (req, res) => {
     // Return appropriate response based on whether user exists
     if (user) {
       res.status(200).json({
-        response: "registered"
+        response: "registered",
+        userData: {
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          linkedinUrl: user.linkedinUrl,
+          additional_details: user.additional_details,
+          checkin_status: user.checkin_status
+        }
       });
     } else {
       res.status(200).json({
