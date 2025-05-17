@@ -388,3 +388,36 @@ exports.getCheckedInUserCount = async (req, res) => {
     });
   }
 };
+
+exports.getCheckedInUsers = async (req, res) => {
+  try {
+    // Find all users where checkin_status is true, sort by updatedAt in descending order
+    const checkedInUsers = await EventBotRegisteredUsers.find({ 
+      checkin_status: true 
+    })
+    .sort({ updatedAt: -1 }) // -1 means descending order
+    .select('name email phone additional_details updatedAt'); // Select relevant fields
+    
+    // Log the number of checked-in users found
+    console.log(`Found ${checkedInUsers.length} checked-in users`);
+    
+    // Transform data to include formatted timestamps and IDs
+    const formattedUsers = checkedInUsers.map(user => ({
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      additional_details: user.additional_details,
+      timestamp: user.updatedAt
+    }));
+    
+    res.status(200).json(formattedUsers);
+  } catch (error) {
+    console.error('Error in getCheckedInUsers:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+};
