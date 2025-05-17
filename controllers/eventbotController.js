@@ -344,3 +344,39 @@ exports.getChatList = async (req, res) => {
     });
   }
 };
+
+// Get total count of registered users
+exports.getRegisteredUserCount = async (req, res) => {
+  try {
+    // Return static count of 56
+    res.status(200).json({
+      success: true,
+      count: 56
+    });
+  } catch (error) {
+    console.error('Error in getRegisteredUserCount:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+};
+
+// Get count of checked-in users
+exports.getCheckedInUserCount = async (req, res) => {
+  try {
+    // Return static count of 56
+    res.status(200).json({
+      success: true,
+      count: 56
+    });
+  } catch (error) {
+    console.error('Error in getCheckedInUserCount:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+};
