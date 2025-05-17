@@ -348,10 +348,12 @@ exports.getChatList = async (req, res) => {
 // Get total count of registered users
 exports.getRegisteredUserCount = async (req, res) => {
   try {
-    // Return static count of 56
+    // Get count of all documents in the EventBotRegisteredUsers collection
+    const count = await EventBotRegisteredUsers.countDocuments();
+    
     res.status(200).json({
       success: true,
-      count: 56
+      count: count
     });
   } catch (error) {
     console.error('Error in getRegisteredUserCount:', error);
@@ -362,14 +364,16 @@ exports.getRegisteredUserCount = async (req, res) => {
     });
   }
 };
-
+// Get count of checked-in users
 // Get count of checked-in users
 exports.getCheckedInUserCount = async (req, res) => {
   try {
-    // Return static count of 56
+    // Get count of documents where checkin_status is true
+    const count = await EventBotRegisteredUsers.countDocuments({ checkin_status: true });
+    
     res.status(200).json({
       success: true,
-      count: 66
+      count: count
     });
   } catch (error) {
     console.error('Error in getCheckedInUserCount:', error);
