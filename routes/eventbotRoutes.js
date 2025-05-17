@@ -7,6 +7,6 @@ router.post('/checkinUser', eventbotController.checkinUser);
 router.post('/chat/save', eventbotController.saveChat);
 router.post('/chat/list', eventbotController.getChatList);
 router.post('/validateRegisteredEmailId', eventbotController.validateRegisteredUserEmailId);
-router.post('/getRegisteredUserCount', eventbotController.getRegisteredUserCount);
-router.post('/getCheckedInUserCount', eventbotController.getCheckedInUserCount);
+router.get('/getRegisteredUserCount', eventbotController.getRegisteredUserCount);
+router.get('/getCheckedInUserCount', eventbotController.getCheckedInUserCount);
 module.exports = router;
