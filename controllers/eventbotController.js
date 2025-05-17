@@ -369,7 +369,7 @@ exports.getCheckedInUserCount = async (req, res) => {
     // Return static count of 56
     res.status(200).json({
       success: true,
-      count: 56
+      count: 66
     });
   } catch (error) {
     console.error('Error in getCheckedInUserCount:', error);
