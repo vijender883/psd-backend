@@ -143,6 +143,8 @@ exports.validateRegisteredUserEmailId = async (req, res) => {
       res.status(200).json({
         response: "registered",
         userData: {
+          _id: user._id,          // Added user _id here
+          userId: user._id,       // Also returning as userId for backward compatibility
           name: user.name,
           email: user.email,
           phone: user.phone,
@@ -194,10 +196,12 @@ exports.checkinUser = async (req, res) => {
       });
     }
     
-    // Emit socket message if socket.io is available
+    // Emit socket message with check-in notification
     if (io) {
-      console.log('Emitting system_message: Hello Sockets');
-      io.emit('system_message', 'Hello Sockets');
+      console.log('Emitting checkin_notification event');
+      io.emit('checkin_notification', {
+        message: 'Tell me something about Sai Saketh Sukka'
+      });
     } else {
       console.warn('Socket.io instance not available for emitting message');
     }
