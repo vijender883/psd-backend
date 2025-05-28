@@ -587,7 +587,93 @@ Find the element in the array that is closest in value to the target. If there a
         description: 'All same fruit type'
       }
     ]
-  }
+  },
+  'validanagram': {
+  id: 'validanagram',
+  title: 'Valid Anagram',
+  description: 'Given two strings `s` and `t`, return `true` if `t` is an anagram of `s`, and `false` otherwise.\n\nAn **Anagram** is a word or phrase formed by rearranging the letters of a different word or phrase, using all the original letters exactly once.\n\n**Follow-up:** Could you solve it in O(n) time using only O(1) extra space?',
+  inputFormat: 'Two lines containing strings s and t, each consisting of lowercase English letters.',
+  outputFormat: 'Return true if t is an anagram of s, or false otherwise.',
+  constraints: [
+    '1 <= s.length, t.length <= 5 * 10^4',
+    's and t consist of lowercase English letters'
+  ],
+  example: {
+    input: 'anagram\nnagaram',
+    output: 'true'
+  },
+  templates: {
+    java: 'class ValidAnagram {\n    public boolean isAnagram(String s, String t) {\n        // Write your code here\n    }\n}',
+    python: 'class ValidAnagram:\n    def is_anagram(self, s, t):\n        # Write your code here\n        pass'
+  },
+  solution: `class ValidAnagram {
+    public boolean isAnagram(String s, String t) {
+        // If lengths are different, they can't be anagrams
+        if (s.length() != t.length()) {
+            return false;
+        }
+        
+        // Count frequency of each character in both strings
+        int[] charCount = new int[26];
+        
+        for (int i = 0; i < s.length(); i++) {
+            charCount[s.charAt(i) - 'a']++;
+            charCount[t.charAt(i) - 'a']--;
+        }
+        
+        // Check if all counts are zero
+        for (int count : charCount) {
+            if (count != 0) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+}`,
+  testCases: [
+    {
+      input: 'anagram\nnagaram',
+      expectedOutput: 'true',
+      description: 'Example test case 1 - valid anagram'
+    },
+    {
+      input: 'rat\ncar',
+      expectedOutput: 'false',
+      description: 'Example test case 2 - not an anagram'
+    },
+    {
+      input: 'listen\nsilent',
+      expectedOutput: 'true',
+      description: 'Classic anagram pair'
+    },
+    {
+      input: 'evil\nvile',
+      expectedOutput: 'true',
+      description: 'Another valid anagram'
+    },
+    {
+      input: 'a\nab',
+      expectedOutput: 'false',
+      description: 'Different lengths'
+    },
+    {
+      input: 'ab\nba',
+      expectedOutput: 'true',
+      description: 'Simple two character anagram'
+    },
+    {
+      input: 'aab\naba',
+      expectedOutput: 'true',
+      description: 'Anagram with repeated characters'
+    },
+    {
+      input: 'abc\ndef',
+      expectedOutput: 'false',
+      description: 'Completely different characters'
+    }
+  ]
+}
 };
 
 // Convert problem list to include language-specific templates
