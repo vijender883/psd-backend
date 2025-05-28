@@ -23,6 +23,16 @@ const SimulationSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
+  // New field for DSA questions array
+  dsa_questions: [{
+    type: mongoose.Schema.Types.Mixed,
+    default: []
+  }],
+  // New field for scheduled start time
+  scheduled_start_time: {
+    type: Date,
+    default: null
+  },
   // Single field for controlling visibility
   resultsAvailableTime: {
     type: Date,
