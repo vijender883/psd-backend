@@ -300,7 +300,7 @@ router.get('/submission-status/:id', async (req, res) => {
 
 // Run code (test run, not submission)
 router.post('/run', async (req, res) => {
-  const { code, problemId, language = 'java' } = req.body;
+  const { code, problemId, language = 'python' } = req.body;
 
   // Input validation
   if (!code || !problemId) {
@@ -351,7 +351,7 @@ router.post('/run', async (req, res) => {
 // Get a specific problem with language parameter
 router.get('/problems/:id', (req, res) => {
   const { id } = req.params;
-  const { language = 'java' } = req.query;
+  const { language = 'python' } = req.query;
   const cacheKey = `problem_${id}_${language}`;
   
   if (problemsCache.has(cacheKey)) {
@@ -813,5 +813,73 @@ router.get('/scheduledStartTime/:simulationId', async (req, res) => {
     });
   }
 });
+
+
+
+// Add this new endpoint to your code-execution.js file
+
+// Get a specific problem from simulation with language parameter
+router.get('/simulation/:simulationId/problems/:problemId', async (req, res) => {
+  try {
+    const { simulationId, problemId } = req.params;
+    const { language = 'python' } = req.query;
+    const cacheKey = `simulation_${simulationId}_problem_${problemId}_${language}`;
+    
+    // Check cache first
+    if (problemsCache.has(cacheKey)) {
+      return res.json(problemsCache.get(cacheKey));
+    }
+    
+    // Find the simulation
+    const simulation = await Simulation.findOne({ simulationId });
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Simulation not found'
+      });
+    }
+    
+    // Find the specific DSA question within the simulation
+    const problem = simulation.getDSAQuestionById(problemId);
+    if (!problem) {
+      return res.status(404).json({
+        success: false,
+        error: 'Problem not found in simulation'
+      });
+    }
+    
+    // Prepare the response data similar to the original /problems/:id endpoint
+    const { testCases, templates, ...problemData } = problem.toObject();
+    
+    // Get the appropriate template for the language
+    const functionTemplate = (templates && templates[language]) || 
+                           (templates && templates.java) || 
+                           '';
+    
+    const responseData = {
+      ...problemData,
+      functionTemplate,
+      showSolution: !!problem.solution
+    };
+    
+    // Cache the response
+    problemsCache.set(cacheKey, responseData);
+    setTimeout(() => problemsCache.delete(cacheKey), CACHE_TTL);
+    
+    res.json(responseData);
+    
+  } catch (error) {
+    console.error('Error fetching simulation problem:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to fetch simulation problem',
+        stack: error.message
+      }
+    });
+  }
+});
+
+
 
 module.exports = router;
