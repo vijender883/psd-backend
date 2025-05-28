@@ -776,4 +776,42 @@ router.get('/leaderboard/:problemId', async (req, res) => {
   }
 });
 
+
+router.get('/scheduledStartTime/:simulationId', async (req, res) => {
+  try {
+    const { simulationId } = req.params;
+    
+    // Find the simulation by simulationId
+    const simulation = await Simulation.findOne({ simulationId });
+    
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Simulation not found'
+      });
+    }
+    
+    // Return the scheduled start time
+    res.json({
+      success: true,
+      data: {
+        simulationId: simulation.simulationId,
+        scheduled_start_time: simulation.scheduled_start_time,
+        title: simulation.title,
+        description: simulation.description
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching scheduled start time:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to fetch scheduled start time',
+        stack: error.message
+      }
+    });
+  }
+});
+
 module.exports = router;
