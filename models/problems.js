@@ -107,9 +107,21 @@ The output should be: [[1,3,6,8], [2,5], [4], [7]]`,
       'The number of nodes in the tree is in the range [0, 104]',
       '-100 <= Node.val <= 100'
     ],
-    example: {
-      input: '1 2 3 4 5 -1 6',
-      output: '[[1,3,6],[2,5],[4]]'
+    examples: [
+      {
+        name: 'Example 1',
+        input: '1 2 3 4 5 -1 6',
+        output: '[[1,3,6],[2,5],[4]]'
+      },
+      {
+        name: 'Example 2',
+        input: '1 2 3 4 5 -1 6 -1 -1 -1 7 -1 8',
+        output: '[[1,3,6,8],[2,5],[4],[7]]'
+      }
+    ],
+    miscellaneous: {
+      name: 'Follow-up',
+      description: 'Can you solve this problem using an iterative approach with a queue instead of recursion?'
     },
     templates: {
       java: 'class DiagonalTraversal {\n    public List<List<Integer>> diagonalTraversal(TreeNode root) {\n        // Write your code here\n    }\n}',
@@ -140,9 +152,21 @@ The output should be: [[1,3,6,8], [2,5], [4], [7]]`,
       '1 <= nums.length <= 2500',
       '-104 <= nums[i] <= 104'
     ],
-    example: {
-      input: '8\n10 9 2 5 3 7 101 18',
-      output: '4'
+    examples: [
+      {
+        name: 'Example 1',
+        input: '8\n10 9 2 5 3 7 101 18',
+        output: '4'
+      },
+      {
+        name: 'Example 2',
+        input: '4\n0 1 0 3 2 3',
+        output: '4'
+      }
+    ],
+    miscellaneous: {
+      name: 'Follow-up',
+      description: 'Can you solve this problem in O(n log n) time complexity using binary search?'
     },
     templates: {
       java: 'class LengthOfLIS {\n    public int lengthOfLIS(int[] nums) {\n        // Write your code here\n    }\n}',
@@ -178,9 +202,21 @@ The output should be: [[1,3,6,8], [2,5], [4], [7]]`,
       '1 <= s.length <= 10^5',
       's consists of lowercase English letters'
     ],
-    example: {
-      input: 'aabbb',
-      output: '[2, 3]'
+    examples: [
+      {
+        name: 'Example 1',
+        input: 'aabbb',
+        output: '[2, 3]'
+      },
+      {
+        name: 'Example 2',
+        input: 'abbcccdddd',
+        output: '[1, 2, 3, 4]'
+      }
+    ],
+    miscellaneous: {
+      name: 'Follow-up',
+      description: 'Can you solve this problem in a single pass through the string with O(1) extra space (excluding the output array)?'
     },
     templates: {
       java: 'class CountConsecutive {\n    public int[] countConsecutiveChars(String s) {\n        // Write your code here\n    }\n}',
@@ -231,9 +267,21 @@ The output should be: [[1,3,6,8], [2,5], [4], [7]]`,
       '1 ≤ m, n ≤ 200',
       '0 ≤ grid[i][j] ≤ 100'
     ],
-    example: {
-      input: '3 3\n1 3 1\n1 5 1\n4 2 1',
-      output: '7'
+    examples: [
+      {
+        name: 'Example 1',
+        input: '3 3\n1 3 1\n1 5 1\n4 2 1',
+        output: '7'
+      },
+      {
+        name: 'Example 2',
+        input: '2 3\n1 2 3\n4 5 6',
+        output: '12'
+      }
+    ],
+    miscellaneous: {
+      name: 'Follow-up',
+      description: 'Can you solve this problem with O(1) space complexity by modifying the input grid in-place?'
     },
     templates: {
       java: 'class MinPathSum {\n    public int minPathSum(int[][] grid) {\n        // Write your code here\n    }\n}',
@@ -275,9 +323,21 @@ The output should be: [[1,3,6,8], [2,5], [4], [7]]`,
       '0 ≤ strs[i].length ≤ 200',
       'strs[i] consists of only lowercase English letters'
     ],
-    example: {
-      input: 'flower flow flight',
-      output: 'fl'
+    examples: [
+      {
+        name: 'Example 1',
+        input: 'flower flow flight',
+        output: 'fl'
+      },
+      {
+        name: 'Example 2',
+        input: 'dog racecar car',
+        output: ''
+      }
+    ],
+    miscellaneous: {
+      name: 'Follow-up',
+      description: 'Can you solve this problem using a divide-and-conquer approach or trie data structure?'
     },
     templates: {
       java: 'class LongestPrefix {\n    public String longestCommonPrefix(String[] strs) {\n        // Write your code here\n    }\n}',
@@ -325,9 +385,21 @@ Find the element in the array that is closest in value to the target. If there a
       'nums is guaranteed to be rotated at some pivot',
       '-10^4 <= target <= 10^4'
     ],
-    example: {
-      input: '7\n4 5 6 7 0 1 2\n3',
-      output: '2'
+    examples: [
+      {
+        name: 'Example 1',
+        input: '7\n4 5 6 7 0 1 2\n3',
+        output: '2'
+      },
+      {
+        name: 'Example 2',
+        input: '5\n5 7 9 1 3\n6',
+        output: '5'
+      }
+    ],
+    miscellaneous: {
+      name: 'Follow-up',
+      description: 'Can you solve this problem in O(log n) time complexity using binary search instead of linear search?'
     },
     templates: {
       java: 'class ClosestValueFinder {\n    public int findClosestElement(int[] nums, int target) {\n        // Write your code here\n    }\n}',
@@ -410,9 +482,21 @@ Find the element in the array that is closest in value to the target. If there a
       '1 <= s1.length, s2.length <= 10^4',
       's1 and s2 consist of lowercase English letters'
     ],
-    example: {
-      input: 'ab\neidbaooo',
-      output: 'true'
+    examples: [
+      {
+        name: 'Example 1',
+        input: 'ab\neidbaooo',
+        output: 'true'
+      },
+      {
+        name: 'Example 2',
+        input: 'ab\neidboaoo',
+        output: 'false'
+      }
+    ],
+    miscellaneous: {
+      name: 'Follow-up',
+      description: 'Can you solve this problem using a sliding window technique with optimized character frequency counting?'
     },
     templates: {
       java: 'class PermutationInString {\n    public boolean checkInclusion(String s1, String s2) {\n        // Write your code here\n    }\n}',
@@ -511,9 +595,21 @@ Find the element in the array that is closest in value to the target. If there a
       '1 <= fruits.length <= 10^5',
       '0 <= fruits[i] < fruits.length'
     ],
-    example: {
-      input: '3\n1 2 1',
-      output: '3'
+    examples: [
+      {
+        name: 'Example 1',
+        input: '3\n1 2 1',
+        output: '3'
+      },
+      {
+        name: 'Example 2',
+        input: '4\n0 1 2 2',
+        output: '3'
+      }
+    ],
+    miscellaneous: {
+      name: 'Follow-up',
+      description: 'Can you solve this problem using a sliding window technique to achieve O(n) time complexity?'
     },
     templates: {
       java: 'class FruitIntoBaskets {\n    public int totalFruit(int[] fruits) {\n        // Write your code here\n    }\n}',
@@ -589,24 +685,36 @@ Find the element in the array that is closest in value to the target. If there a
     ]
   },
   'validanagram': {
-  id: 'validanagram',
-  title: 'Valid Anagram',
-  description: 'Given two strings `s` and `t`, return `true` if `t` is an anagram of `s`, and `false` otherwise.\n\nAn **Anagram** is a word or phrase formed by rearranging the letters of a different word or phrase, using all the original letters exactly once.\n\n**Follow-up:** Could you solve it in O(n) time using only O(1) extra space?',
-  inputFormat: 'Two lines containing strings s and t, each consisting of lowercase English letters.',
-  outputFormat: 'Return true if t is an anagram of s, or false otherwise.',
-  constraints: [
-    '1 <= s.length, t.length <= 5 * 10^4',
-    's and t consist of lowercase English letters'
-  ],
-  example: {
-    input: 'anagram\nnagaram',
-    output: 'true'
-  },
-  templates: {
-    java: 'class ValidAnagram {\n    public boolean isAnagram(String s, String t) {\n        // Write your code here\n    }\n}',
-    python: 'class ValidAnagram:\n    def is_anagram(self, s, t):\n        # Write your code here\n        pass'
-  },
-  solution: `class ValidAnagram {
+    id: 'validanagram',
+    title: 'Valid Anagram',
+    description: 'Given two strings `s` and `t`, return `true` if `t` is an anagram of `s`, and `false` otherwise.\n\nAn Anagram is a word or phrase formed by rearranging the letters of a different word or phrase, using all the original letters exactly once.',
+    inputFormat: 'Two lines containing strings s and t, each consisting of lowercase English letters.',
+    outputFormat: 'Return true if t is an anagram of s, or false otherwise.',
+    constraints: [
+      '1 <= s.length, t.length <= 5 * 10^4',
+      's and t consist of lowercase English letters'
+    ],
+    examples: [
+      {
+        name: 'Example 1',
+        input: 's = \"anagram\"\nt = \"nagaram\"',
+        output: 'true'
+      },
+      {
+        name: 'Example 2',
+        input: 's = \"rat\"\nt = \"car\"',
+        output: 'false'
+      }
+    ],
+    miscellaneous: {
+      name: 'Follow-up',
+      description: 'Could you solve it in O(n) time using only O(1) extra space? What if the inputs contain Unicode characters?'
+    },
+    templates: {
+      java: 'class ValidAnagram {\n    public boolean isAnagram(String s, String t) {\n        // Write your code here\n    }\n}',
+      python: 'class ValidAnagram:\n    def is_anagram(self, s, t):\n        # Write your code here\n        pass'
+    },
+    solution: `class ValidAnagram {
     public boolean isAnagram(String s, String t) {
         // If lengths are different, they can't be anagrams
         if (s.length() != t.length()) {
@@ -631,49 +739,49 @@ Find the element in the array that is closest in value to the target. If there a
         return true;
     }
 }`,
-  testCases: [
-    {
-      input: 'anagram\nnagaram',
-      expectedOutput: 'true',
-      description: 'Example test case 1 - valid anagram'
-    },
-    {
-      input: 'rat\ncar',
-      expectedOutput: 'false',
-      description: 'Example test case 2 - not an anagram'
-    },
-    {
-      input: 'listen\nsilent',
-      expectedOutput: 'true',
-      description: 'Classic anagram pair'
-    },
-    {
-      input: 'evil\nvile',
-      expectedOutput: 'true',
-      description: 'Another valid anagram'
-    },
-    {
-      input: 'a\nab',
-      expectedOutput: 'false',
-      description: 'Different lengths'
-    },
-    {
-      input: 'ab\nba',
-      expectedOutput: 'true',
-      description: 'Simple two character anagram'
-    },
-    {
-      input: 'aab\naba',
-      expectedOutput: 'true',
-      description: 'Anagram with repeated characters'
-    },
-    {
-      input: 'abc\ndef',
-      expectedOutput: 'false',
-      description: 'Completely different characters'
-    }
-  ]
-}
+    testCases: [
+      {
+        input: 'anagram\nnagaram',
+        expectedOutput: 'true',
+        description: 'Example test case 1 - valid anagram'
+      },
+      {
+        input: 'rat\ncar',
+        expectedOutput: 'false',
+        description: 'Example test case 2 - not an anagram'
+      },
+      {
+        input: 'listen\nsilent',
+        expectedOutput: 'true',
+        description: 'Classic anagram pair'
+      },
+      {
+        input: 'evil\nvile',
+        expectedOutput: 'true',
+        description: 'Another valid anagram'
+      },
+      {
+        input: 'a\nab',
+        expectedOutput: 'false',
+        description: 'Different lengths'
+      },
+      {
+        input: 'ab\nba',
+        expectedOutput: 'true',
+        description: 'Simple two character anagram'
+      },
+      {
+        input: 'aab\naba',
+        expectedOutput: 'true',
+        description: 'Anagram with repeated characters'
+      },
+      {
+        input: 'abc\ndef',
+        expectedOutput: 'false',
+        description: 'Completely different characters'
+      }
+    ]
+  }
 };
 
 // Convert problem list to include language-specific templates
@@ -684,7 +792,8 @@ const getProblemList = () => Object.values(problems).map(problem => ({
   inputFormat: problem.inputFormat,
   outputFormat: problem.outputFormat,
   constraints: problem.constraints,
-  example: problem.example,
+  examples: problem.examples,
+  miscellaneous: problem.miscellaneous,
   showSolution: !!problem.solution
 }));
 
