@@ -1,4 +1,7 @@
 // File: routes/code-execution.js
+// to edit the test time goto line 23 or search for scheduledStartTime
+
+
 const express = require('express');
 const { executeCode } = require('../services/codeExecutor');
 const router = express.Router();
@@ -17,7 +20,7 @@ function initializeTestConfig(simulationId) {
   
   if (!testConfigurations[simulationId]) {
     testConfigurations[simulationId] = {
-      scheduledStartTime: new Date('2025-04-14T14:15:00Z').toISOString(),
+      scheduledStartTime: new Date('2025-05-28T10:53:00Z').toISOString(),
       testDuration: 60 * 60, // 3 minutes (changed from 60 minutes for testing)
       allowLateEntry: false
     };
@@ -405,7 +408,7 @@ router.get('/submissions', async (req, res) => {
 // Analyze and submit code
 // Modify the analyze endpoint in code-execution.js to separate submission and processing
 router.post('/analyze', async (req, res) => {
-  const { code, problemId, username, userId, timeComplexity, spaceComplexity, language = 'java' } = req.body;
+  const { code, problemId, username, userId, timeComplexity, spaceComplexity, language = 'python' } = req.body;
 
   console.log(`[LLM] Received submission request from ${username} (ID: ${userId}) for problem ${problemId}`);
   console.log(`[LLM] Time complexity claimed: ${timeComplexity}, Space complexity claimed: ${spaceComplexity}`);

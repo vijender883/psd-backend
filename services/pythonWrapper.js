@@ -8,9 +8,9 @@ async function generatePythonWrapper(executionDir, code) {
   const isLIS = code.includes('length_of_lis');
   const isConsecutiveChars = code.includes('count_consecutive_chars');
   const isClosestValue = code.includes('find_closest_element');
-  const isPermutationInString = code.includes('check_inclusion'); // Add this
-  const isFruitIntoBaskets = code.includes('total_fruit'); // Add this
-
+  const isPermutationInString = code.includes('check_inclusion');
+  const isFruitIntoBaskets = code.includes('total_fruit');
+  const isValidAnagram = code.includes('is_anagram'); // Add this
 
   let wrapperCode;
   if (isMinPathSum) {
@@ -27,11 +27,34 @@ async function generatePythonWrapper(executionDir, code) {
     wrapperCode = generatePermutationInStringWrapper(code);
   } else if (isFruitIntoBaskets) {
     wrapperCode = generateFruitIntoBasketsWrapper(code);
+  } else if (isValidAnagram) {
+    wrapperCode = generateValidAnagramWrapper(code);
   } else {
     wrapperCode = generateLongestCommonPrefixWrapper(code);
   }
 
   await fs.writeFile(path.join(executionDir, 'solution.py'), wrapperCode);
+}
+
+// Add new wrapper generator for Valid Anagram
+function generateValidAnagramWrapper(code) {
+  return `
+import sys
+
+${code}
+
+if __name__ == "__main__":
+  # Read input
+  s = input().strip()
+  t = input().strip()
+  
+  # Create solution object and call function
+  solver = ValidAnagram()
+  result = solver.is_anagram(s, t)
+  
+  # Output result
+  print(str(result).lower())
+`
 }
 
 // Add new wrapper generator for Permutation in String
