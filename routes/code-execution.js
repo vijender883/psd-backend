@@ -1,12 +1,10 @@
 // File: routes/code-execution.js
 // to edit the test time goto line 23 or search for scheduledStartTime
 
-
 const express = require('express');
 const { executeCode } = require('../services/codeExecutor');
 const router = express.Router();
 const Submission = require('../models/Submission');
-const { analyzeProblemAndSolution } = require('../services/llmService');
 const { problems, getProblemList } = require('../models/problems'); // Import from the new file
 const Simulation = require('../models/Simulation');
 
@@ -149,11 +147,7 @@ router.get('/submission/results/:id', async (req, res) => {
       score: submission.score,
       passedTests: submission.passedTests,
       totalTests: submission.totalTests,
-      timeComplexity: submission.timeComplexity,
-      spaceComplexity: submission.spaceComplexity,
-      language: submission.language || 'java',
-      // Include the complexity analysis from LLM
-      complexityAnalysis: submission.complexityAnalysis
+      language: submission.language || 'java'
     });
 
   } catch (error) {
@@ -240,10 +234,7 @@ router.get('/submission/:id', async (req, res) => {
       score: submission.score,
       passedTests: submission.passedTests,
       totalTests: submission.totalTests,
-      timeComplexity: submission.timeComplexity,
-      spaceComplexity: submission.spaceComplexity,
-      language: submission.language || 'java',
-      complexityAnalysis: submission.complexityAnalysis
+      language: submission.language || 'java'
     });
 
   } catch (error) {
@@ -405,17 +396,15 @@ router.get('/submissions', async (req, res) => {
   }
 });
 
-// Analyze and submit code
-// Modify the analyze endpoint in code-execution.js to separate submission and processing
+// Analyze and submit code - simplified without complexity analysis
 router.post('/analyze', async (req, res) => {
-  const { code, problemId, username, userId, timeComplexity, spaceComplexity, language = 'python' } = req.body;
+  const { code, problemId, username, userId, language = 'python' } = req.body;
 
-  console.log(`[LLM] Received submission request from ${username} (ID: ${userId}) for problem ${problemId}`);
-  console.log(`[LLM] Time complexity claimed: ${timeComplexity}, Space complexity claimed: ${spaceComplexity}`);
+  console.log(`Received submission request from ${username} (ID: ${userId}) for problem ${problemId}`);
   
   const problem = problems[problemId];
   if (!problem) {
-    console.log(`[LLM] Problem ${problemId} not found`);
+    console.log(`Problem ${problemId} not found`);
     return res.status(404).json({
       success: false,
       error: 'Problem not found'
@@ -431,7 +420,7 @@ router.post('/analyze', async (req, res) => {
 
     if (existingSubmission) {
       // User has already submitted for this problem
-      console.log(`[LLM] User ${username} (ID: ${userId}) has already submitted for problem ${problemId}, submission ID: ${existingSubmission._id}`);
+      console.log(`User ${username} (ID: ${userId}) has already submitted for problem ${problemId}, submission ID: ${existingSubmission._id}`);
       return res.json({
         success: true,
         message: "You have already submitted a solution for this problem",
@@ -440,7 +429,7 @@ router.post('/analyze', async (req, res) => {
       });
     }
 
-    console.log(`[LLM] Creating new submission record for ${username} (ID: ${userId}) on problem ${problemId}`);
+    console.log(`Creating new submission record for ${username} (ID: ${userId}) on problem ${problemId}`);
     
     // Create a submission record immediately without waiting for execution
     const submission = new Submission({
@@ -454,29 +443,20 @@ router.post('/analyze', async (req, res) => {
       passedTests: 0,
       totalTests: problem.testCases.length,
       results: [],
-      timeComplexity,
-      spaceComplexity,
       show: false,
-      complexityAnalysis: {
-        isTimeComplexityAccurate: true,
-        isSpaceComplexityAccurate: true,
-        actualTimeComplexity: timeComplexity,
-        actualSpaceComplexity: spaceComplexity,
-        explanation: "Processing"
-      },
       processingComplete: false
     });
 
     await submission.save();
-    console.log(`[LLM] Submission record created with ID: ${submission._id}`);
+    console.log(`Submission record created with ID: ${submission._id}`);
 
     // Start processing in the background without waiting for it to complete
-    console.log(`[LLM] Initiating background processing for submission ${submission._id}`);
-    processSubmissionAsync(submission._id, code, problem, language, timeComplexity, spaceComplexity)
-      .catch(err => console.error(`[LLM] Background processing error for submission ${submission._id}:`, err));
+    console.log(`Initiating background processing for submission ${submission._id}`);
+    processSubmissionAsync(submission._id, code, problem, language)
+      .catch(err => console.error(`Background processing error for submission ${submission._id}:`, err));
 
     // Return success immediately
-    console.log(`[LLM] Returning success response to client for submission ${submission._id}`);
+    console.log(`Returning success response to client for submission ${submission._id}`);
     res.json({
       success: true,
       message: "Submission received successfully",
@@ -487,7 +467,7 @@ router.post('/analyze', async (req, res) => {
   } catch (error) {
     // Check if this is a duplicate key error (MongoDB error code 11000)
     if (error.code === 11000) {
-      console.log(`[LLM] Duplicate submission detected from ${username} for problem ${problemId}`);
+      console.log(`Duplicate submission detected from ${username} for problem ${problemId}`);
       // This means the user tried to submit the same problem twice
       try {
         // Find the existing submission
@@ -497,7 +477,7 @@ router.post('/analyze', async (req, res) => {
         });
         
         if (existingSubmission) {
-          console.log(`[LLM] Found existing submission: ${existingSubmission._id}`);
+          console.log(`Found existing submission: ${existingSubmission._id}`);
           return res.json({
             success: true,
             message: "You have already submitted a solution for this problem",
@@ -506,11 +486,11 @@ router.post('/analyze', async (req, res) => {
           });
         }
       } catch (findError) {
-        console.error('[LLM] Error finding existing submission:', findError);
+        console.error('Error finding existing submission:', findError);
       }
     }
     
-    console.error('[LLM] Submission processing error:', error);
+    console.error('Submission processing error:', error);
     res.status(500).json({
       success: false,
       error: {
@@ -533,15 +513,8 @@ router.get('/debug/submission/:id', async (req, res) => {
     }
 
     // For debugging, always return detailed data regardless of 'show' status
-    console.log(`[LLM] Debug request for submission ${req.params.id}`);
-    console.log(`[LLM] Processing status: ${submission.processingComplete ? 'Complete' : 'In Progress'}`);
-    
-    if (submission.complexityAnalysis) {
-      console.log(`[LLM] Time complexity accurate: ${submission.complexityAnalysis.isTimeComplexityAccurate}`);
-      console.log(`[LLM] Space complexity accurate: ${submission.complexityAnalysis.isSpaceComplexityAccurate}`);
-      console.log(`[LLM] Actual time complexity: ${submission.complexityAnalysis.actualTimeComplexity}`);
-      console.log(`[LLM] Actual space complexity: ${submission.complexityAnalysis.actualSpaceComplexity}`);
-    }
+    console.log(`Debug request for submission ${req.params.id}`);
+    console.log(`Processing status: ${submission.processingComplete ? 'Complete' : 'In Progress'}`);
 
     res.json({
       id: submission._id,
@@ -552,13 +525,12 @@ router.get('/debug/submission/:id', async (req, res) => {
       passedTests: submission.passedTests,
       totalTests: submission.totalTests,
       show: submission.show,
-      complexityAnalysis: submission.complexityAnalysis,
       error: submission.error,
       createdAt: submission.createdAt
     });
 
   } catch (error) {
-    console.error('[LLM] Error in debug endpoint:', error);
+    console.error('Error in debug endpoint:', error);
     res.status(500).json({
       success: false,
       error: {
@@ -569,44 +541,17 @@ router.get('/debug/submission/:id', async (req, res) => {
   }
 });
 
-async function processSubmissionAsync(submissionId, code, problem, language, timeComplexity, spaceComplexity) {
+async function processSubmissionAsync(submissionId, code, problem, language) {
   try {
-    console.log(`[LLM] Starting background processing for submission ${submissionId}`);
-    console.log(`[LLM] User claimed time complexity: ${timeComplexity}`);
-    console.log(`[LLM] User claimed space complexity: ${spaceComplexity}`);
-    console.log(`[LLM] Language: ${language}`);
+    console.log(`Starting background processing for submission ${submissionId}`);
+    console.log(`Language: ${language}`);
     
     // Log problem details
-    console.log(`[LLM] Processing problem: ${problem.id} - ${problem.title}`);
+    console.log(`Processing problem: ${problem.id} - ${problem.title}`);
     
     // Execute code
     const result = await executeCode(code, problem.testCases, language);
-    console.log(`[LLM] Code execution completed with ${result.results ? result.results.filter(r => r.passed).length : 0}/${result.results ? result.results.length : 0} tests passed`);
-    
-    // Log that we're starting LLM analysis
-    console.log(`[LLM] Starting code analysis with LLM for submission ${submissionId}`);
-    console.time(`[LLM] Analysis time for ${submissionId}`);
-    
-    // Analyze with LLM
-    const analysis = await analyzeProblemAndSolution(
-      problem,
-      code,
-      timeComplexity,
-      spaceComplexity,
-      language
-    );
-    
-    console.timeEnd(`[LLM] Analysis time for ${submissionId}`);
-    
-    // Log LLM analysis results
-    console.log(`[LLM] Analysis results for submission ${submissionId}:`);
-    console.log(`[LLM] - Time complexity accurate: ${analysis.isTimeComplexityAccurate}`);
-    console.log(`[LLM] - Space complexity accurate: ${analysis.isSpaceComplexityAccurate}`);
-    console.log(`[LLM] - Actual time complexity: ${analysis.actualTimeComplexity}`);
-    console.log(`[LLM] - Actual space complexity: ${analysis.actualSpaceComplexity}`);
-    console.log(`[LLM] - Explanation: ${analysis.explanation.substring(0, 100)}...`);
-    console.log(`[LLM] - Has improvement suggestions: ${!!analysis.improvement}`);
-    console.log(`[LLM] - Has optimized solution: ${!!analysis.optimizedSolution}`);
+    console.log(`Code execution completed with ${result.results ? result.results.filter(r => r.passed).length : 0}/${result.results ? result.results.length : 0} tests passed`);
     
     // Calculate metrics
     const totalTests = result.results ? result.results.length : 0;
@@ -617,27 +562,18 @@ async function processSubmissionAsync(submissionId, code, problem, language, tim
     const score = totalTests > 0 ? (passedTests / totalTests) * 100 : 0;
     
     // Update the submission with results
-    console.log(`[LLM] Updating submission ${submissionId} with analysis results`);
+    console.log(`Updating submission ${submissionId} with execution results`);
     await Submission.findByIdAndUpdate(submissionId, {
       executionTime: averageExecutionTime,
       score,
       passedTests,
       results: result.results || [],
-      complexityAnalysis: {
-        isTimeComplexityAccurate: analysis.isTimeComplexityAccurate,
-        isSpaceComplexityAccurate: analysis.isSpaceComplexityAccurate,
-        actualTimeComplexity: analysis.actualTimeComplexity,
-        actualSpaceComplexity: analysis.actualSpaceComplexity,
-        explanation: analysis.explanation,
-        improvement: analysis.improvement || "",
-        optimizedSolution: analysis.optimizedSolution || ""
-      },
       processingComplete: true
     });
     
-    console.log(`[LLM] Background processing completed for submission ${submissionId}`);
+    console.log(`Background processing completed for submission ${submissionId}`);
   } catch (error) {
-    console.error(`[LLM] Background processing failed for submission ${submissionId}:`, error);
+    console.error(`Background processing failed for submission ${submissionId}:`, error);
     
     // Update submission to mark processing as complete, even with error
     try {
@@ -648,13 +584,12 @@ async function processSubmissionAsync(submissionId, code, problem, language, tim
           stack: error.stack
         }
       });
-      console.log(`[LLM] Updated submission ${submissionId} with error information`);
+      console.log(`Updated submission ${submissionId} with error information`);
     } catch (updateError) {
-      console.error(`[LLM] Failed to update submission ${submissionId} after processing error:`, updateError);
+      console.error(`Failed to update submission ${submissionId} after processing error:`, updateError);
     }
   }
 }
-
 
 router.get('/submission/processing-status/:id', async (req, res) => {
   try {
@@ -776,7 +711,6 @@ router.get('/leaderboard/:problemId', async (req, res) => {
   }
 });
 
-
 router.get('/scheduledStartTime/:simulationId', async (req, res) => {
   try {
     const { simulationId } = req.params;
@@ -813,10 +747,6 @@ router.get('/scheduledStartTime/:simulationId', async (req, res) => {
     });
   }
 });
-
-
-
-// Add this new endpoint to your code-execution.js file
 
 // Get a specific problem from simulation with language parameter
 router.get('/simulation/:simulationId/problems/:problemId', async (req, res) => {
@@ -880,8 +810,6 @@ router.get('/simulation/:simulationId/problems/:problemId', async (req, res) => 
   }
 });
 
-
-
 router.get('/simulation/:simulationId/problems', async (req, res) => {
   try {
     const { simulationId } = req.params;
@@ -939,6 +867,246 @@ router.get('/simulation/:simulationId/problems', async (req, res) => {
     });
   }
 });
+
+router.post('/simulations/:simulationId/run', async (req, res) => {
+  const { simulationId } = req.params;
+  const { code, problemId, language = 'python' } = req.body;
+
+  // Input validation
+  if (!code || !problemId) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        message: 'Missing required fields',
+        stack: 'Code and problemId are required'
+      }
+    });
+  }
+
+  try {
+    // Find the simulation
+    const simulation = await Simulation.findOne({ simulationId });
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'Simulation not found',
+          stack: `No simulation found with ID: ${simulationId}`
+        }
+      });
+    }
+
+    // Find the specific problem within the simulation's DSA questions
+    const problem = simulation.getDSAQuestionById(problemId);
+    if (!problem) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'Problem not found in simulation',
+          stack: `No problem found with ID: ${problemId} in simulation ${simulationId}`
+        }
+      });
+    }
+
+    // Take only first two test cases (same logic as original /run endpoint)
+    const limitedTestCases = problem.testCases.slice(0, 2);
+
+    // Execute code against limited test cases, passing the language parameter
+    const result = await executeCode(code, limitedTestCases, language);
+
+    if (!result.success) {
+      return res.json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Simulation code execution error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Execution failed',
+        stack: error.message
+      }
+    });
+  }
+});
+
+
+
+// Add this endpoint to your code-execution.js file, after the existing /analyze endpoint
+
+// Analyze and submit code for simulation - simplified without complexity analysis
+router.post('/simulations/:simulationId/analyze', async (req, res) => {
+  const { simulationId } = req.params;
+  const { code, problemId, username, userId, language = 'python' } = req.body;
+
+  console.log(`Received submission request from ${username} (ID: ${userId}) for problem ${problemId} in simulation ${simulationId}`);
+  
+  try {
+    // Find the simulation
+    const simulation = await Simulation.findOne({ simulationId });
+    if (!simulation) {
+      console.log(`Simulation ${simulationId} not found`);
+      return res.status(404).json({
+        success: false,
+        error: 'Simulation not found'
+      });
+    }
+
+    // Find the specific problem within the simulation's DSA questions
+    const problem = simulation.getDSAQuestionById(problemId);
+    if (!problem) {
+      console.log(`Problem ${problemId} not found in simulation ${simulationId}`);
+      return res.status(404).json({
+        success: false,
+        error: 'Problem not found in simulation'
+      });
+    }
+
+    // First, check if this user has already submitted for this problem in this simulation
+    const existingSubmission = await Submission.findOne({ 
+      userId: userId.trim(), 
+      problemId: problemId,
+      simulationId: simulationId // Add simulation context to the query
+    });
+
+    if (existingSubmission) {
+      // User has already submitted for this problem in this simulation
+      console.log(`User ${username} (ID: ${userId}) has already submitted for problem ${problemId} in simulation ${simulationId}, submission ID: ${existingSubmission._id}`);
+      return res.json({
+        success: true,
+        message: "You have already submitted a solution for this problem",
+        submissionId: existingSubmission._id,
+        alreadySubmitted: true
+      });
+    }
+
+    console.log(`Creating new submission record for ${username} (ID: ${userId}) on problem ${problemId} in simulation ${simulationId}`);
+    
+    // Create a submission record immediately without waiting for execution
+    const submission = new Submission({
+      username,
+      userId,
+      problemId,
+      simulationId, // Add simulation context to the submission
+      code,
+      language,
+      executionTime: 0,
+      score: 0,
+      passedTests: 0,
+      totalTests: problem.testCases.length,
+      results: [],
+      show: false,
+      processingComplete: false
+    });
+
+    await submission.save();
+    console.log(`Submission record created with ID: ${submission._id} for simulation ${simulationId}`);
+
+    // Start processing in the background without waiting for it to complete
+    console.log(`Initiating background processing for submission ${submission._id} in simulation ${simulationId}`);
+    processSimulationSubmissionAsync(submission._id, code, problem, language)
+      .catch(err => console.error(`Background processing error for submission ${submission._id} in simulation ${simulationId}:`, err));
+
+    // Return success immediately
+    console.log(`Returning success response to client for submission ${submission._id} in simulation ${simulationId}`);
+    res.json({
+      success: true,
+      message: "Submission received successfully",
+      submissionId: submission._id,
+      pendingApproval: true
+    });
+
+  } catch (error) {
+    // Check if this is a duplicate key error (MongoDB error code 11000)
+    if (error.code === 11000) {
+      console.log(`Duplicate submission detected from ${username} for problem ${problemId} in simulation ${simulationId}`);
+      // This means the user tried to submit the same problem twice
+      try {
+        // Find the existing submission
+        const existingSubmission = await Submission.findOne({ 
+          username: username.trim(), 
+          problemId: problemId,
+          simulationId: simulationId
+        });
+        
+        if (existingSubmission) {
+          console.log(`Found existing submission: ${existingSubmission._id} in simulation ${simulationId}`);
+          return res.json({
+            success: true,
+            message: "You have already submitted a solution for this problem",
+            submissionId: existingSubmission._id,
+            alreadySubmitted: true
+          });
+        }
+      } catch (findError) {
+        console.error('Error finding existing submission:', findError);
+      }
+    }
+    
+    console.error(`Submission processing error for simulation ${simulationId}:`, error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Submission processing failed',
+        stack: error.message
+      }
+    });
+  }
+});
+
+// Helper function for processing simulation submissions asynchronously
+async function processSimulationSubmissionAsync(submissionId, code, problem, language) {
+  try {
+    console.log(`Starting background processing for simulation submission ${submissionId}`);
+    console.log(`Language: ${language}`);
+    
+    // Log problem details
+    console.log(`Processing simulation problem: ${problem.id} - ${problem.title}`);
+    
+    // Execute code using the problem's test cases
+    const result = await executeCode(code, problem.testCases, language);
+    console.log(`Code execution completed with ${result.results ? result.results.filter(r => r.passed).length : 0}/${result.results ? result.results.length : 0} tests passed`);
+    
+    // Calculate metrics
+    const totalTests = result.results ? result.results.length : 0;
+    const passedTests = result.results ? result.results.filter(r => r.passed).length : 0;
+    const averageExecutionTime = totalTests > 0 
+      ? result.results.reduce((sum, r) => sum + r.executionTime, 0) / totalTests 
+      : 0;
+    const score = totalTests > 0 ? (passedTests / totalTests) * 100 : 0;
+    
+    // Update the submission with results
+    console.log(`Updating simulation submission ${submissionId} with execution results`);
+    await Submission.findByIdAndUpdate(submissionId, {
+      executionTime: averageExecutionTime,
+      score,
+      passedTests,
+      results: result.results || [],
+      processingComplete: true
+    });
+    
+    console.log(`Background processing completed for simulation submission ${submissionId}`);
+  } catch (error) {
+    console.error(`Background processing failed for simulation submission ${submissionId}:`, error);
+    
+    // Update submission to mark processing as complete, even with error
+    try {
+      await Submission.findByIdAndUpdate(submissionId, {
+        processingComplete: true,
+        error: {
+          message: error.message,
+          stack: error.stack
+        }
+      });
+      console.log(`Updated simulation submission ${submissionId} with error information`);
+    } catch (updateError) {
+      console.error(`Failed to update simulation submission ${submissionId} after processing error:`, updateError);
+    }
+  }
+}
+
+
 
 
 module.exports = router;

@@ -16,7 +16,6 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-
 const SubmissionSchema = new mongoose.Schema({
   username: {
     type: String,
@@ -73,47 +72,6 @@ const SubmissionSchema = new mongoose.Schema({
       stack: String
     }
   }],
-  timeComplexity: {
-    type: String,
-    required: true
-  },
-  spaceComplexity: {
-    type: String,
-    required: true
-  },
-  // Enhanced fields for LLM analysis
-  complexityAnalysis: {
-    isTimeComplexityAccurate: {
-      type: Boolean,
-      required: true,
-      default: true
-    },
-    isSpaceComplexityAccurate: {
-      type: Boolean,
-      required: true,
-      default: true
-    },
-    actualTimeComplexity: {
-      type: String,
-      required: true
-    },
-    actualSpaceComplexity: {
-      type: String,
-      required: true
-    },
-    explanation: {
-      type: String,
-      required: true
-    },
-    improvement: {
-      type: String,
-      default: ""
-    },
-    optimizedSolution: {
-      type: String,
-      default: ""
-    }
-  },
   processingComplete: {
     type: Boolean,
     required: true,
