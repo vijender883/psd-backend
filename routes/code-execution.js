@@ -20,7 +20,7 @@ function initializeTestConfig(simulationId) {
   
   if (!testConfigurations[simulationId]) {
     testConfigurations[simulationId] = {
-      scheduledStartTime: new Date('2025-05-28T12:30:00Z').toISOString(),
+      scheduledStartTime: new Date('2025-05-29T04:30:00Z').toISOString(),
       testDuration: 60 * 60, // 3 minutes (changed from 60 minutes for testing)
       allowLateEntry: false
     };
@@ -853,7 +853,7 @@ router.get('/simulation/:simulationId/problems/:problemId', async (req, res) => 
     
     // Get the appropriate template for the language
     const functionTemplate = (templates && templates[language]) || 
-                           (templates && templates.java) || 
+                           (templates && templates.python) || 
                            '';
     
     const responseData = {
@@ -880,6 +880,65 @@ router.get('/simulation/:simulationId/problems/:problemId', async (req, res) => 
   }
 });
 
+
+
+router.get('/simulation/:simulationId/problems', async (req, res) => {
+  try {
+    const { simulationId } = req.params;
+    const cacheKey = `simulation_${simulationId}_problems`;
+    
+    // Check cache first
+    if (problemsCache.has(cacheKey)) {
+      return res.json(problemsCache.get(cacheKey));
+    }
+    
+    // Find the simulation
+    const simulation = await Simulation.findOne({ simulationId });
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Simulation not found'
+      });
+    }
+    
+    // Extract and format the DSA questions to match /problems payload structure
+    const problemList = simulation.dsa_questions.map(problem => {
+      // Convert Mongoose document to plain object if needed
+      const problemObj = problem.toObject ? problem.toObject() : problem;
+      
+      // Remove internal fields (testCases, templates, solution) like in /problems endpoint
+      const { testCases, templates, solution, ...problemData } = problemObj;
+      
+      return {
+        id: problemData.id,
+        title: problemData.title,
+        description: problemData.description,
+        inputFormat: problemData.inputFormat,
+        outputFormat: problemData.outputFormat,
+        constraints: problemData.constraints || [],
+        examples: problemData.examples || [],
+        miscellaneous: problemData.miscellaneous || {},
+        showSolution: !!solution // Boolean indicating if solution exists
+      };
+    });
+    
+    // Cache the response
+    problemsCache.set(cacheKey, problemList);
+    setTimeout(() => problemsCache.delete(cacheKey), CACHE_TTL);
+    
+    res.json(problemList);
+    
+  } catch (error) {
+    console.error('Error fetching simulation problems:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to fetch simulation problems',
+        stack: error.message
+      }
+    });
+  }
+});
 
 
 module.exports = router;
