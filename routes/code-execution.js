@@ -7,6 +7,7 @@ const router = express.Router();
 const Submission = require('../models/Submission');
 const { problems, getProblemList } = require('../models/problems'); // Import from the new file
 const Simulation = require('../models/Simulation');
+const Leaderboard = require('../models/Leaderboard'); // Add this import
 
 const problemsCache = new Map();
 const CACHE_TTL = 3600000;
@@ -933,9 +934,68 @@ router.post('/simulations/:simulationId/run', async (req, res) => {
 
 
 
-// Add this endpoint to your code-execution.js file, after the existing /analyze endpoint
+// Updated helper function for processing simulation submissions with leaderboard integration
+async function processSimulationSubmissionAsync(submissionId, code, problem, language, simulationId, userId, username) {
+  try {
+    console.log(`Starting background processing for simulation submission ${submissionId}`);
+    console.log(`Language: ${language}`);
+    
+    // Log problem details
+    console.log(`Processing simulation problem: ${problem.id} - ${problem.title}`);
+    
+    // Execute code using the problem's test cases
+    const result = await executeCode(code, problem.testCases, language);
+    console.log(`Code execution completed with ${result.results ? result.results.filter(r => r.passed).length : 0}/${result.results ? result.results.length : 0} tests passed`);
+    
+    // Calculate metrics
+    const totalTests = result.results ? result.results.length : 0;
+    const passedTests = result.results ? result.results.filter(r => r.passed).length : 0;
+    const averageExecutionTime = totalTests > 0 
+      ? result.results.reduce((sum, r) => sum + r.executionTime, 0) / totalTests 
+      : 0;
+    const score = totalTests > 0 ? (passedTests / totalTests) * 100 : 0;
+    
+    // Update the submission with results
+    console.log(`Updating simulation submission ${submissionId} with execution results`);
+    await Submission.findByIdAndUpdate(submissionId, {
+      executionTime: averageExecutionTime,
+      score,
+      passedTests,
+      results: result.results || [],
+      processingComplete: true
+    });
+    
+    // Add to leaderboard using the new model with username
+    try {
+      const submittedTime = new Date();
+      await Leaderboard.add_to_leaderboard(simulationId, userId, username, score, submittedTime);
+      console.log(`✅ Successfully updated leaderboard for user ${userId} (${username}) in simulation ${simulationId} with score ${score}`);
+    } catch (leaderboardError) {
+      console.error(`❌ Failed to update leaderboard for user ${userId} (${username}) in simulation ${simulationId}:`, leaderboardError);
+      // Don't throw error here as submission processing was successful
+    }
+    
+    console.log(`Background processing completed for simulation submission ${submissionId}`);
+  } catch (error) {
+    console.error(`Background processing failed for simulation submission ${submissionId}:`, error);
+    
+    // Update submission to mark processing as complete, even with error
+    try {
+      await Submission.findByIdAndUpdate(submissionId, {
+        processingComplete: true,
+        error: {
+          message: error.message,
+          stack: error.stack
+        }
+      });
+      console.log(`Updated simulation submission ${submissionId} with error information`);
+    } catch (updateError) {
+      console.error(`Failed to update simulation submission ${submissionId} after processing error:`, updateError);
+    }
+  }
+}
 
-// Analyze and submit code for simulation - simplified without complexity analysis
+// Updated /simulations/:simulationId/analyze endpoint
 router.post('/simulations/:simulationId/analyze', async (req, res) => {
   const { simulationId } = req.params;
   const { code, problemId, username, userId, language = 'python' } = req.body;
@@ -967,11 +1027,10 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
     const existingSubmission = await Submission.findOne({ 
       userId: userId.trim(), 
       problemId: problemId,
-      simulationId: simulationId // Add simulation context to the query
+      simulationId: simulationId
     });
 
     if (existingSubmission) {
-      // User has already submitted for this problem in this simulation
       console.log(`User ${username} (ID: ${userId}) has already submitted for problem ${problemId} in simulation ${simulationId}, submission ID: ${existingSubmission._id}`);
       return res.json({
         success: true,
@@ -988,7 +1047,7 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
       username,
       userId,
       problemId,
-      simulationId, // Add simulation context to the submission
+      simulationId,
       code,
       language,
       executionTime: 0,
@@ -1005,7 +1064,7 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
 
     // Start processing in the background without waiting for it to complete
     console.log(`Initiating background processing for submission ${submission._id} in simulation ${simulationId}`);
-    processSimulationSubmissionAsync(submission._id, code, problem, language)
+    processSimulationSubmissionAsync(submission._id, code, problem, language, simulationId, userId, username)
       .catch(err => console.error(`Background processing error for submission ${submission._id} in simulation ${simulationId}:`, err));
 
     // Return success immediately
@@ -1021,9 +1080,7 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
     // Check if this is a duplicate key error (MongoDB error code 11000)
     if (error.code === 11000) {
       console.log(`Duplicate submission detected from ${username} for problem ${problemId} in simulation ${simulationId}`);
-      // This means the user tried to submit the same problem twice
       try {
-        // Find the existing submission
         const existingSubmission = await Submission.findOne({ 
           username: username.trim(), 
           problemId: problemId,
@@ -1055,56 +1112,37 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
   }
 });
 
-// Helper function for processing simulation submissions asynchronously
-async function processSimulationSubmissionAsync(submissionId, code, problem, language) {
+// New endpoint: Get leaderboard for a specific simulation
+router.get('/simulations/:simulationId/leaderboard', async (req, res) => {
   try {
-    console.log(`Starting background processing for simulation submission ${submissionId}`);
-    console.log(`Language: ${language}`);
-    
-    // Log problem details
-    console.log(`Processing simulation problem: ${problem.id} - ${problem.title}`);
-    
-    // Execute code using the problem's test cases
-    const result = await executeCode(code, problem.testCases, language);
-    console.log(`Code execution completed with ${result.results ? result.results.filter(r => r.passed).length : 0}/${result.results ? result.results.length : 0} tests passed`);
-    
-    // Calculate metrics
-    const totalTests = result.results ? result.results.length : 0;
-    const passedTests = result.results ? result.results.filter(r => r.passed).length : 0;
-    const averageExecutionTime = totalTests > 0 
-      ? result.results.reduce((sum, r) => sum + r.executionTime, 0) / totalTests 
-      : 0;
-    const score = totalTests > 0 ? (passedTests / totalTests) * 100 : 0;
-    
-    // Update the submission with results
-    console.log(`Updating simulation submission ${submissionId} with execution results`);
-    await Submission.findByIdAndUpdate(submissionId, {
-      executionTime: averageExecutionTime,
-      score,
-      passedTests,
-      results: result.results || [],
-      processingComplete: true
+    const { simulationId } = req.params;
+    const limit = parseInt(req.query.limit) || 50;
+
+    console.log(`Fetching leaderboard for simulation ${simulationId} with limit ${limit}`);
+
+    // Get leaderboard data using the Leaderboard model
+    const leaderboard = await Leaderboard.getLeaderboard(simulationId, limit);
+
+    res.json({
+      success: true,
+      data: {
+        simulationId: simulationId,
+        leaderboard: leaderboard,
+        totalEntries: leaderboard.length
+      }
     });
-    
-    console.log(`Background processing completed for simulation submission ${submissionId}`);
+
   } catch (error) {
-    console.error(`Background processing failed for simulation submission ${submissionId}:`, error);
-    
-    // Update submission to mark processing as complete, even with error
-    try {
-      await Submission.findByIdAndUpdate(submissionId, {
-        processingComplete: true,
-        error: {
-          message: error.message,
-          stack: error.stack
-        }
-      });
-      console.log(`Updated simulation submission ${submissionId} with error information`);
-    } catch (updateError) {
-      console.error(`Failed to update simulation submission ${submissionId} after processing error:`, updateError);
-    }
+    console.error(`Error fetching leaderboard for simulation ${simulationId}:`, error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to fetch leaderboard data',
+        stack: error.message
+      }
+    });
   }
-}
+});
 
 
 
