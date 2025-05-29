@@ -10,7 +10,8 @@ async function generatePythonWrapper(executionDir, code) {
   const isClosestValue = code.includes('find_closest_element');
   const isPermutationInString = code.includes('check_inclusion');
   const isFruitIntoBaskets = code.includes('total_fruit');
-  const isValidAnagram = code.includes('is_anagram'); // Add this
+  const isValidAnagram = code.includes('is_anagram');
+  const isThreeSum = code.includes('three_sum'); // Add this
 
   let wrapperCode;
   if (isMinPathSum) {
@@ -29,11 +30,52 @@ async function generatePythonWrapper(executionDir, code) {
     wrapperCode = generateFruitIntoBasketsWrapper(code);
   } else if (isValidAnagram) {
     wrapperCode = generateValidAnagramWrapper(code);
+  } else if (isThreeSum) {
+    wrapperCode = generateThreeSumWrapper(code);
   } else {
     wrapperCode = generateLongestCommonPrefixWrapper(code);
   }
 
   await fs.writeFile(path.join(executionDir, 'solution.py'), wrapperCode);
+}
+
+// Add new wrapper generator for 3Sum
+function generateThreeSumWrapper(code) {
+  return `
+import sys
+
+${code}
+
+def format_result(result):
+    if not result:
+        return "[]"
+    
+    # Sort each triplet and the overall result for consistent output
+    result = [sorted(triplet) for triplet in result]
+    result.sort()
+    
+    formatted = "["
+    for i, triplet in enumerate(result):
+        formatted += "["
+        formatted += ",".join(str(num) for num in triplet)
+        formatted += "]"
+        if i < len(result) - 1:
+            formatted += ","
+    formatted += "]"
+    
+    return formatted
+
+if __name__ == "__main__":
+  # Read input
+  nums = list(map(int, input().strip().split()))
+  
+  # Create solution object and call function
+  solver = ThreeSum()
+  result = solver.three_sum(nums)
+  
+  # Output result
+  print(format_result(result))
+`
 }
 
 // Add new wrapper generator for Valid Anagram
