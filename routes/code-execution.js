@@ -1147,5 +1147,133 @@ router.get('/simulations/:simulationId/leaderboard', async (req, res) => {
 
 
 
+router.get('/viewresults/:userId/:problemId', async (req, res) => {
+  try {
+    const { userId, problemId } = req.params;
+    
+    // Validate inputs
+    if (!userId || !problemId) {
+      return res.status(400).json({
+        success: false,
+        error: 'UserId and problemId are required'
+      });
+    }
+
+    console.log(`Fetching results for user ${userId} and problem ${problemId}`);
+
+    // Find submission for this user and problem
+    const submission = await Submission.findOne({ 
+      userId: userId.trim(), 
+      problemId: problemId 
+    });
+
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        error: 'No submission found for this user and problem'
+      });
+    }
+
+    // Check if processing is complete
+    if (!submission.processingComplete) {
+      return res.status(202).json({
+        success: false,
+        error: 'Submission is still being processed',
+        processingComplete: false
+      });
+    }
+
+    // Return the requested fields
+    res.json({
+      success: true,
+      data: {
+        userId: submission.userId,
+        problemId: submission.problemId,
+        score: submission.score,
+        passedTests: submission.passedTests,
+        totalTests: submission.totalTests,
+        results: submission.results
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching submission results:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to fetch submission results',
+        stack: error.message
+      }
+    });
+  }
+});
+
+
+router.get('/optimalsolution/:simulationId/:problemId', async (req, res) => {
+  try {
+    const { simulationId, problemId } = req.params;
+    
+    // Validate inputs
+    if (!simulationId || !problemId) {
+      return res.status(400).json({
+        success: false,
+        error: 'SimulationId and problemId are required'
+      });
+    }
+
+    console.log(`Fetching optimal solution for problem ${problemId} in simulation ${simulationId}`);
+
+    // Find the simulation
+    const simulation = await Simulation.findOne({ simulationId });
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Simulation not found'
+      });
+    }
+
+    // Find the specific DSA question within the simulation
+    const problem = simulation.getDSAQuestionById(problemId);
+    if (!problem) {
+      return res.status(404).json({
+        success: false,
+        error: 'Problem not found in simulation'
+      });
+    }
+
+    // Check if solution exists
+    if (!problem.solution || problem.solution.trim() === '') {
+      return res.status(404).json({
+        success: false,
+        error: 'No solution available for this problem'
+      });
+    }
+
+    // Return the solution
+    res.json({
+      success: true,
+      data: {
+        simulationId: simulationId,
+        problemId: problemId,
+        title: problem.title,
+        solution: problem.solution
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching optimal solution:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to fetch optimal solution',
+        stack: error.message
+      }
+    });
+  }
+});
+
+
+
+
 
 module.exports = router;
