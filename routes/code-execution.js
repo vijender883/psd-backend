@@ -181,7 +181,7 @@ router.get('/check-submission/:userId/:problemId', async (req, res) => {
       problemId: problemId 
     });
 
-    if (submission) {
+    if (submission.isSubmitted) {
       // User has already submitted
       return res.json({
         success: true,
@@ -870,8 +870,8 @@ router.get('/simulation/:simulationId/problems', async (req, res) => {
   }
 });
 
-router.post('/simulations/:simulationId/run', async (req, res) => {
-  const { simulationId } = req.params;
+router.post('/simulations/:simulationId/:userId/:username/run', async (req, res) => {
+  const { simulationId, userId, username } = req.params;
   const { code, problemId, language = 'python' } = req.body;
 
   // Input validation
@@ -908,6 +908,43 @@ router.post('/simulations/:simulationId/run', async (req, res) => {
           stack: `No problem found with ID: ${problemId} in simulation ${simulationId}`
         }
       });
+    }
+
+    // Check if existing submission exists for this user and problem
+    let existingSubmission = await Submission.findOne({ 
+      userId: userId.trim(), 
+      problemId: problemId
+    });
+
+    if (existingSubmission) {
+      // Update existing submission with new code and timestamp
+      existingSubmission = await Submission.findByIdAndUpdate(existingSubmission._id, {
+        code: code,
+        language: language,
+        username: username,
+        createdAt: new Date()
+      }, { new: true });
+      console.log(`Updated existing submission ${existingSubmission._id} for user ${userId}`);
+    } else {
+      // Create new submission with isSubmitted: false
+      existingSubmission = new Submission({
+        username,
+        userId,
+        problemId,
+        simulationId,
+        code,
+        language,
+        executionTime: 0,
+        score: 0,
+        passedTests: 0,
+        totalTests: problem.testCases.length,
+        results: [],
+        show: false,
+        processingComplete: false,
+        isSubmitted: false
+      });
+      await existingSubmission.save();
+      console.log(`Created new draft submission ${existingSubmission._id} for user ${userId}`);
     }
 
     // Take only first two test cases (same logic as original /run endpoint)
@@ -1024,27 +1061,58 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
       });
     }
 
-    // First, check if this user has already submitted for this problem in this simulation
-    const existingSubmission = await Submission.findOne({ 
+    // Check if this user has an existing submission for this problem in this simulation
+    let existingSubmission = await Submission.findOne({ 
       userId: userId.trim(), 
-      problemId: problemId,
-      simulationId: simulationId
+      problemId: problemId
     });
 
     if (existingSubmission) {
-      console.log(`User ${username} (ID: ${userId}) has already submitted for problem ${problemId} in simulation ${simulationId}, submission ID: ${existingSubmission._id}`);
-      return res.json({
-        success: true,
-        message: "You have already submitted a solution for this problem",
-        submissionId: existingSubmission._id,
-        alreadySubmitted: true
-      });
-    }
+      // Check if already submitted
+      if (existingSubmission.isSubmitted) {
+        console.log(`User ${username} (ID: ${userId}) has already submitted for problem ${problemId} in simulation ${simulationId}, submission ID: ${existingSubmission._id}`);
+        return res.json({
+          success: true,
+          message: "You have already submitted a solution for this problem",
+          submissionId: existingSubmission._id,
+          alreadySubmitted: true
+        });
+      } else {
+        // Update existing draft submission and mark as submitted
+        existingSubmission = await Submission.findByIdAndUpdate(existingSubmission._id, {
+          code: code,
+          language: language,
+          username: username,
+          isSubmitted: true,
+          createdAt: new Date(),
+          // Reset processing fields for new submission
+          executionTime: 0,
+          score: 0,
+          passedTests: 0,
+          totalTests: problem.testCases.length,
+          results: [],
+          processingComplete: false,
+          error: undefined
+        }, { new: true });
+        
+        console.log(`Updated existing draft submission ${existingSubmission._id} and marked as submitted for user ${userId}`);
+        
+        // Start processing in the background
+        processSimulationSubmissionAsync(existingSubmission._id, code, problem, language, simulationId, userId, username)
+          .catch(err => console.error(`Background processing error for submission ${existingSubmission._id} in simulation ${simulationId}:`, err));
 
+        return res.json({
+          success: true,
+          message: "Submission received successfully",
+          submissionId: existingSubmission._id,
+          pendingApproval: true
+        });
+      }
+    }
     console.log(`Creating new submission record for ${username} (ID: ${userId}) on problem ${problemId} in simulation ${simulationId}`);
     
     // Create a submission record immediately without waiting for execution
-    const submission = new Submission({
+    existingSubmission = new Submission({
       username,
       userId,
       problemId,
@@ -1057,23 +1125,23 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
       totalTests: problem.testCases.length,
       results: [],
       show: false,
-      processingComplete: false
+      processingComplete: false,
+      isSubmitted: true
     });
-
-    await submission.save();
-    console.log(`Submission record created with ID: ${submission._id} for simulation ${simulationId}`);
+    await existingSubmission.save();
+    console.log(`Submission record created with ID: ${existingSubmission._id} for simulation ${simulationId}`);
 
     // Start processing in the background without waiting for it to complete
-    console.log(`Initiating background processing for submission ${submission._id} in simulation ${simulationId}`);
-    processSimulationSubmissionAsync(submission._id, code, problem, language, simulationId, userId, username)
-      .catch(err => console.error(`Background processing error for submission ${submission._id} in simulation ${simulationId}:`, err));
+    console.log(`Initiating background processing for submission ${existingSubmission._id} in simulation ${simulationId}`);
+    processSimulationSubmissionAsync(existingSubmission._id, code, problem, language, simulationId, userId, username)
+      .catch(err => console.error(`Background processing error for submission ${existingSubmission._id} in simulation ${simulationId}:`, err));
 
     // Return success immediately
-    console.log(`Returning success response to client for submission ${submission._id} in simulation ${simulationId}`);
+    console.log(`Returning success response to client for submission ${existingSubmission._id} in simulation ${simulationId}`);
     res.json({
       success: true,
       message: "Submission received successfully",
-      submissionId: submission._id,
+      submissionId: existingSubmission._id,
       pendingApproval: true
     });
 
@@ -1084,8 +1152,7 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
       try {
         const existingSubmission = await Submission.findOne({ 
           username: username.trim(), 
-          problemId: problemId,
-          simulationId: simulationId
+          problemId: problemId
         });
         
         if (existingSubmission) {
@@ -1272,6 +1339,57 @@ router.get('/optimalsolution/:simulationId/:problemId', async (req, res) => {
   }
 });
 
+
+
+router.get('/simulation/viewcode/:problemid/:userid', async (req, res) => {
+  try {
+    const { problemid, userid } = req.params;
+    
+    // Validate inputs
+    if (!userid || !problemid) {
+      return res.status(400).json({
+        success: false,
+        error: 'UserId and problemId are required'
+      });
+    }
+
+    console.log(`Fetching code for user ${userid} and problem ${problemid}`);
+
+    // Find submission for this user and problem
+    const submission = await Submission.findOne({ 
+      userId: userid.trim(), 
+      problemId: problemid 
+    });
+
+    if (!submission) {
+      return res.json({
+        success: true,
+        submissionFound: false,
+        message: 'No submission found for this user and problem'
+      });
+    }
+
+    // Return the code from the submission
+    res.json({
+      success: true,
+      submissionFound: true,
+      userId: submission.userId,
+      problemId: submission.problemId,
+      code: submission.code,
+    });
+
+  } catch (error) {
+    console.error('Error fetching submission code:', error);
+    res.status(500).json({
+      success: false,
+      submissionFound: false,
+      error: {
+        message: 'Failed to fetch submission code',
+        stack: error.message
+      }
+    });
+  }
+});
 
 
 
