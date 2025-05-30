@@ -89,8 +89,65 @@ const sendWelcomeEmail = async (user) => {
   });
 };
 
+/**
+ * Generic function to dispatch emails to multiple recipients
+ * @param {Object} options - Email dispatch options
+ * @param {string} options.templateId - ZeptoMail template ID
+ * @param {string} options.emailList - Semicolon-separated email addresses
+ * @param {Object} options.mergeInfo - Optional merge data for template
+ * @param {Object} options.from - Optional sender information
+ * @param {Array} options.replyTo - Optional reply-to information
+ * @returns {Promise} - Response from ZeptoMail
+ */
+const dispatchEmails = async (options) => {
+  const {
+    templateId,
+    emailList,
+    mergeInfo = {},
+    from = DEFAULT_SENDER,
+    replyTo = DEFAULT_REPLY_TO
+  } = options;
+
+  // Parse and validate email addresses
+  const emails = emailList
+    .split(';')
+    .map(email => email.trim())
+    .filter(email => email !== '' && isValidEmail(email));
+
+  if (emails.length === 0) {
+    throw new Error('No valid email addresses found');
+  }
+
+  // Format email addresses for ZeptoMail
+  const recipients = emails.map(email => ({
+    email_address: {
+      address: email,
+      name: email.split('@')[0] // Use part before @ as name fallback
+    }
+  }));
+
+  return sendTemplateEmail({
+    templateKey: templateId,
+    to: recipients,
+    mergeInfo,
+    from,
+    replyTo
+  });
+};
+
+/**
+ * Simple email validation
+ * @param {string} email - Email address to validate
+ * @returns {boolean} - True if email is valid
+ */
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
 module.exports = {
   sendTemplateEmail,
   sendWelcomeEmail,
+  dispatchEmails,
   EMAIL_TEMPLATES
 };
