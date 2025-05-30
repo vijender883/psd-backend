@@ -141,3 +141,93 @@ exports.loginUser = async (req, res) => {
     });
   }
 };
+
+// Dispatch emails to multiple recipients
+exports.dispatchEmail = async (req, res) => {
+  try {
+    const { templateId, emailList, mergeInfo } = req.body;
+    
+    // Validate required fields
+    if (!templateId || !emailList) {
+      return res.status(400).json({
+        success: false,
+        message: 'Template ID and email list are required'
+      });
+    }
+    
+    // Validate template ID format (basic check)
+    if (typeof templateId !== 'string' || templateId.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid template ID format'
+      });
+    }
+    
+    // Validate email list format
+    if (typeof emailList !== 'string' || emailList.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email list format'
+      });
+    }
+    
+    // Count valid emails before sending
+    const emails = emailList
+      .split(';')
+      .map(email => email.trim())
+      .filter(email => email !== '' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+    
+    if (emails.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid email addresses found in the email list'
+      });
+    }
+    
+    // Dispatch emails using the email service
+    const response = await emailService.dispatchEmails({
+      templateId: templateId.trim(),
+      emailList: emailList.trim(),
+      mergeInfo: mergeInfo || {}
+    });
+    
+    console.log(`Emails dispatched successfully to ${emails.length} recipients using template: ${templateId}`);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Emails dispatched successfully',
+      data: {
+        templateId: templateId.trim(),
+        recipientCount: emails.length,
+        recipients: emails,
+        zeptoResponse: response
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error in dispatchEmail:', error);
+    
+    // Handle specific ZeptoMail errors
+    if (error.message && error.message.includes('template')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid template ID or template not found',
+        error: error.message
+      });
+    }
+    
+    if (error.message && error.message.includes('email')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email validation error',
+        error: error.message
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Server Error while dispatching emails',
+      error: error.message
+    });
+  }
+};
