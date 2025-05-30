@@ -187,6 +187,7 @@ router.get('/check-submission/:userId/:problemId', async (req, res) => {
         success: true,
         hasSubmitted: true,
         submissionId: submission._id,
+        code: submission.code,
         show: submission.show,
         createdAt: submission.createdAt
       });
