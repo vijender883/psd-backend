@@ -11,7 +11,9 @@ async function generatePythonWrapper(executionDir, code) {
   const isPermutationInString = code.includes('check_inclusion');
   const isFruitIntoBaskets = code.includes('total_fruit');
   const isValidAnagram = code.includes('is_anagram');
-  const isThreeSum = code.includes('three_sum'); // Add this
+  const isThreeSum = code.includes('three_sum'); 
+  const isReverseString = code.includes('reverse_string');
+  const isTwoSum = code.includes('two_sum');
 
   let wrapperCode;
   if (isMinPathSum) {
@@ -32,11 +34,56 @@ async function generatePythonWrapper(executionDir, code) {
     wrapperCode = generateValidAnagramWrapper(code);
   } else if (isThreeSum) {
     wrapperCode = generateThreeSumWrapper(code);
+  } else if (isReverseString) {
+    wrapperCode = generateReverseStringWrapper(code);
+  } else if (isTwoSum) {
+    wrapperCode = generateTwoSumWrapper(code);
   } else {
     wrapperCode = generateLongestCommonPrefixWrapper(code);
   }
 
   await fs.writeFile(path.join(executionDir, 'solution.py'), wrapperCode);
+}
+
+// Add new wrapper generator for Reverse String
+function generateReverseStringWrapper(code) {
+  return `
+import sys
+
+${code}
+
+if __name__ == "__main__":
+    # Read input
+    chars = input().strip().split()
+    
+    # Create solution object and call function
+    solver = ReverseString()
+    solver.reverse_string(chars)
+    
+    # Output result (space-separated characters)
+    print(' '.join(chars))
+`
+}
+
+// Add new wrapper generator for Two Sum
+function generateTwoSumWrapper(code) {
+  return `
+import sys
+
+${code}
+
+if __name__ == "__main__":
+    # Read input
+    nums = list(map(int, input().strip().split()))
+    target = int(input().strip())
+    
+    # Create solution object and call function
+    solver = TwoSum()
+    result = solver.two_sum(nums, target)
+    
+    # Output result
+    print(f"[{result[0]},{result[1]}]")
+`
 }
 
 // Add new wrapper generator for 3Sum
@@ -306,7 +353,7 @@ if __name__ == "__main__":
     strs = input().strip().split()
     
     # Create solution object and call function
-    solver = LongestPrefix()
+    solver = LongestCommonPrefix()
     result = solver.longest_common_prefix(strs)
     
     # Output result
