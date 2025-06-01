@@ -152,7 +152,7 @@ async function executePythonCode(code, testCases) {
     return {
       success: false,
       error: {
-        message: 'Python Execution Error',
+        message: 'Compilation Error', // Change to match frontend expectation
         stack: error.message
       }
     };
@@ -293,6 +293,7 @@ async function runPythonTestCases(executionDir, testCases) {
         message: 'Runtime Error',
         stack: error.message
       };
+      result.yourOutput = error.message; // Add this line to show error in output
       result.executionTime = 0;
     }
 
@@ -368,7 +369,9 @@ function runPythonProgram(executionDir, input) {
 
     process.on('close', (code) => {
       if (code !== 0) {
-        reject(new Error(`Python execution failed with code ${code}: ${stderr}`));
+        // Format the stderr to show actual Python error
+        const errorMessage = stderr.trim() || `Python execution failed with exit code ${code}`;
+        reject(new Error(errorMessage));
       } else {
         resolve(stdout);
       }
