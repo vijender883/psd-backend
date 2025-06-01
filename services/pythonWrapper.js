@@ -14,6 +14,8 @@ async function generatePythonWrapper(executionDir, code) {
   const isThreeSum = code.includes('three_sum'); 
   const isReverseString = code.includes('reverse_string');
   const isTwoSum = code.includes('two_sum');
+  const isGPUOptimizer = code.includes('minimum_gpu_capacity');
+  const isTrafficFlow = code.includes('longest_balanced_stretch');
 
   let wrapperCode;
   if (isMinPathSum) {
@@ -38,12 +40,58 @@ async function generatePythonWrapper(executionDir, code) {
     wrapperCode = generateReverseStringWrapper(code);
   } else if (isTwoSum) {
     wrapperCode = generateTwoSumWrapper(code);
+  } else if (isGPUOptimizer) {
+    wrapperCode = generateGPUOptimizerWrapper(code);
+  } else if (isTrafficFlow) {
+    wrapperCode = generateTrafficFlowWrapper(code);
   } else {
     wrapperCode = generateLongestCommonPrefixWrapper(code);
   }
 
   await fs.writeFile(path.join(executionDir, 'solution.py'), wrapperCode);
 }
+
+
+function generateGPUOptimizerWrapper(code) {
+  return `
+import sys
+
+${code}
+
+if __name__ == "__main__":
+    # Read input
+    gpu_memory = list(map(int, input().strip().split()))
+    model_requirements = list(map(int, input().strip().split()))
+    k = int(input().strip())
+    
+    # Create solution object and call function
+    solver = GPUResourceOptimizer()
+    result = solver.minimum_gpu_capacity(gpu_memory, model_requirements, k)
+    
+    # Output result
+    print(result)
+`
+}
+
+function generateTrafficFlowWrapper(code) {
+  return `
+import sys
+
+${code}
+
+if __name__ == "__main__":
+    # Read input
+    traffic_density = list(map(int, input().strip().split()))
+    
+    # Create solution object and call function
+    solver = TrafficFlowAnalyzer()
+    result = solver.longest_balanced_stretch(traffic_density)
+    
+    # Output result
+    print(result)
+`
+}
+
 
 // Add new wrapper generator for Reverse String
 function generateReverseStringWrapper(code) {
