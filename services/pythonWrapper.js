@@ -16,6 +16,7 @@ async function generatePythonWrapper(executionDir, code) {
   const isTwoSum = code.includes('two_sum');
   const isGPUOptimizer = code.includes('minimum_gpu_capacity');
   const isTrafficFlow = code.includes('longest_balanced_stretch');
+  const isFindActivityRange = code.includes('find_activity_range');
 
   let wrapperCode;
   if (isMinPathSum) {
@@ -44,11 +45,35 @@ async function generatePythonWrapper(executionDir, code) {
     wrapperCode = generateGPUOptimizerWrapper(code);
   } else if (isTrafficFlow) {
     wrapperCode = generateTrafficFlowWrapper(code);
+  } else if (isFindActivityRange) {
+    wrapperCode = generateFindActivityRangeWrapper(code);
   } else {
     wrapperCode = generateLongestCommonPrefixWrapper(code);
   }
 
   await fs.writeFile(path.join(executionDir, 'solution.py'), wrapperCode);
+}
+
+
+function generateFindActivityRangeWrapper(code) {
+  return `
+import sys
+
+${code}
+
+if __name__ == "__main__":
+    # Read input
+    line = input().strip().split()
+    activity_log = list(map(int, line[:-1]))
+    target_time = int(line[-1])
+    
+    # Create solution object and call function
+    solver = FindActivityRange()
+    result = solver.find_activity_range(activity_log, target_time)
+    
+    # Output result
+    print(f"[{result[0]},{result[1]}]")
+`
 }
 
 
