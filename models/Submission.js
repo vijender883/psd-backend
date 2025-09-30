@@ -47,7 +47,7 @@ const SubmissionSchema = new mongoose.Schema({
     type: String,
     required: true,
     default: 'java',
-    enum: ['java', 'python'] // Only allow these two languages for now
+    enum: ['java', 'python', 'javascript'] // Only allow these two languages for now
   },
   executionTime: {
     type: Number,

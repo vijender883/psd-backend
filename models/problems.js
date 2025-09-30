@@ -1,5 +1,162 @@
 // models/problems.js
 const problems = {
+  'arraychunk': {
+    id: 'arraychunk',
+    title: 'Array Chunk',
+    description: 'Given an array and a chunk size, divide the array into multiple subarrays where each subarray has a length equal to the chunk size. The last chunk may contain fewer elements if the array length is not evenly divisible by the chunk size.',
+    inputFormat: 'First line: JSON array of numbers\nSecond line: Integer representing chunk size',
+    outputFormat: 'Return a 2D array where each inner array is a chunk',
+    constraints: [
+      '1 <= array.length <= 1000',
+      '1 <= size <= array.length',
+      'Array contains integers only'
+    ],
+    examples: [
+      {
+        name: 'Example 1',
+        input: '[1, 2, 3, 4, 5]\n2',
+        output: '[[1,2],[3,4],[5]]'
+      },
+      {
+        name: 'Example 2',
+        input: '[1, 2, 3, 4, 5, 6, 7, 8]\n3',
+        output: '[[1,2,3],[4,5,6],[7,8]]'
+      }
+    ],
+    miscellaneous: {
+      name: 'Follow-up',
+      description: 'Can you solve this without using any built-in array methods like slice()?'
+    },
+    templates: {
+      java: 'N/A',
+      python: 'N/A',
+      javascript: `function chunk(array, size) {
+  // Your code here
+}`
+    },
+    solution: `function chunk(array, size) {
+  const result = [];
+  for (let i = 0; i < array.length; i += size) {
+    result.push(array.slice(i, i + size));
+  }
+  return result;
+}`,
+    testCases: [
+      {
+        input: '[1, 2, 3, 4, 5]\n2',
+        expectedOutput: '[[1,2],[3,4],[5]]',
+        description: 'Basic chunking with remainder'
+      },
+      {
+        input: '[1, 2, 3, 4, 5, 6, 7, 8]\n3',
+        expectedOutput: '[[1,2,3],[4,5,6],[7,8]]',
+        description: 'Chunking with last incomplete chunk'
+      },
+      {
+        input: '[1, 2, 3, 4]\n4',
+        expectedOutput: '[[1,2,3,4]]',
+        description: 'Chunk size equals array length'
+      },
+      {
+        input: '[1, 2, 3, 4, 5, 6]\n2',
+        expectedOutput: '[[1,2],[3,4],[5,6]]',
+        description: 'Perfect division'
+      },
+      {
+        input: '[1]\n1',
+        expectedOutput: '[[1]]',
+        description: 'Single element'
+      },
+      {
+        input: '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n5',
+        expectedOutput: '[[1,2,3,4,5],[6,7,8,9,10]]',
+        description: 'Even split'
+      }
+    ]
+  }, 
+  'flattenobject': {
+    id: 'flattenobject',
+    title: 'Flatten Nested Object',
+    description: 'Given a nested JavaScript object, flatten it into a single level object where keys represent the path to each value using dot notation. For example, {a: {b: {c: 1}}} becomes {"a.b.c": 1}.',
+    inputFormat: 'JSON object (can be nested with multiple levels)',
+    outputFormat: 'Flattened object with dot-notation keys',
+    constraints: [
+      'Object depth can be up to 10 levels',
+      'Keys are strings containing only alphanumeric characters',
+      'Values are primitives (numbers, strings, booleans, null)',
+      'No arrays in the object',
+      'No circular references'
+    ],
+    examples: [
+      {
+        name: 'Example 1',
+        input: '{"a": 1, "b": {"c": 2}}',
+        output: '{"a":1,"b.c":2}'
+      },
+      {
+        name: 'Example 2',
+        input: '{"x": {"y": {"z": 3}}}',
+        output: '{"x.y.z":3}'
+      }
+    ],
+    miscellaneous: {
+      name: 'Follow-up',
+      description: 'Can you also implement the reverse operation - unflatten a flattened object back to nested structure?'
+    },
+    templates: {
+      java: 'N/A',
+      python: 'N/A',
+      javascript: `function flattenObject(obj) {
+  // Your code here
+}`
+    },
+    solution: `function flattenObject(obj, prefix = '', result = {}) {
+  for (let key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      const newKey = prefix ? \`\${prefix}.\${key}\` : key;
+      
+      if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
+        flattenObject(obj[key], newKey, result);
+      } else {
+        result[newKey] = obj[key];
+      }
+    }
+  }
+  return result;
+}`,
+    testCases: [
+      {
+        input: '{"a": 1, "b": {"c": 2}}',
+        expectedOutput: '{"a":1,"b.c":2}',
+        description: 'Simple nested object'
+      },
+      {
+        input: '{"x": {"y": {"z": 3}}}',
+        expectedOutput: '{"x.y.z":3}',
+        description: 'Deep nesting'
+      },
+      {
+        input: '{"name": "John", "age": 30}',
+        expectedOutput: '{"name":"John","age":30}',
+        description: 'Flat object (no nesting)'
+      },
+      {
+        input: '{"user": {"name": "Alice", "address": {"city": "NYC", "zip": "10001"}}}',
+        expectedOutput: '{"user.name":"Alice","user.address.city":"NYC","user.address.zip":"10001"}',
+        description: 'Multiple nested levels'
+      },
+      {
+        input: '{"a": null, "b": {"c": false, "d": 0}}',
+        expectedOutput: '{"a":null,"b.c":false,"b.d":0}',
+        description: 'Null, boolean, and zero values'
+      },
+      {
+        input: '{"level1": {"level2": {"level3": {"level4": {"value": 42}}}}}',
+        expectedOutput: '{"level1.level2.level3.level4.value":42}',
+        description: 'Very deep nesting'
+      }
+    ]
+  },
   'diagonaltraversal': {
     id: 'diagonaltraversal',
     title: 'Binary Tree Diagonal Traversal',
@@ -191,7 +348,7 @@ The output should be: [[1,3,6,8], [2,5], [4], [7]]`,
       }
     ]
   },
-  
+
   'countconsecutive': {
     id: 'countconsecutive',
     title: 'Count Consecutive Characters',
@@ -256,7 +413,7 @@ The output should be: [[1,3,6,8], [2,5], [4], [7]]`,
       },
     ]
   },
-  
+
   'minimumpathsum': {
     id: 'minimumpathsum',
     title: 'Minimum Path Sum',
@@ -367,7 +524,7 @@ The output should be: [[1,3,6,8], [2,5], [4], [7]]`,
       }
     ]
   },
-  
+
   'closestvalueinrotatedarray': {
     id: 'closestvalueinrotatedarray',
     title: 'Find Closest Value in Rotated Sorted Array',
@@ -471,7 +628,7 @@ Find the element in the array that is closest in value to the target. If there a
       }
     ]
   },
-  
+
   'permutationinstring': {
     id: 'permutationinstring',
     title: 'Permutation in String',
@@ -584,7 +741,7 @@ Find the element in the array that is closest in value to the target. If there a
       }
     ]
   },
-  
+
   'fruitintobaskets': {
     id: 'fruitintobaskets',
     title: 'Fruit Into Baskets',
