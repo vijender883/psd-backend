@@ -1,12 +1,6 @@
 // controllers/eventbotController.js
 const EventBotRegisteredUsers = require('../models/EventBotRegisteredUsers');
 const EventBotUserChats = require('../models/EventBotUserChats');
-let io; // Will be set after import
-
-// Function to set io from server.js
-exports.setIo = (socketIo) => {
-  io = socketIo;
-};
 
 // Register a new event user
 exports.addRegisteredUser = async (req, res) => {
@@ -143,8 +137,8 @@ exports.validateRegisteredUserEmailId = async (req, res) => {
       res.status(200).json({
         response: "registered",
         userData: {
-          _id: user._id,          // Added user _id here
-          userId: user._id,       // Also returning as userId for backward compatibility
+          _id: user._id,
+          userId: user._id,
           name: user.name,
           email: user.email,
           phone: user.phone,
@@ -167,7 +161,8 @@ exports.validateRegisteredUserEmailId = async (req, res) => {
     });
   }
 };
-// Updated checkinUser function with socket emit
+
+// Check in user (removed Socket.IO emit)
 exports.checkinUser = async (req, res) => {
   try {
     // Get userId from request body instead of params
@@ -196,15 +191,7 @@ exports.checkinUser = async (req, res) => {
       });
     }
     
-    // Emit socket message with check-in notification
-    if (io) {
-      console.log('Emitting checkin_notification event');
-      io.emit('checkin_notification', {
-        message: 'Tell me something about Sai Saketh Sukka'
-      });
-    } else {
-      console.warn('Socket.io instance not available for emitting message');
-    }
+    console.log('User checked in successfully:', updatedUser.name);
     
     res.status(200).json({
       success: true,
@@ -368,7 +355,7 @@ exports.getRegisteredUserCount = async (req, res) => {
     });
   }
 };
-// Get count of checked-in users
+
 // Get count of checked-in users
 exports.getCheckedInUserCount = async (req, res) => {
   try {
@@ -395,10 +382,9 @@ exports.getCheckedInUsers = async (req, res) => {
     const checkedInUsers = await EventBotRegisteredUsers.find({ 
       checkin_status: true 
     })
-    .sort({ updatedAt: -1 }) // -1 means descending order
-    .select('name email phone additional_details updatedAt'); // Select relevant fields
+    .sort({ updatedAt: -1 })
+    .select('name email phone additional_details updatedAt');
     
-    // Log the number of checked-in users found
     console.log(`Found ${checkedInUsers.length} checked-in users`);
     
     // Transform data to include formatted timestamps and IDs

@@ -19,7 +19,7 @@ function initializeTestConfig(simulationId) {
   
   if (!testConfigurations[simulationId]) {
     testConfigurations[simulationId] = {
-      scheduledStartTime: new Date('2025-05-29T04:30:00Z').toISOString(),
+      scheduledStartTime: new Date('2025-10-01T04:30:00Z').toISOString(),
       testDuration: 60 * 60, // 3 minutes (changed from 60 minutes for testing)
       allowLateEntry: false
     };
@@ -181,6 +181,15 @@ router.get('/check-submission/:userId/:problemId', async (req, res) => {
       problemId: problemId 
     });
 
+    // ADD THIS NULL CHECK
+    if (!submission) {
+      // No submission found
+      return res.json({
+        success: true,
+        hasSubmitted: false
+      });
+    }
+
     if (submission.isSubmitted) {
       // User has already submitted
       return res.json({
@@ -192,7 +201,7 @@ router.get('/check-submission/:userId/:problemId', async (req, res) => {
         createdAt: submission.createdAt
       });
     } else {
-      // No submission found
+      // Submission exists but not yet submitted (draft)
       return res.json({
         success: true,
         hasSubmitted: false
