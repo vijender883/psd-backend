@@ -40,7 +40,7 @@ import java.util.*;
 ${code}
 
 public class Solution {
-    public static void main(String[] args) {
+    public static void main(String[] arg s) {
         Scanner scanner = new Scanner(System.in);
         
         // Read array size
