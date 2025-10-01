@@ -16,9 +16,9 @@ dotenv.config();
 
 // --- GLOBAL VARIABLES (Customize these before running) ---
 // The ID of the simulation document you want to update.
-const SIMULATION_ID = '3'; 
+const SIMULATION_ID = '2'; 
 // The ID of the problem you want to insert (e.g., 'arraychunk', 'flattenobject').
-const PROBLEM_ID = 'arraychunk'; 
+const PROBLEM_ID = 'deletenthfromend'; 
 // --------------------------------------------------------
 
 // Import the problem data and Mongoose model

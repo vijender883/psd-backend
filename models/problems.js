@@ -1,5 +1,136 @@
 // models/problems.js
 const problems = {
+  'deletenthfromend': {
+    id: "deletenthfromend",
+    title: "Remove Nth Node From End of List",
+    description: "Given the head of a linked list, remove the nth node from the end of the list and return its head.\n\nFor example, given the linked list: 1 -> 2 -> 3 -> 4 -> 5, and n = 2, the result should be: 1 -> 2 -> 3 -> 5 (the 4th node from the end, which is 4, is removed).",
+    inputFormat: "The first line contains space-separated integers representing the linked list nodes.\nThe second line contains a single integer n representing the position from the end.",
+    outputFormat: "Return the modified linked list as space-separated integers.",
+    constraints: [
+      "The number of nodes in the list is sz",
+      "1 <= sz <= 30",
+      "0 <= Node.val <= 100",
+      "1 <= n <= sz"
+    ],
+    examples: [
+      {
+        name: "Example 1",
+        input: "1 2 3 4 5\n2",
+        output: "1 2 3 5"
+      },
+      {
+        name: "Example 2",
+        input: "1\n1",
+        output: "need to clear later"
+      },
+      {
+        name: "Example 3",
+        input: "1 2\n1",
+        output: "1"
+      }
+    ],
+    miscellaneous: {
+      name: "Follow-up",
+      description: "Could you solve this in one pass using the two-pointer technique?"
+    },
+    templates: {
+      javascript: `/**
+ * Definition for singly-linked list.
+ * function ListNode(val, next) {
+ *     this.val = (val===undefined ? 0 : val)
+ *     this.next = (next===undefined ? null : next)
+ * }
+ */
+function removeNthFromEnd(head, n) {
+  // Your code here
+}`,
+      python: `# Definition for singly-linked list.
+# class ListNode:
+#     def __init__(self, val=0, next=None):
+#         self.val = val
+#         self.next = next
+
+class Solution:
+    def removeNthFromEnd(self, head, n):
+        # Write your code here
+        pass`,
+      apex: `/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     public Integer val;
+ *     public ListNode next;
+ *     public ListNode(Integer val) { this.val = val; }
+ *     public ListNode(Integer val, ListNode next) { this.val = val; this.next = next; }
+ * }
+ */
+public class Solution {
+    public ListNode removeNthFromEnd(ListNode head, Integer n) {
+        // Write your code here
+    }
+}`
+    },
+    solution: `function removeNthFromEnd(head, n) {
+  // Create a dummy node to handle edge cases
+  const dummy = new ListNode(0);
+  dummy.next = head;
+  
+  let first = dummy;
+  let second = dummy;
+  
+  // Move first pointer n+1 steps ahead
+  for (let i = 0; i <= n; i++) {
+    first = first.next;
+  }
+  
+  // Move both pointers until first reaches the end
+  while (first !== null) {
+    first = first.next;
+    second = second.next;
+  }
+  
+  // Remove the nth node from end
+  second.next = second.next.next;
+  
+  return dummy.next;
+}`,
+    testCases: [
+      {
+        input: "1 2 3 4 5\n2",
+        expectedOutput: "1 2 3 5",
+        description: "Remove 2nd node from end"
+      },
+      {
+        input: "1\n1",
+        expectedOutput: "need to clear later",
+        description: "Remove only node"
+      },
+      {
+        input: "1 2\n1",
+        expectedOutput: "1",
+        description: "Remove last node"
+      },
+      {
+        input: "1 2\n2",
+        expectedOutput: "2",
+        description: "Remove first node in two-node list"
+      },
+      {
+        input: "1 2 3 4 5\n5",
+        expectedOutput: "2 3 4 5",
+        description: "Remove first node from longer list"
+      },
+      {
+        input: "1 2 3 4 5\n1",
+        expectedOutput: "1 2 3 4",
+        description: "Remove last node from longer list"
+      },
+      {
+        input: "1 2 3\n2",
+        expectedOutput: "1 3",
+        description: "Remove middle node"
+      }
+    ]
+  },
   'arraychunk': {
     id: 'arraychunk',
     title: 'Array Chunk',

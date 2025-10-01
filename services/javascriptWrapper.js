@@ -5,20 +5,13 @@ const path = require('path');
 async function generateJavaScriptWrapper(executionDir, code) {
     let wrapperCode;
 
-    // Determine the problem by looking for unique function names
     if (code.includes('function chunk')) {
         wrapperCode = generateArrayChunkWrapper(code);
     } else if (code.includes('function flattenObject')) {
         wrapperCode = generateFlattenObjectWrapper(code);
-    } 
-    // Add more explicit checks for other problem types here if needed
-    // The previous error was caused by calling an undefined function, 
-    // so we must ensure a wrapper is generated for every possible problem ID.
-    // For now, we only need to implement the wrappers for the problems provided in the prompt.
-    
-    else {
-        // Fallback or handle cases detected by the previous logic if they existed
-        // For the scope of the provided problems, one of the above should match.
+    } else if (code.includes('function removeNthFromEnd') || code.includes('removeNthFromEnd')) {
+        wrapperCode = generateRemoveNthFromEndWrapper(code);
+    } else {
         wrapperCode = generateFallbackWrapper(code); 
     }
 
@@ -31,6 +24,98 @@ async function generateJavaScriptWrapper(executionDir, code) {
  * Wrapper for 'arraychunk' problem: chunk(array, size)
  * Input format: First line: JSON array (array), Second line: Integer (size)
  */
+
+function generateRemoveNthFromEndWrapper(code) {
+    return `
+const readline = require('readline');
+
+// Definition for singly-linked list
+function ListNode(val, next) {
+    this.val = (val === undefined ? 0 : val);
+    this.next = (next === undefined ? null : next);
+}
+
+${code}
+
+// Helper function to build linked list from array
+function buildLinkedList(values) {
+    if (!values || values.length === 0) {
+        return null;
+    }
+    
+    const dummy = new ListNode(0);
+    let current = dummy;
+    
+    for (const val of values) {
+        current.next = new ListNode(val);
+        current = current.next;
+    }
+    
+    return dummy.next;
+}
+
+// Helper function to convert linked list to array
+function linkedListToArray(head) {
+    const result = [];
+    let current = head;
+    
+    while (current !== null) {
+        result.push(current.val);
+        current = current.next;
+    }
+    
+    return result;
+}
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+  terminal: false
+});
+
+const lines = [];
+
+rl.on('line', (line) => {
+  lines.push(line);
+});
+
+rl.on('close', () => {
+  try {
+    if (lines.length < 2) {
+      throw new Error('Expected two lines of input: linked list values and n');
+    }
+    
+    // Parse the linked list values (line 0)
+    const values = lines[0].trim().split(' ').map(val => parseInt(val, 10));
+    if (values.some(isNaN)) {
+        throw new Error('Invalid integers provided for linked list');
+    }
+    
+    // Parse n (line 1)
+    const n = parseInt(lines[1].trim(), 10);
+    if (isNaN(n)) {
+        throw new Error('Invalid integer provided for n');
+    }
+    
+    // Build linked list
+    const head = buildLinkedList(values);
+    
+    // Call the user's function
+    const result = removeNthFromEnd(head, n);
+    
+    // Convert result to array and output
+    const resultArray = linkedListToArray(result);
+    console.log(resultArray.join(' '));
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
+});
+`;
+}
+
+
+
 function generateArrayChunkWrapper(code) {
     return `
 const readline = require('readline');
