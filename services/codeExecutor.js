@@ -57,6 +57,7 @@ async function initializeDirectories() {
 const { generateJavaWrapper } = require('./javaWrapper');
 const { generatePythonWrapper } = require('./pythonWrapper');
 const { generateJavaScriptWrapper } = require('./javascriptWrapper');
+const { executeApexCode } = require('./apexExecutor');
 
 // Modify executeCode function
 async function executeCode(code, testCases, language) {
@@ -65,6 +66,8 @@ async function executeCode(code, testCases, language) {
       return executePythonCode(code, testCases);
     } else if (language === 'javascript') {
       return executeJavaScriptCode(code, testCases);
+    } else if (language === 'apex') {
+      return executeApexCode(code, testCases);
     } else {
       return executeJavaCode(code, testCases);
     }
@@ -542,5 +545,6 @@ module.exports = {
   executeCode,
   executeJavaCode,
   executePythonCode,
-  executeJavaScriptCode
+  executeJavaScriptCode,
+  executeApexCode 
 };
