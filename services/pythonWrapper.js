@@ -17,6 +17,7 @@ async function generatePythonWrapper(executionDir, code) {
   const isGPUOptimizer = code.includes('minimum_gpu_capacity');
   const isTrafficFlow = code.includes('longest_balanced_stretch');
   const isFindActivityRange = code.includes('find_activity_range');
+  const isRemoveNthFromEnd = code.includes('removeNthFromEnd');
 
   let wrapperCode;
   if (isMinPathSum) {
@@ -47,6 +48,8 @@ async function generatePythonWrapper(executionDir, code) {
     wrapperCode = generateTrafficFlowWrapper(code);
   } else if (isFindActivityRange) {
     wrapperCode = generateFindActivityRangeWrapper(code);
+  } else if (isRemoveNthFromEnd) {
+    wrapperCode = generateRemoveNthFromEndWrapper(code);
   } else {
     wrapperCode = generateLongestCommonPrefixWrapper(code);
   }
@@ -54,6 +57,64 @@ async function generatePythonWrapper(executionDir, code) {
   await fs.writeFile(path.join(executionDir, 'solution.py'), wrapperCode);
 }
 
+
+function generateRemoveNthFromEndWrapper(code) {
+  return `
+import sys
+
+# Definition for singly-linked list
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+${code}
+
+def build_linked_list(values):
+    """Build linked list from array of values"""
+    if not values:
+        return None
+    
+    dummy = ListNode(0)
+    current = dummy
+    
+    for val in values:
+        current.next = ListNode(val)
+        current = current.next
+    
+    return dummy.next
+
+def linked_list_to_array(head):
+    """Convert linked list to array"""
+    result = []
+    current = head
+    
+    while current is not None:
+        result.append(current.val)
+        current = current.next
+    
+    return result
+
+if __name__ == "__main__":
+    # Read input
+    values = list(map(int, input().strip().split()))
+    n = int(input().strip())
+    
+    # Build linked list
+    head = build_linked_list(values)
+    
+    # Create solution object and call function
+    solver = Solution()
+    result = solver.removeNthFromEnd(head, n)
+    
+    # Convert result to array and output
+    result_array = linked_list_to_array(result)
+    if result_array:
+        print(' '.join(map(str, result_array)))
+    else:
+        print('')
+`;
+}
 
 function generateFindActivityRangeWrapper(code) {
   return `
