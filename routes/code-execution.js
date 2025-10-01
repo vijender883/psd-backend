@@ -5,9 +5,10 @@ const express = require('express');
 const { executeCode } = require('../services/codeExecutor');
 const router = express.Router();
 const Submission = require('../models/Submission');
-const { problems, getProblemList } = require('../models/problems'); // Import from the new file
+const { problems, getProblemList } = require('../models/problems');
 const Simulation = require('../models/Simulation');
-const Leaderboard = require('../models/Leaderboard'); // Add this import
+const Leaderboard = require('../models/Leaderboard');
+const axios = require('axios');
 
 const problemsCache = new Map();
 const CACHE_TTL = 3600000;
@@ -16,7 +17,7 @@ const testConfigurations = {};
 
 function initializeTestConfig(simulationId) {
   let configChanged = false;
-  
+
   if (!testConfigurations[simulationId]) {
     testConfigurations[simulationId] = {
       scheduledStartTime: new Date('2025-10-01T04:30:00Z').toISOString(),
@@ -25,23 +26,23 @@ function initializeTestConfig(simulationId) {
     };
     configChanged = true;
   }
-  
+
   // Schedule visibility update if this is the first time loading the config
   if (configChanged) {
     scheduleSubmissionVisibility(simulationId);
   }
-  
+
   return testConfigurations[simulationId];
 }
 
 async function areResultsAvailable(simulationId) {
   try {
     const simulation = await Simulation.findOne({ simulationId });
-    
+
     if (!simulation) {
       return true; // Default to available if simulation not found
     }
-    
+
     return simulation.areResultsAvailable();
   } catch (error) {
     console.error('Error checking results availability:', error);
@@ -52,19 +53,19 @@ async function areResultsAvailable(simulationId) {
 function scheduleSubmissionVisibility(simulationId) {
   // Initialize the test config if not already done
   initializeTestConfig(simulationId);
-  
+
   const config = testConfigurations[simulationId];
   const startTime = new Date(config.scheduledStartTime);
   const endTime = new Date(startTime.getTime() + (config.testDuration + 10) * 1000); // Add 10 seconds buffer
-  
+
   const now = new Date();
-  
+
   // If end time is in the future, schedule the update
   if (endTime > now) {
     const timeUntilEnd = endTime.getTime() - now.getTime();
-    
-    console.log(`Scheduling visibility update for simulation ${simulationId} in ${timeUntilEnd/1000} seconds`);
-    
+
+    console.log(`Scheduling visibility update for simulation ${simulationId} in ${timeUntilEnd / 1000} seconds`);
+
     setTimeout(async () => {
       try {
         // Update all submissions for this simulation to show=true
@@ -72,7 +73,7 @@ function scheduleSubmissionVisibility(simulationId) {
           { show: false },
           { show: true }
         );
-        
+
         console.log(`Automatically updated submission visibility for simulation ${simulationId}`);
       } catch (error) {
         console.error(`Error updating submission visibility for simulation ${simulationId}:`, error);
@@ -86,7 +87,7 @@ function scheduleSubmissionVisibility(simulationId) {
           { show: false },
           { show: true }
         );
-        
+
         console.log(`Immediately updated submission visibility for simulation ${simulationId} (past end time)`);
       } catch (error) {
         console.error(`Error updating submission visibility for simulation ${simulationId}:`, error);
@@ -101,11 +102,11 @@ router.get('/problems', (req, res) => {
   if (problemsCache.has(cacheKey)) {
     return res.json(problemsCache.get(cacheKey));
   }
-  
+
   const problemList = getProblemList();
   problemsCache.set(cacheKey, problemList);
   setTimeout(() => problemsCache.delete(cacheKey), CACHE_TTL);
-  
+
   res.json(problemList);
 });
 
@@ -166,7 +167,7 @@ router.get('/submission/results/:id', async (req, res) => {
 router.get('/check-submission/:userId/:problemId', async (req, res) => {
   try {
     const { userId, problemId } = req.params;
-    
+
     // Validate inputs
     if (!userId || !problemId) {
       return res.status(400).json({
@@ -176,9 +177,9 @@ router.get('/check-submission/:userId/:problemId', async (req, res) => {
     }
 
     // Find submission for this user and problem
-    const submission = await Submission.findOne({ 
-      userId: userId.trim(), 
-      problemId: problemId 
+    const submission = await Submission.findOne({
+      userId: userId.trim(),
+      problemId: problemId
     });
 
     // ADD THIS NULL CHECK
@@ -197,6 +198,7 @@ router.get('/check-submission/:userId/:problemId', async (req, res) => {
         hasSubmitted: true,
         submissionId: submission._id,
         code: submission.code,
+        pseudocode: submission.pseudocode || '',
         show: submission.show,
         createdAt: submission.createdAt
       });
@@ -274,10 +276,10 @@ router.get('/submission-status/:id', async (req, res) => {
 
     // Get the simulationId from query params or default to "1"
     const simulationId = req.query.simulationId || "1";
-    
+
     // Check if results are available for this simulation
     const resultsAvailable = await areResultsAvailable(simulationId);
-    
+
     // Override the show status based on simulation settings
     const showResults = submission.show && resultsAvailable;
 
@@ -302,7 +304,7 @@ router.get('/submission-status/:id', async (req, res) => {
 
 // Run code (test run, not submission)
 router.post('/run', async (req, res) => {
-  const { code, problemId, language = 'python' } = req.body;
+  const { code, problemId, language = 'python', timeComplexity, spaceComplexity } = req.body;
 
   // Input validation
   if (!code || !problemId) {
@@ -355,11 +357,11 @@ router.get('/problems/:id', (req, res) => {
   const { id } = req.params;
   const { language = 'python' } = req.query;
   const cacheKey = `problem_${id}_${language}`;
-  
+
   if (problemsCache.has(cacheKey)) {
     return res.json(problemsCache.get(cacheKey));
   }
-  
+
   const problem = problems[id];
   if (!problem) {
     return res.status(404).json({
@@ -375,10 +377,10 @@ router.get('/problems/:id', (req, res) => {
     functionTemplate,
     showSolution: !!problem.solution
   };
-  
+
   problemsCache.set(cacheKey, responseData);
   setTimeout(() => problemsCache.delete(cacheKey), CACHE_TTL);
-  
+
   res.json(responseData);
 });
 
@@ -409,10 +411,10 @@ router.get('/submissions', async (req, res) => {
 
 // Analyze and submit code - simplified without complexity analysis
 router.post('/analyze', async (req, res) => {
-  const { code, problemId, username, userId, language = 'python' } = req.body;
+  const { code, pseudocode, timeComplexity, spaceComplexity, problemId, username, userId, language = 'python' } = req.body;
 
   console.log(`Received submission request from ${username} (ID: ${userId}) for problem ${problemId}`);
-  
+
   const problem = problems[problemId];
   if (!problem) {
     console.log(`Problem ${problemId} not found`);
@@ -424,9 +426,9 @@ router.post('/analyze', async (req, res) => {
 
   try {
     // First, check if this user has already submitted for this problem
-    const existingSubmission = await Submission.findOne({ 
-      userId: userId.trim(), 
-      problemId: problemId 
+    const existingSubmission = await Submission.findOne({
+      userId: userId.trim(),
+      problemId: problemId
     });
 
     if (existingSubmission) {
@@ -441,13 +443,16 @@ router.post('/analyze', async (req, res) => {
     }
 
     console.log(`Creating new submission record for ${username} (ID: ${userId}) on problem ${problemId}`);
-    
+
     // Create a submission record immediately without waiting for execution
     const submission = new Submission({
       username,
       userId,
       problemId,
       code,
+      pseudocode: (pseudocode !== undefined && pseudocode !== null) ? pseudocode : '',
+      timeComplexity: (timeComplexity !== undefined && timeComplexity !== null) ? timeComplexity : (existingSubmission.timeComplexity || ''),
+      spaceComplexity: (spaceComplexity !== undefined && spaceComplexity !== null) ? spaceComplexity : (existingSubmission.spaceComplexity || ''),
       language,
       executionTime: 0,
       score: 0,
@@ -455,7 +460,8 @@ router.post('/analyze', async (req, res) => {
       totalTests: problem.testCases.length,
       results: [],
       show: false,
-      processingComplete: false
+      processingComplete: false,
+      isSubmitted: true
     });
 
     await submission.save();
@@ -482,11 +488,11 @@ router.post('/analyze', async (req, res) => {
       // This means the user tried to submit the same problem twice
       try {
         // Find the existing submission
-        const existingSubmission = await Submission.findOne({ 
-          username: username.trim(), 
-          problemId: problemId 
+        const existingSubmission = await Submission.findOne({
+          username: username.trim(),
+          problemId: problemId
         });
-        
+
         if (existingSubmission) {
           console.log(`Found existing submission: ${existingSubmission._id}`);
           return res.json({
@@ -500,7 +506,7 @@ router.post('/analyze', async (req, res) => {
         console.error('Error finding existing submission:', findError);
       }
     }
-    
+
     console.error('Submission processing error:', error);
     res.status(500).json({
       success: false,
@@ -556,22 +562,22 @@ async function processSubmissionAsync(submissionId, code, problem, language) {
   try {
     console.log(`Starting background processing for submission ${submissionId}`);
     console.log(`Language: ${language}`);
-    
+
     // Log problem details
     console.log(`Processing problem: ${problem.id} - ${problem.title}`);
-    
+
     // Execute code
     const result = await executeCode(code, problem.testCases, language);
     console.log(`Code execution completed with ${result.results ? result.results.filter(r => r.passed).length : 0}/${result.results ? result.results.length : 0} tests passed`);
-    
+
     // Calculate metrics
     const totalTests = result.results ? result.results.length : 0;
     const passedTests = result.results ? result.results.filter(r => r.passed).length : 0;
-    const averageExecutionTime = totalTests > 0 
-      ? result.results.reduce((sum, r) => sum + r.executionTime, 0) / totalTests 
+    const averageExecutionTime = totalTests > 0
+      ? result.results.reduce((sum, r) => sum + r.executionTime, 0) / totalTests
       : 0;
     const score = totalTests > 0 ? (passedTests / totalTests) * 100 : 0;
-    
+
     // Update the submission with results
     console.log(`Updating submission ${submissionId} with execution results`);
     await Submission.findByIdAndUpdate(submissionId, {
@@ -581,11 +587,11 @@ async function processSubmissionAsync(submissionId, code, problem, language) {
       results: result.results || [],
       processingComplete: true
     });
-    
+
     console.log(`Background processing completed for submission ${submissionId}`);
   } catch (error) {
     console.error(`Background processing failed for submission ${submissionId}:`, error);
-    
+
     // Update submission to mark processing as complete, even with error
     try {
       await Submission.findByIdAndUpdate(submissionId, {
@@ -634,11 +640,11 @@ router.get('/submission/processing-status/:id', async (req, res) => {
 
 router.get('/test-config/:simulationId', async (req, res) => {
   const { simulationId } = req.params;
-  
+
   try {
     // Initialize if not exists and schedule visibility update
     const config = initializeTestConfig(simulationId);
-    
+
     res.json({
       success: true,
       data: config
@@ -704,8 +710,8 @@ router.get('/leaderboard/:problemId', async (req, res) => {
     const submissions = await Submission.find(
       { problemId, processingComplete: true, show: true },
       'userId username score passedTests totalTests createdAt'
-    ).sort({ passedTests: -1, createdAt: 1 }); 
-    
+    ).sort({ passedTests: -1, createdAt: 1 });
+
     res.json({
       success: true,
       data: submissions
@@ -725,17 +731,17 @@ router.get('/leaderboard/:problemId', async (req, res) => {
 router.get('/scheduledStartTime/:simulationId', async (req, res) => {
   try {
     const { simulationId } = req.params;
-    
+
     // Find the simulation by simulationId
     const simulation = await Simulation.findOne({ simulationId });
-    
+
     if (!simulation) {
       return res.status(404).json({
         success: false,
         error: 'Simulation not found'
       });
     }
-    
+
     // Return the scheduled start time
     res.json({
       success: true,
@@ -746,7 +752,7 @@ router.get('/scheduledStartTime/:simulationId', async (req, res) => {
         description: simulation.description
       }
     });
-    
+
   } catch (error) {
     console.error('Error fetching scheduled start time:', error);
     res.status(500).json({
@@ -765,12 +771,12 @@ router.get('/simulation/:simulationId/problems/:problemId', async (req, res) => 
     const { simulationId, problemId } = req.params;
     const { language = 'python' } = req.query;
     const cacheKey = `simulation_${simulationId}_problem_${problemId}_${language}`;
-    
+
     // Check cache first
     if (problemsCache.has(cacheKey)) {
       return res.json(problemsCache.get(cacheKey));
     }
-    
+
     // Find the simulation
     const simulation = await Simulation.findOne({ simulationId });
     if (!simulation) {
@@ -779,7 +785,7 @@ router.get('/simulation/:simulationId/problems/:problemId', async (req, res) => 
         error: 'Simulation not found'
       });
     }
-    
+
     // Find the specific DSA question within the simulation
     const problem = simulation.getDSAQuestionById(problemId);
     if (!problem) {
@@ -788,27 +794,27 @@ router.get('/simulation/:simulationId/problems/:problemId', async (req, res) => 
         error: 'Problem not found in simulation'
       });
     }
-    
+
     // Prepare the response data similar to the original /problems/:id endpoint
     const { testCases, templates, ...problemData } = problem.toObject();
-    
+
     // Get the appropriate template for the language
-    const functionTemplate = (templates && templates[language]) || 
-                           (templates && templates.python) || 
-                           '';
-    
+    const functionTemplate = (templates && templates[language]) ||
+      (templates && templates.python) ||
+      '';
+
     const responseData = {
       ...problemData,
       functionTemplate,
       showSolution: !!problem.solution
     };
-    
+
     // Cache the response
     problemsCache.set(cacheKey, responseData);
     setTimeout(() => problemsCache.delete(cacheKey), CACHE_TTL);
-    
+
     res.json(responseData);
-    
+
   } catch (error) {
     console.error('Error fetching simulation problem:', error);
     res.status(500).json({
@@ -825,12 +831,12 @@ router.get('/simulation/:simulationId/problems', async (req, res) => {
   try {
     const { simulationId } = req.params;
     const cacheKey = `simulation_${simulationId}_problems`;
-    
+
     // Check cache first
     if (problemsCache.has(cacheKey)) {
       return res.json(problemsCache.get(cacheKey));
     }
-    
+
     // Find the simulation
     const simulation = await Simulation.findOne({ simulationId });
     if (!simulation) {
@@ -839,15 +845,15 @@ router.get('/simulation/:simulationId/problems', async (req, res) => {
         error: 'Simulation not found'
       });
     }
-    
+
     // Extract and format the DSA questions to match /problems payload structure
     const problemList = simulation.dsa_questions.map(problem => {
       // Convert Mongoose document to plain object if needed
       const problemObj = problem.toObject ? problem.toObject() : problem;
-      
+
       // Remove internal fields (testCases, templates, solution) like in /problems endpoint
       const { testCases, templates, solution, ...problemData } = problemObj;
-      
+
       return {
         id: problemData.id,
         title: problemData.title,
@@ -860,13 +866,13 @@ router.get('/simulation/:simulationId/problems', async (req, res) => {
         showSolution: !!solution // Boolean indicating if solution exists
       };
     });
-    
+
     // Cache the response
     problemsCache.set(cacheKey, problemList);
     setTimeout(() => problemsCache.delete(cacheKey), CACHE_TTL);
-    
+
     res.json(problemList);
-    
+
   } catch (error) {
     console.error('Error fetching simulation problems:', error);
     res.status(500).json({
@@ -881,7 +887,7 @@ router.get('/simulation/:simulationId/problems', async (req, res) => {
 
 router.post('/simulations/:simulationId/:userId/:username/run', async (req, res) => {
   const { simulationId, userId, username } = req.params;
-  const { code, problemId, language = 'python' } = req.body;
+  const { code, pseudocode, timeComplexity, spaceComplexity, problemId, language = 'python' } = req.body;
 
   // Input validation
   if (!code || !problemId) {
@@ -920,15 +926,18 @@ router.post('/simulations/:simulationId/:userId/:username/run', async (req, res)
     }
 
     // Check if existing submission exists for this user and problem
-    let existingSubmission = await Submission.findOne({ 
-      userId: userId.trim(), 
+    let existingSubmission = await Submission.findOne({
+      userId: userId.trim(),
       problemId: problemId
     });
 
     if (existingSubmission) {
-      // Update existing submission with new code and timestamp
+      // Update existing submission with new code, pseudocode and timestamp
       existingSubmission = await Submission.findByIdAndUpdate(existingSubmission._id, {
         code: code,
+        pseudocode: (pseudocode !== undefined && pseudocode !== null) ? pseudocode : (existingSubmission.pseudocode || ''),
+        timeComplexity: (timeComplexity !== undefined && timeComplexity !== null) ? timeComplexity : (existingSubmission.timeComplexity || ''),
+        spaceComplexity: (spaceComplexity !== undefined && spaceComplexity !== null) ? spaceComplexity : (existingSubmission.spaceComplexity || ''),
         language: language,
         username: username,
         createdAt: new Date()
@@ -942,6 +951,9 @@ router.post('/simulations/:simulationId/:userId/:username/run', async (req, res)
         problemId,
         simulationId,
         code,
+        pseudocode: (pseudocode !== undefined && pseudocode !== null) ? pseudocode : '',
+        timeComplexity: (timeComplexity !== undefined && timeComplexity !== null) ? timeComplexity : '',
+        spaceComplexity: (spaceComplexity !== undefined && spaceComplexity !== null) ? spaceComplexity : '',
         language,
         executionTime: 0,
         score: 0,
@@ -982,26 +994,49 @@ router.post('/simulations/:simulationId/:userId/:username/run', async (req, res)
 
 
 // Updated helper function for processing simulation submissions with leaderboard integration
-async function processSimulationSubmissionAsync(submissionId, code, problem, language, simulationId, userId, username) {
+async function processSimulationSubmissionAsync(submissionId, code, problem, language, simulationId, userId, username, pseudocode) {
   try {
     console.log(`Starting background processing for simulation submission ${submissionId}`);
     console.log(`Language: ${language}`);
-    
+
     // Log problem details
     console.log(`Processing simulation problem: ${problem.id} - ${problem.title}`);
-    
+
     // Execute code using the problem's test cases
     const result = await executeCode(code, problem.testCases, language);
     console.log(`Code execution completed with ${result.results ? result.results.filter(r => r.passed).length : 0}/${result.results ? result.results.length : 0} tests passed`);
-    
+
     // Calculate metrics
     const totalTests = result.results ? result.results.length : 0;
     const passedTests = result.results ? result.results.filter(r => r.passed).length : 0;
-    const averageExecutionTime = totalTests > 0 
-      ? result.results.reduce((sum, r) => sum + r.executionTime, 0) / totalTests 
+    const averageExecutionTime = totalTests > 0
+      ? result.results.reduce((sum, r) => sum + r.executionTime, 0) / totalTests
       : 0;
     const score = totalTests > 0 ? (passedTests / totalTests) * 100 : 0;
-    
+
+    // Call Gemini Review API
+    let geminiReview = '';
+    try {
+      console.log(`Calling Gemini review API for submission ${submissionId}`);
+      const geminiResponse = await axios.post('http://localhost:8002/geminireview', {
+        userId: userId,
+        problemId: problem.id,
+        code: code,
+        pseudocode: pseudocode || '',
+        language: language
+      }, {
+        timeout: 30000 // 30 second timeout
+      });
+
+      if (geminiResponse.data && geminiResponse.data.review) {
+        geminiReview = geminiResponse.data.review;
+        console.log(`✅ Successfully received Gemini review for submission ${submissionId}`);
+      }
+    } catch (geminiError) {
+      console.error(`❌ Failed to get Gemini review for submission ${submissionId}:`, geminiError.message);
+      geminiReview = 'Review could not be generated at this time.';
+    }
+
     // Update the submission with results
     console.log(`Updating simulation submission ${submissionId} with execution results`);
     await Submission.findByIdAndUpdate(submissionId, {
@@ -1009,9 +1044,10 @@ async function processSimulationSubmissionAsync(submissionId, code, problem, lan
       score,
       passedTests,
       results: result.results || [],
+      geminiReview: geminiReview,
       processingComplete: true
     });
-    
+
     // Add to leaderboard using the new model with username
     try {
       const submittedTime = new Date();
@@ -1021,11 +1057,11 @@ async function processSimulationSubmissionAsync(submissionId, code, problem, lan
       console.error(`❌ Failed to update leaderboard for user ${userId} (${username}) in simulation ${simulationId}:`, leaderboardError);
       // Don't throw error here as submission processing was successful
     }
-    
+
     console.log(`Background processing completed for simulation submission ${submissionId}`);
   } catch (error) {
     console.error(`Background processing failed for simulation submission ${submissionId}:`, error);
-    
+
     // Update submission to mark processing as complete, even with error
     try {
       await Submission.findByIdAndUpdate(submissionId, {
@@ -1042,13 +1078,15 @@ async function processSimulationSubmissionAsync(submissionId, code, problem, lan
   }
 }
 
+
+//Using this endpoint for simulation submissions
 // Updated /simulations/:simulationId/analyze endpoint
 router.post('/simulations/:simulationId/analyze', async (req, res) => {
   const { simulationId } = req.params;
-  const { code, problemId, username, userId, language = 'python' } = req.body;
+  const { code, pseudocode, timeComplexity, spaceComplexity, problemId, username, userId, language = 'python' } = req.body;
 
   console.log(`Received submission request from ${username} (ID: ${userId}) for problem ${problemId} in simulation ${simulationId}`);
-  
+
   try {
     // Find the simulation
     const simulation = await Simulation.findOne({ simulationId });
@@ -1071,8 +1109,8 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
     }
 
     // Check if this user has an existing submission for this problem in this simulation
-    let existingSubmission = await Submission.findOne({ 
-      userId: userId.trim(), 
+    let existingSubmission = await Submission.findOne({
+      userId: userId.trim(),
       problemId: problemId
     });
 
@@ -1090,6 +1128,9 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
         // Update existing draft submission and mark as submitted
         existingSubmission = await Submission.findByIdAndUpdate(existingSubmission._id, {
           code: code,
+          pseudocode: (pseudocode !== undefined && pseudocode !== null) ? pseudocode : (existingSubmission.pseudocode || ''),
+          timeComplexity: (timeComplexity !== undefined && timeComplexity !== null) ? timeComplexity : (existingSubmission.timeComplexity || ''),
+          spaceComplexity: (spaceComplexity !== undefined && spaceComplexity !== null) ? spaceComplexity : (existingSubmission.spaceComplexity || ''),
           language: language,
           username: username,
           isSubmitted: true,
@@ -1103,10 +1144,11 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
           processingComplete: false,
           error: undefined
         }, { new: true });
-        
+
         console.log(`Updated existing draft submission ${existingSubmission._id} and marked as submitted for user ${userId}`);
-        
-        // Start processing in the background
+
+        // Start processing in the background without waiting for it to complete
+        console.log(`Initiating background processing for submission ${existingSubmission._id} in simulation ${simulationId}`);
         processSimulationSubmissionAsync(existingSubmission._id, code, problem, language, simulationId, userId, username)
           .catch(err => console.error(`Background processing error for submission ${existingSubmission._id} in simulation ${simulationId}:`, err));
 
@@ -1119,7 +1161,7 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
       }
     }
     console.log(`Creating new submission record for ${username} (ID: ${userId}) on problem ${problemId} in simulation ${simulationId}`);
-    
+
     // Create a submission record immediately without waiting for execution
     existingSubmission = new Submission({
       username,
@@ -1127,6 +1169,9 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
       problemId,
       simulationId,
       code,
+      pseudocode: (pseudocode !== undefined && pseudocode !== null) ? pseudocode : '',
+      timeComplexity: (timeComplexity !== undefined && timeComplexity !== null) ? timeComplexity : '',
+      spaceComplexity: (spaceComplexity !== undefined && spaceComplexity !== null) ? spaceComplexity : '',
       language,
       executionTime: 0,
       score: 0,
@@ -1159,11 +1204,11 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
     if (error.code === 11000) {
       console.log(`Duplicate submission detected from ${username} for problem ${problemId} in simulation ${simulationId}`);
       try {
-        const existingSubmission = await Submission.findOne({ 
-          username: username.trim(), 
+        const existingSubmission = await Submission.findOne({
+          username: username.trim(),
           problemId: problemId
         });
-        
+
         if (existingSubmission) {
           console.log(`Found existing submission: ${existingSubmission._id} in simulation ${simulationId}`);
           return res.json({
@@ -1177,7 +1222,7 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
         console.error('Error finding existing submission:', findError);
       }
     }
-    
+
     console.error(`Submission processing error for simulation ${simulationId}:`, error);
     res.status(500).json({
       success: false,
@@ -1226,7 +1271,7 @@ router.get('/simulations/:simulationId/leaderboard', async (req, res) => {
 router.get('/viewresults/:userId/:problemId', async (req, res) => {
   try {
     const { userId, problemId } = req.params;
-    
+
     // Validate inputs
     if (!userId || !problemId) {
       return res.status(400).json({
@@ -1238,9 +1283,9 @@ router.get('/viewresults/:userId/:problemId', async (req, res) => {
     console.log(`Fetching results for user ${userId} and problem ${problemId}`);
 
     // Find submission for this user and problem
-    const submission = await Submission.findOne({ 
-      userId: userId.trim(), 
-      problemId: problemId 
+    const submission = await Submission.findOne({
+      userId: userId.trim(),
+      problemId: problemId
     });
 
     if (!submission) {
@@ -1288,7 +1333,7 @@ router.get('/viewresults/:userId/:problemId', async (req, res) => {
 router.get('/optimalsolution/:simulationId/:problemId', async (req, res) => {
   try {
     const { simulationId, problemId } = req.params;
-    
+
     // Validate inputs
     if (!simulationId || !problemId) {
       return res.status(400).json({
@@ -1353,7 +1398,7 @@ router.get('/optimalsolution/:simulationId/:problemId', async (req, res) => {
 router.get('/simulation/viewcode/:problemid/:userid', async (req, res) => {
   try {
     const { problemid, userid } = req.params;
-    
+
     // Validate inputs
     if (!userid || !problemid) {
       return res.status(400).json({
@@ -1365,9 +1410,9 @@ router.get('/simulation/viewcode/:problemid/:userid', async (req, res) => {
     console.log(`Fetching code for user ${userid} and problem ${problemid}`);
 
     // Find submission for this user and problem
-    const submission = await Submission.findOne({ 
-      userId: userid.trim(), 
-      problemId: problemid 
+    const submission = await Submission.findOne({
+      userId: userid.trim(),
+      problemId: problemid
     });
 
     if (!submission) {
@@ -1378,13 +1423,17 @@ router.get('/simulation/viewcode/:problemid/:userid', async (req, res) => {
       });
     }
 
-    // Return the code from the submission
+    // Return the code and pseudocode from the submission
     res.json({
       success: true,
       submissionFound: true,
       userId: submission.userId,
       problemId: submission.problemId,
       code: submission.code,
+      pseudocode: submission.pseudocode || '',
+      timeComplexity: submission.timeComplexity || '',
+      spaceComplexity: submission.spaceComplexity || '',
+      isSubmitted: submission.isSubmitted
     });
 
   } catch (error) {

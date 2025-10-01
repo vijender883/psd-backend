@@ -43,11 +43,27 @@ const SubmissionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  pseudocode: {
+    type: String,
+    default: ''
+  },
+  timeComplexity: {
+    type: String,
+    default: ''
+  },
+  spaceComplexity: {
+    type: String,
+    default: ''
+  },
+  geminiReview: {
+    type: String,
+    default: ''
+  },
   language: {
     type: String,
     required: true,
     default: 'java',
-    enum: ['java', 'python', 'javascript', 'apex'] // Only allow these two languages for now
+    enum: ['java', 'python', 'javascript', 'apex']
   },
   executionTime: {
     type: Number,
