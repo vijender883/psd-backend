@@ -18,7 +18,7 @@ dotenv.config();
 // The ID of the simulation document you want to update.
 const SIMULATION_ID = '2'; 
 // The ID of the problem you want to insert (e.g., 'arraychunk', 'flattenobject').
-const PROBLEM_ID = 'deletenthfromend'; 
+const PROBLEM_ID = 'traffic_flow_analysis'; 
 // --------------------------------------------------------
 
 // Import the problem data and Mongoose model
