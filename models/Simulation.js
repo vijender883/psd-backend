@@ -5,11 +5,11 @@ const mongoose = require('mongoose');
 const TestCaseSchema = new mongoose.Schema({
   input: {
     type: String,
-    required: true
+    default: ''
   },
   expectedOutput: {
     type: String,
-    required: true
+    default: ''
   },
   description: {
     type: String,
@@ -21,15 +21,15 @@ const TestCaseSchema = new mongoose.Schema({
 const ExampleSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true
+    default: ''
   },
   input: {
     type: String,
-    required: true
+    default: ''
   },
   output: {
     type: String,
-    required: true
+    default: ''
   }
 }, { _id: false });
 

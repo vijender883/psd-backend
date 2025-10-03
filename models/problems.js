@@ -1,5 +1,115 @@
 // models/problems.js
 const problems = {
+  'traffic_flow_analysis': {
+    id: "traffic_flow_analysis",
+    title: "Smart City Traffic Flow Analysis",
+    description: "You're working as a data scientist for a smart city project. The city has installed sensors along a main road that measure traffic density at different points. The sensors return values representing the 'congestion level' at each point (higher values = more congested).\n\nYour task is to find the longest continuous stretch of road where the traffic flow is 'balanced' - meaning the total congestion on the left half equals the total congestion on the right half.\n\nNote: Only consider subarrays with even length (so they can be split into equal halves).",
+    inputFormat: "A single line containing space-separated integers representing the traffic_density array.",
+    outputFormat: "Return the length of the longest balanced stretch. Return 0 if no balanced stretch exists.",
+    constraints: [
+      "2 <= len(traffic_density) <= 1000",
+      "traffic_density length is always even",
+      "1 <= traffic_density[i] <= 100",
+      "All values are positive integers",
+      "Time complexity should be O(n²) or better",
+      "Space complexity should be O(1)"
+    ],
+    examples: [
+      {
+        name: "Example 1",
+        input: "traffic_density = [3,1,4,2,2,1,3,1]",
+        output: "4"
+      },
+      {
+        name: "Example 2",
+        input: "traffic_density = [5,1,1,5]",
+        output: "4"
+      },
+      {
+        name: "Example 3",
+        input: "traffic_density = [1,3,2,4]",
+        output: "0"
+      }
+    ],
+    miscellaneous: {
+      name: "Hint",
+      description: "Use two pointers to define the boundaries of subarrays and efficiently calculate the sums of left and right halves. Consider a nested loop approach where you fix one boundary and extend the other."
+    },
+    templates: {
+      java: "import java.util.*;\n\nclass TrafficFlowAnalyzer {\n    public int longestBalancedStretch(int[] trafficDensity) {\n        // Write your code here\n        int n = trafficDensity.length;\n        int maxLength = 0;\n        \n        return maxLength;\n    }\n}",
+      python: "class TrafficFlowAnalyzer:\n    def longest_balanced_stretch(self, traffic_density):\n        \"\"\"\n        Find the longest continuous stretch where left half sum equals right half sum.\n        \n        Args:\n            traffic_density: List[int] - congestion levels at each road segment\n            \n        Returns:\n            int - length of longest balanced stretch, 0 if none exists\n        \"\"\"\n        # Write your code here\n        n = len(traffic_density)\n        max_length = 0\n        \n        return max_length"
+    },
+    solution: `class TrafficFlowAnalyzer:
+    def longest_balanced_stretch(self, traffic_density):
+        n = len(traffic_density)
+        max_length = 0
+        
+        # Check all possible even-length subarrays
+        for i in range(n):
+            for j in range(i + 1, n, 2):  # Ensure even length
+                length = j - i + 1
+                mid = i + length // 2
+                
+                left_sum = sum(traffic_density[i:mid])
+                right_sum = sum(traffic_density[mid:j+1])
+                
+                if left_sum == right_sum:
+                    max_length = max(max_length, length)
+        
+        return max_length`,
+    testCases: [
+      {
+        input: "3 1 4 2 2 1 3 1",
+        expectedOutput: "4",
+        description: "Basic case with balanced subarray [2,2,1,3]"
+      },
+      {
+        input: "5 1 1 5",
+        expectedOutput: "4",
+        description: "Entire array is balanced"
+      },
+      {
+        input: "1 3 2 4",
+        expectedOutput: "0",
+        description: "No balanced subarray exists"
+      },
+      {
+        input: "7 7",
+        expectedOutput: "2",
+        description: "Minimum length array that is balanced"
+      },
+      {
+        input: "5 5 5 5 5 5",
+        expectedOutput: "6",
+        description: "All same values - entire array balanced"
+      },
+      {
+        input: "2 4 4 2",
+        expectedOutput: "4",
+        description: "Symmetric array"
+      },
+      {
+        input: "1 1 2 2 3 3",
+        expectedOutput: "2",
+        description: "Multiple small balanced subarrays [3,3]"
+      },
+      {
+        input: "10 20 30 40",
+        expectedOutput: "0",
+        description: "Increasing sequence with no balance"
+      },
+      {
+        input: "1 9 9 1 5 5",
+        expectedOutput: "4",
+        description: "Two balanced subarrays, return longest [1,9,9,1]"
+      },
+      {
+        input: "8 2 6 4",
+        expectedOutput: "4",
+        description: "Check if [8,2,6,4] is balanced: left=[8,2]=10, right=[6,4]=10"
+      }
+    ]
+  },
   'deletenthfromend': {
     id: "deletenthfromend",
     title: "Remove Nth Node From End of List",
@@ -204,7 +314,7 @@ public class Solution {
         description: 'Even split'
       }
     ]
-  }, 
+  },
   'flattenobject': {
     id: 'flattenobject',
     title: 'Flatten Nested Object',
