@@ -1,0 +1,14 @@
+nohup: ignoring input
+
+> backend_code@1.0.0 start
+> node server.js
+
+/api/verify-token
+/health
+(node:143333) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Server running on port 3001
+Code execution directories initialized
+MongoDB Atlas connected successfully
+Connected to database: main at host: cluster0-shard-00-01.rq9f5.mongodb.net
+Killed

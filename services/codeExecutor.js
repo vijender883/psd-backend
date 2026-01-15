@@ -62,7 +62,7 @@ const { executeApexCode } = require("./apexExecutor");
 /**
  * Execute code using the Generic Python Runner (JSON payload approach)
  */
-async function executeGenericPython(code, problemId) {
+async function executeGenericPython(code, problemId, problemDefinition = null) {
   const submissionId = uuidv4();
   const executionDir = path.join(BASE_DIR, submissionId);
   const payloadPath = path.join(executionDir, "payload.json");
@@ -71,23 +71,29 @@ async function executeGenericPython(code, problemId) {
     // 1. Create execution directory
     await fs.mkdir(executionDir, { recursive: true });
 
-    // 2. Load Problem Definition from File
-    // Note: Assuming problems are stored in project_root/problems/
-    const problemPath = path.join(
-      __dirname,
-      "..",
-      "problems",
-      `${problemId}.json`
-    );
+    let problemData;
 
-    // Check if problem file exists
-    try {
-      await fs.access(problemPath);
-    } catch (e) {
-      throw new Error(`Problem definition not found for ID: ${problemId}`);
+    if (problemDefinition) {
+      // Use provided definition (e.g. for partial test runs)
+      problemData = problemDefinition;
+    } else {
+      // 2. Load Problem Definition from File
+      const problemPath = path.join(
+        __dirname,
+        "..",
+        "problems",
+        `${problemId}.json`
+      );
+
+      // Check if problem file exists
+      try {
+        await fs.access(problemPath);
+      } catch (e) {
+        throw new Error(`Problem definition not found for ID: ${problemId}`);
+      }
+
+      problemData = JSON.parse(await fs.readFile(problemPath, "utf8"));
     }
-
-    const problemData = JSON.parse(await fs.readFile(problemPath, "utf8"));
 
     // 3. Construct Payload
     const payload = {
@@ -104,7 +110,14 @@ async function executeGenericPython(code, problemId) {
     const resultJson = await runGenericRunner(runnerPath, payloadPath);
 
     // 6. Parse and Format Result
-    const result = JSON.parse(resultJson);
+    let result;
+    try {
+      result = JSON.parse(resultJson);
+    } catch (parseError) {
+      // Handle cases where runner output isn't valid JSON (e.g. print statements in user code interfering?)
+      // The runner captures stdout/stderr, so this shouldn't happen unless potential crash or print misuse.
+      throw new Error("Failed to parse runner output: " + resultJson);
+    }
 
     if (result.status === "error") {
       return {
