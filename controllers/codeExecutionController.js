@@ -126,10 +126,18 @@ exports.runSimulationCode = async (req, res) => {
     } = req.body;
 
     if (!userId || !problemId || !code) {
+      console.log(
+        `[Run] Missing fields - userId: ${userId}, problemId: ${problemId}, code received: ${!!code}`
+      );
       return res
         .status(400)
         .json({ success: false, error: "Missing required fields" });
     }
+
+    console.log(
+      `[Run] Request initiated for problem: ${problemId}, user: ${userId}`
+    );
+    console.log(`[Run] User Code:\n${code}`);
 
     // 1. Check if already submitted
     const existingSubmission = await Submission.findOne({ userId, problemId });
@@ -151,35 +159,11 @@ exports.runSimulationCode = async (req, res) => {
     // 3. Prepare first 3 test cases for run
     const runTestCases = problemData.test_cases.slice(0, 3);
 
-    // We need to construct a temporary problem definition with ONLY these 3 test cases
-    // so executeGenericPython runs only them.
-    // OR we run all and filter result?
-    // `executeGenericPython` takes `problemId` OR `problemDefinition` (if we modify it).
-    // Currently `executeGenericPython` takes `problemId` and reads file itself.
-    // We need to modify `executeGenericPython` OR create a temp file.
-    // EASIER: The python runner receives a payload. We can create a temporary payload object here
-    // and pass it to a modified `executeGenericPython`.
-    // Modification to `services/codeExecutor.js` was planned in step 1 ("Update executeGenericPython...").
-    // I will assume `executeGenericPython` supports passing overrides OR I will do it here.
-    // Actually, `executeGenericPython` currently loads from file.
-    // I should probably UPDATE `executeGenericPython` to accept `testCases` override.
-
-    // Let's modify `executeGenericPython` in `services/codeExecutor.js` to accept `problemData` override.
-    // For now, I will use `executeGenericPython` as is, but that runs ALL tests.
-    // The user wants "run the problem on the first three test cases".
-    // I should implement passing specific test cases to the runner.
-    // Use `executeCode` style?
-    // `runner.py` reads `payload.json`. Payload has `problem`.
-
-    // I will refactor `executeGenericPython` in `services/codeExecutor.js` to optionally take a `problemData` object.
-    // If passed, use it.
-
     const tempProblemData = {
       ...problemData,
       test_cases: runTestCases,
     };
 
-    // Call generic runner with explicit problem data
     // Call generic runner with explicit problem data
     console.log(
       `[Run] Executing generic python runner with ${runTestCases.length} test cases...`
@@ -201,9 +185,6 @@ exports.runSimulationCode = async (req, res) => {
         pseudocode: pseudocode || "",
         language,
         isSubmitted: false, // Ensure it remains not submitted
-        // map result to schema requirements?
-        // The generic runner returns formatted results.
-        // We need `executionTime`, `score`, `passedTests`, `totalTests`
         executionTime: 0, // generic runner currently generic
         score: 0,
         passedTests: result.results
@@ -245,10 +226,17 @@ exports.submitSimulationCode = async (req, res) => {
     } = req.body;
 
     if (!userId || !problemId || !code) {
+      console.log(
+        `[Submit] Missing fields - userId: ${userId}, problemId: ${problemId}, code received: ${!!code}`
+      );
       return res
         .status(400)
         .json({ success: false, error: "Missing required fields" });
     }
+
+    console.log(
+      `[Submit] Request initiated for problem: ${problemId}, user: ${userId}`
+    );
 
     // 1. Check if already submitted
     const existingSubmission = await Submission.findOne({ userId, problemId });
@@ -260,9 +248,6 @@ exports.submitSimulationCode = async (req, res) => {
     }
 
     // 2. Run all test cases
-    // Pass null for problemData to force loading full problem from file
-    // 2. Run all test cases
-    // Pass null for problemData to force loading full problem from file
     console.log(`[Submit] Running all test cases...`);
     const result = await executeGenericPython(code, problemId, null);
     console.log(
