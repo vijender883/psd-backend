@@ -1,6 +1,6 @@
 // services/emailService.js
-const { SendMailClient } = require('zeptomail');
-require('dotenv').config();
+const { SendMailClient } = require("zeptomail");
+require("dotenv").config();
 
 // Initialize the client
 const url = "api.zeptomail.in/";
@@ -9,22 +9,23 @@ const client = new SendMailClient({ url, token });
 
 // Email templates configuration
 const EMAIL_TEMPLATES = {
-  WELCOME: "2518b.6d1e43aa616e32a8.k1.28cc8560-2bc1-11f0-93e3-cabf48e1bf81.196ae0e78b6",
+  WELCOME:
+    "2518b.6d1e43aa616e32a8.k1.28cc8560-2bc1-11f0-93e3-cabf48e1bf81.196ae0e78b6",
   // Add other templates as needed
 };
 
 // Default sender information
 const DEFAULT_SENDER = {
   address: "support@alumnx.com",
-  name: "ALUMNX"
+  name: "ALUMNX",
 };
 
 // Default reply-to information
 const DEFAULT_REPLY_TO = [
   {
     address: "support@alumnx.com",
-    name: "Support Team"
-  }
+    name: "Support Team",
+  },
 ];
 
 /**
@@ -42,7 +43,7 @@ const sendTemplateEmail = async (options) => {
     cc,
     bcc,
     clientReference,
-    mimeHeaders
+    mimeHeaders,
   } = options;
 
   return client.sendMailWithTemplate({
@@ -54,7 +55,7 @@ const sendTemplateEmail = async (options) => {
     merge_info: mergeInfo,
     reply_to: replyTo,
     client_reference: clientReference,
-    mime_headers: mimeHeaders
+    mime_headers: mimeHeaders,
   });
 };
 
@@ -72,20 +73,20 @@ const sendWelcomeEmail = async (user) => {
       {
         email_address: {
           address: email,
-          name: name
-        }
-      }
+          name: name,
+        },
+      },
     ],
     mergeInfo: {
       contact_number: phone,
       company: "ALUMNX",
-      "name": "Abhishek S",
-      "product": "eventbot course",
+      name: "Abhishek S",
+      product: "eventbot course",
       "support id": "support@alumnx.com",
-      "brand": "ALUMNX",
-      "username": name,
-      "explore_url": "alumnx.com/labs/ai/event-bot-course"
-    }
+      brand: "ALUMNX",
+      username: name,
+      explore_url: "alumnx.com/labs/ai/event-bot-course",
+    },
   });
 };
 
@@ -105,25 +106,25 @@ const dispatchEmails = async (options) => {
     emailList,
     mergeInfo = {},
     from = DEFAULT_SENDER,
-    replyTo = DEFAULT_REPLY_TO
+    replyTo = DEFAULT_REPLY_TO,
   } = options;
 
   // Parse and validate email addresses
   const emails = emailList
-    .split(';')
-    .map(email => email.trim())
-    .filter(email => email !== '' && isValidEmail(email));
+    .split(";")
+    .map((email) => email.trim())
+    .filter((email) => email !== "" && isValidEmail(email));
 
   if (emails.length === 0) {
-    throw new Error('No valid email addresses found');
+    throw new Error("No valid email addresses found");
   }
 
   // Format email addresses for ZeptoMail
-  const recipients = emails.map(email => ({
+  const recipients = emails.map((email) => ({
     email_address: {
       address: email,
-      name: email.split('@')[0] // Use part before @ as name fallback
-    }
+      name: email.split("@")[0], // Use part before @ as name fallback
+    },
   }));
 
   return sendTemplateEmail({
@@ -131,7 +132,7 @@ const dispatchEmails = async (options) => {
     to: recipients,
     mergeInfo,
     from,
-    replyTo
+    replyTo,
   });
 };
 
@@ -149,5 +150,5 @@ module.exports = {
   sendTemplateEmail,
   sendWelcomeEmail,
   dispatchEmails,
-  EMAIL_TEMPLATES
+  EMAIL_TEMPLATES,
 };

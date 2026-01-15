@@ -1,8 +1,8 @@
-const { spawn } = require('child_process');
-const os = require('os');
-const fs = require('fs').promises;
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+const { spawn } = require("child_process");
+const os = require("os");
+const fs = require("fs").promises;
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
 
 // Add a simple queue implementation
 class ExecutionQueue {
@@ -42,31 +42,170 @@ class ExecutionQueue {
 // Create an execution queue with capacity based on your server resources
 const executionQueue = new ExecutionQueue(5);
 
-const BASE_DIR = '/tmp/code-runner';
+const BASE_DIR = "/tmp/code-runner";
 
 // Initialize the execution directory
 async function initializeDirectories() {
   try {
     await fs.mkdir(BASE_DIR, { recursive: true });
   } catch (err) {
-    console.error('Failed to create base directory:', err);
+    console.error("Failed to create base directory:", err);
   }
 }
 
 // Import the wrapper generators
-const { generateJavaWrapper } = require('./javaWrapper');
-const { generatePythonWrapper } = require('./pythonWrapper');
-const { generateJavaScriptWrapper } = require('./javascriptWrapper');
-const { executeApexCode } = require('./apexExecutor');
+const { generateJavaWrapper } = require("./javaWrapper");
+const { generatePythonWrapper } = require("./pythonWrapper");
+const { generateJavaScriptWrapper } = require("./javascriptWrapper");
+const { executeApexCode } = require("./apexExecutor");
+
+/**
+ * Execute code using the Generic Python Runner (JSON payload approach)
+ */
+async function executeGenericPython(code, problemId) {
+  const submissionId = uuidv4();
+  const executionDir = path.join(BASE_DIR, submissionId);
+  const payloadPath = path.join(executionDir, "payload.json");
+
+  try {
+    // 1. Create execution directory
+    await fs.mkdir(executionDir, { recursive: true });
+
+    // 2. Load Problem Definition from File
+    // Note: Assuming problems are stored in project_root/problems/
+    const problemPath = path.join(
+      __dirname,
+      "..",
+      "problems",
+      `${problemId}.json`
+    );
+
+    // Check if problem file exists
+    try {
+      await fs.access(problemPath);
+    } catch (e) {
+      throw new Error(`Problem definition not found for ID: ${problemId}`);
+    }
+
+    const problemData = JSON.parse(await fs.readFile(problemPath, "utf8"));
+
+    // 3. Construct Payload
+    const payload = {
+      user_code: code,
+      problem: problemData,
+    };
+
+    // 4. Write Payload to File
+    await fs.writeFile(payloadPath, JSON.stringify(payload));
+
+    // 5. Spawn Generic Runner
+    // Runner path: project_root/test-runner/runner.py
+    const runnerPath = path.join(__dirname, "..", "test-runner", "runner.py");
+    const resultJson = await runGenericRunner(runnerPath, payloadPath);
+
+    // 6. Parse and Format Result
+    const result = JSON.parse(resultJson);
+
+    if (result.status === "error") {
+      return {
+        success: false,
+        error: {
+          message: "Execution Error",
+          stack: result.error || "Unknown error occurred",
+        },
+      };
+    }
+
+    // Map runner results to frontend expected format
+    const formattedResults = result.results.map((r) => ({
+      testCase: r.testCase,
+      input: JSON.stringify(r.input),
+      expectedOutput: JSON.stringify(r.expected),
+      yourOutput:
+        r.actual !== undefined ? JSON.stringify(r.actual) : r.error || "Error",
+      passed: r.passed,
+      executionTime: 0, // Runner doesn't track time per test yet, can be added
+      error: r.error ? { message: r.error } : undefined,
+    }));
+
+    return {
+      success: true,
+      results: formattedResults,
+    };
+  } catch (error) {
+    console.error(`Generic Python execution error for ${submissionId}:`, error);
+    return {
+      success: false,
+      error: {
+        message: "System Error",
+        stack: error.message,
+      },
+    };
+  } finally {
+    // Cleanup
+    setTimeout(() => {
+      cleanupDirectory(executionDir).catch((err) =>
+        console.error(
+          `Failed to clean up directory ${executionDir}: ${err.message}`
+        )
+      );
+    }, 1000);
+  }
+}
+
+// Helper to spawn the python runner
+function runGenericRunner(runnerPath, payloadPath) {
+  return new Promise((resolve, reject) => {
+    const process = spawn("python3", [runnerPath, payloadPath]);
+
+    let stdout = "";
+    let stderr = "";
+
+    process.stdout.on("data", (data) => (stdout += data.toString()));
+    process.stderr.on("data", (data) => (stderr += data.toString()));
+
+    process.on("close", (code) => {
+      if (code !== 0) {
+        // Even if it crashes, we might have JSON in stdout (handled by caller)
+        // But if stdout is empty, it's a real crash
+        if (!stdout.trim()) {
+          reject(new Error(`Runner failed (exit code ${code}): ${stderr}`));
+        } else {
+          resolve(stdout);
+        }
+      } else {
+        resolve(stdout);
+      }
+    });
+
+    process.on("error", (err) => reject(err));
+  });
+}
 
 // Modify executeCode function
-async function executeCode(code, testCases, language) {
+async function executeCode(code, testCases, language, problemId) {
+  // If problemId is provided and language is python, try generic runner
+  // We check for problemId existence to maintain backward compatibility if needed
+  // But for this task, we strongly prefer the generic runner for Python
+  if (language === "python" && problemId) {
+    // Small check: does the JSON file exist? If not, fall back (optional)
+    // For now, we assume if problemId is passed, we use the new system.
+    try {
+      // We wrap this in the queue just like others
+      return executionQueue.enqueue(() =>
+        executeGenericPython(code, problemId)
+      );
+    } catch (e) {
+      console.warn("Falling back to legacy runner due to error:", e);
+    }
+  }
+
   return executionQueue.enqueue(() => {
-    if (language === 'python') {
+    if (language === "python") {
       return executePythonCode(code, testCases);
-    } else if (language === 'javascript') {
+    } else if (language === "javascript") {
       return executeJavaScriptCode(code, testCases);
-    } else if (language === 'apex') {
+    } else if (language === "apex") {
       return executeApexCode(code, testCases);
     } else {
       return executeJavaCode(code, testCases);
@@ -94,37 +233,38 @@ async function executeJavaCode(code, testCases) {
 
     return {
       success: true,
-      results: results
+      results: results,
     };
   } catch (error) {
     console.error(`Execution error for ${submissionId}:`, error);
 
-    if (error.message.includes('Compilation failed')) {
+    if (error.message.includes("Compilation failed")) {
       return {
         success: false,
         error: {
-          message: 'Compilation Error',
-          stack: error.message
-        }
+          message: "Compilation Error",
+          stack: error.message,
+        },
       };
     }
 
     return {
       success: false,
       error: {
-        message: 'Execution Error',
-        stack: error.message
-      }
+        message: "Execution Error",
+        stack: error.message,
+      },
     };
-  }
-  // At the end of executeJavaCode and executePythonCode functions
-  finally {
+  } finally {
+    // At the end of executeJavaCode and executePythonCode functions
     // Clean up after execution
     try {
       // Use a non-blocking timeout to not delay the response
       setTimeout(() => {
-        cleanupDirectory(executionDir).catch(err =>
-          console.error(`Failed to clean up directory ${executionDir}: ${err.message}`)
+        cleanupDirectory(executionDir).catch((err) =>
+          console.error(
+            `Failed to clean up directory ${executionDir}: ${err.message}`
+          )
         );
       }, 1000);
     } catch (cleanupError) {
@@ -150,7 +290,7 @@ async function executePythonCode(code, testCases) {
 
     return {
       success: true,
-      results: results
+      results: results,
     };
   } catch (error) {
     console.error(`Python execution error for ${submissionId}:`, error);
@@ -158,19 +298,20 @@ async function executePythonCode(code, testCases) {
     return {
       success: false,
       error: {
-        message: 'Compilation Error', // Change to match frontend expectation
-        stack: error.message
-      }
+        message: "Compilation Error", // Change to match frontend expectation
+        stack: error.message,
+      },
     };
-  }
-  // At the end of executeJavaCode and executePythonCode functions
-  finally {
+  } finally {
+    // At the end of executeJavaCode and executePythonCode functions
     // Clean up after execution
     try {
       // Use a non-blocking timeout to not delay the response
       setTimeout(() => {
-        cleanupDirectory(executionDir).catch(err =>
-          console.error(`Failed to clean up directory ${executionDir}: ${err.message}`)
+        cleanupDirectory(executionDir).catch((err) =>
+          console.error(
+            `Failed to clean up directory ${executionDir}: ${err.message}`
+          )
         );
       }, 1000);
     } catch (cleanupError) {
@@ -179,24 +320,24 @@ async function executePythonCode(code, testCases) {
   }
 }
 
-const COMPILATION_TIMEOUT = 15000;  // Increase from 10000
-const EXECUTION_TIMEOUT = 8000;     // Increase from 5000
+const COMPILATION_TIMEOUT = 15000; // Increase from 10000
+const EXECUTION_TIMEOUT = 8000; // Increase from 5000
 
 // Compile Java code
 function compileJavaCode(executionDir) {
   return new Promise((resolve, reject) => {
-    const process = spawn('javac', ['Solution.java'], {
+    const process = spawn("javac", ["Solution.java"], {
       cwd: executionDir,
-      timeout: COMPILATION_TIMEOUT
+      timeout: COMPILATION_TIMEOUT,
     });
 
-    let stderr = '';
+    let stderr = "";
 
-    process.stderr.on('data', (data) => {
+    process.stderr.on("data", (data) => {
       stderr += data.toString();
     });
 
-    process.on('close', (code) => {
+    process.on("close", (code) => {
       if (code !== 0) {
         reject(new Error(`Compilation failed: ${stderr}`));
       } else {
@@ -204,7 +345,7 @@ function compileJavaCode(executionDir) {
       }
     });
 
-    process.on('error', (err) => {
+    process.on("error", (err) => {
       reject(new Error(`Failed to start compilation process: ${err.message}`));
     });
   });
@@ -222,7 +363,7 @@ async function runJavaTestCases(executionDir, testCases) {
       testCase: testCaseNumber,
       description: testCase.description || `Test case ${testCaseNumber}`,
       input: testCase.input,
-      expectedOutput: testCase.expectedOutput
+      expectedOutput: testCase.expectedOutput,
     };
 
     try {
@@ -247,8 +388,8 @@ async function runJavaTestCases(executionDir, testCases) {
     } catch (error) {
       result.passed = false;
       result.error = {
-        message: 'Runtime Error',
-        stack: error.message
+        message: "Runtime Error",
+        stack: error.message,
       };
       result.executionTime = 0;
     }
@@ -271,7 +412,7 @@ async function runPythonTestCases(executionDir, testCases) {
       testCase: testCaseNumber,
       description: testCase.description || `Test case ${testCaseNumber}`,
       input: testCase.input,
-      expectedOutput: testCase.expectedOutput
+      expectedOutput: testCase.expectedOutput,
     };
 
     try {
@@ -296,8 +437,8 @@ async function runPythonTestCases(executionDir, testCases) {
     } catch (error) {
       result.passed = false;
       result.error = {
-        message: 'Runtime Error',
-        stack: error.message
+        message: "Runtime Error",
+        stack: error.message,
       };
       result.yourOutput = error.message; // Add this line to show error in output
       result.executionTime = 0;
@@ -312,13 +453,13 @@ async function runPythonTestCases(executionDir, testCases) {
 // Run Java program
 function runJavaProgram(executionDir, input) {
   return new Promise((resolve, reject) => {
-    const process = spawn('java', ['-Xmx256m', '-Xss64m', 'Solution'], {
+    const process = spawn("java", ["-Xmx256m", "-Xss64m", "Solution"], {
       cwd: executionDir,
-      timeout: EXECUTION_TIMEOUT
+      timeout: EXECUTION_TIMEOUT,
     });
 
-    let stdout = '';
-    let stderr = '';
+    let stdout = "";
+    let stderr = "";
 
     // Provide input if needed
     if (input) {
@@ -326,15 +467,15 @@ function runJavaProgram(executionDir, input) {
       process.stdin.end();
     }
 
-    process.stdout.on('data', (data) => {
+    process.stdout.on("data", (data) => {
       stdout += data.toString();
     });
 
-    process.stderr.on('data', (data) => {
+    process.stderr.on("data", (data) => {
       stderr += data.toString();
     });
 
-    process.on('close', (code) => {
+    process.on("close", (code) => {
       if (code !== 0) {
         reject(new Error(`Execution failed with code ${code}: ${stderr}`));
       } else {
@@ -342,7 +483,7 @@ function runJavaProgram(executionDir, input) {
       }
     });
 
-    process.on('error', (err) => {
+    process.on("error", (err) => {
       reject(new Error(`Failed to start execution process: ${err.message}`));
     });
   });
@@ -351,13 +492,13 @@ function runJavaProgram(executionDir, input) {
 // Run Python program
 function runPythonProgram(executionDir, input) {
   return new Promise((resolve, reject) => {
-    const process = spawn('python3', ['solution.py'], {
+    const process = spawn("python3", ["solution.py"], {
       cwd: executionDir,
-      timeout: EXECUTION_TIMEOUT
+      timeout: EXECUTION_TIMEOUT,
     });
 
-    let stdout = '';
-    let stderr = '';
+    let stdout = "";
+    let stderr = "";
 
     // Provide input if needed
     if (input) {
@@ -365,26 +506,29 @@ function runPythonProgram(executionDir, input) {
       process.stdin.end();
     }
 
-    process.stdout.on('data', (data) => {
+    process.stdout.on("data", (data) => {
       stdout += data.toString();
     });
 
-    process.stderr.on('data', (data) => {
+    process.stderr.on("data", (data) => {
       stderr += data.toString();
     });
 
-    process.on('close', (code) => {
+    process.on("close", (code) => {
       if (code !== 0) {
         // Format the stderr to show actual Python error
-        const errorMessage = stderr.trim() || `Python execution failed with exit code ${code}`;
+        const errorMessage =
+          stderr.trim() || `Python execution failed with exit code ${code}`;
         reject(new Error(errorMessage));
       } else {
         resolve(stdout);
       }
     });
 
-    process.on('error', (err) => {
-      reject(new Error(`Failed to start Python execution process: ${err.message}`));
+    process.on("error", (err) => {
+      reject(
+        new Error(`Failed to start Python execution process: ${err.message}`)
+      );
     });
   });
 }
@@ -409,9 +553,6 @@ async function cleanupDirectory(dir) {
   }
 }
 
-
-
-
 // Add new function
 async function executeJavaScriptCode(code, testCases) {
   const submissionId = uuidv4();
@@ -424,21 +565,23 @@ async function executeJavaScriptCode(code, testCases) {
 
     return {
       success: true,
-      results: results
+      results: results,
     };
   } catch (error) {
     console.error(`JavaScript execution error for ${submissionId}:`, error);
     return {
       success: false,
       error: {
-        message: 'Execution Error',
-        stack: error.message
-      }
+        message: "Execution Error",
+        stack: error.message,
+      },
     };
   } finally {
     setTimeout(() => {
-      cleanupDirectory(executionDir).catch(err =>
-        console.error(`Failed to clean up directory ${executionDir}: ${err.message}`)
+      cleanupDirectory(executionDir).catch((err) =>
+        console.error(
+          `Failed to clean up directory ${executionDir}: ${err.message}`
+        )
       );
     }, 1000);
   }
@@ -455,7 +598,7 @@ async function runJavaScriptTestCases(executionDir, testCases) {
       testCase: testCaseNumber,
       description: testCase.description || `Test case ${testCaseNumber}`,
       input: testCase.input,
-      expectedOutput: testCase.expectedOutput
+      expectedOutput: testCase.expectedOutput,
     };
 
     try {
@@ -474,8 +617,8 @@ async function runJavaScriptTestCases(executionDir, testCases) {
     } catch (error) {
       result.passed = false;
       result.error = {
-        message: 'Runtime Error',
-        stack: error.message
+        message: "Runtime Error",
+        stack: error.message,
       };
       result.yourOutput = error.message;
       result.executionTime = 0;
@@ -489,34 +632,39 @@ async function runJavaScriptTestCases(executionDir, testCases) {
 
 function runJavaScriptProgram(executionDir, input) {
   return new Promise((resolve, reject) => {
-    const process = spawn('node', ['solution.js'], {
+    const process = spawn("node", ["solution.js"], {
       cwd: executionDir,
-      timeout: EXECUTION_TIMEOUT
+      timeout: EXECUTION_TIMEOUT,
     });
 
-    let stdout = '';
-    let stderr = '';
+    let stdout = "";
+    let stderr = "";
 
-    process.stdout.on('data', (data) => {
+    process.stdout.on("data", (data) => {
       stdout += data.toString();
     });
 
-    process.stderr.on('data', (data) => {
+    process.stderr.on("data", (data) => {
       stderr += data.toString();
     });
 
     // --- CONSOLIDATED INPUT HANDLING (FIX APPLIED HERE) ---
     if (input) {
       // DEBUG LOGGING START
-      console.log(`[JS EXEC] Original Input: "${input.replace(/\n/g, '\\n')}"`);
-      console.log(`[JS EXEC] OS EOL: "${os.EOL.replace(/\n/g, '\\n')}"`);
-      
+      console.log(`[JS EXEC] Original Input: "${input.replace(/\n/g, "\\n")}"`);
+      console.log(`[JS EXEC] OS EOL: "${os.EOL.replace(/\n/g, "\\n")}"`);
+
       // We assume the test case input from the problem structure (e.g., '[1, 2, 3]\n2')
       // uses the literal characters \n to denote a line break, so we replace the
       // two characters '\\n' with the actual OS EOL character.
       const sanitizedInput = input.replace(/\\n/g, os.EOL); // Use os.EOL
-      
-      console.log(`[JS EXEC] Sanitized Input (literal \\n replacement): "${sanitizedInput.replace(/\n/g, '\\n')}"`);
+
+      console.log(
+        `[JS EXEC] Sanitized Input (literal \\n replacement): "${sanitizedInput.replace(
+          /\n/g,
+          "\\n"
+        )}"`
+      );
       // DEBUG LOGGING END
 
       // **MANDATORY: Write the input ONCE**
@@ -525,17 +673,22 @@ function runJavaScriptProgram(executionDir, input) {
     }
     // --- END CONSOLIDATED INPUT HANDLING ---
 
-    process.on('close', (code) => {
+    process.on("close", (code) => {
       if (code !== 0) {
-        const errorMessage = stderr.trim() || `JavaScript execution failed with exit code ${code}`;
+        const errorMessage =
+          stderr.trim() || `JavaScript execution failed with exit code ${code}`;
         reject(new Error(errorMessage));
       } else {
         resolve(stdout);
       }
     });
 
-    process.on('error', (err) => {
-      reject(new Error(`Failed to start JavaScript execution process: ${err.message}`));
+    process.on("error", (err) => {
+      reject(
+        new Error(
+          `Failed to start JavaScript execution process: ${err.message}`
+        )
+      );
     });
   });
 }
@@ -546,5 +699,5 @@ module.exports = {
   executeJavaCode,
   executePythonCode,
   executeJavaScriptCode,
-  executeApexCode 
+  executeApexCode,
 };
