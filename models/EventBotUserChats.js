@@ -1,27 +1,30 @@
 // models/EventBotUserChats.js
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const ChatMessageSchema = new mongoose.Schema({
   message_source: {
     type: String,
-    required: true
+    required: true,
   },
   message: {
     type: String,
-    required: true
+    required: true,
   },
   chat_time: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-const EventBotUserChatsSchema = new mongoose.Schema({
-  userId: {
-    type: String,
-    required: true
+const EventBotUserChatsSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: String,
+      required: true,
+    },
+    chats: [ChatMessageSchema],
   },
-  chats: [ChatMessageSchema]
-}, { timestamps: true });
+  { timestamps: true }
+);
 
-module.exports = mongoose.model('EventBotUserChats', EventBotUserChatsSchema);
+module.exports = mongoose.model("EventBotUserChats", EventBotUserChatsSchema);

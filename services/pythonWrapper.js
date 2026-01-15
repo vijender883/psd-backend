@@ -1,23 +1,23 @@
 // services/pythonWrapper.js
-const fs = require('fs').promises;
-const path = require('path');
+const fs = require("fs").promises;
+const path = require("path");
 
 async function generatePythonWrapper(executionDir, code) {
-  const isMinPathSum = code.includes('min_path_sum');
-  const isDiagonalTraversal = code.includes('diagonal_traversal');
-  const isLIS = code.includes('length_of_lis');
-  const isConsecutiveChars = code.includes('count_consecutive_chars');
-  const isClosestValue = code.includes('find_closest_element');
-  const isPermutationInString = code.includes('check_inclusion');
-  const isFruitIntoBaskets = code.includes('total_fruit');
-  const isValidAnagram = code.includes('is_anagram');
-  const isThreeSum = code.includes('three_sum'); 
-  const isReverseString = code.includes('reverse_string');
-  const isTwoSum = code.includes('two_sum');
-  const isGPUOptimizer = code.includes('minimum_gpu_capacity');
-  const isTrafficFlow = code.includes('longest_balanced_stretch');
-  const isFindActivityRange = code.includes('find_activity_range');
-  const isRemoveNthFromEnd = code.includes('removeNthFromEnd');
+  const isMinPathSum = code.includes("min_path_sum");
+  const isDiagonalTraversal = code.includes("diagonal_traversal");
+  const isLIS = code.includes("length_of_lis");
+  const isConsecutiveChars = code.includes("count_consecutive_chars");
+  const isClosestValue = code.includes("find_closest_element");
+  const isPermutationInString = code.includes("check_inclusion");
+  const isFruitIntoBaskets = code.includes("total_fruit");
+  const isValidAnagram = code.includes("is_anagram");
+  const isThreeSum = code.includes("three_sum");
+  const isReverseString = code.includes("reverse_string");
+  const isTwoSum = code.includes("two_sum");
+  const isGPUOptimizer = code.includes("minimum_gpu_capacity");
+  const isTrafficFlow = code.includes("longest_balanced_stretch");
+  const isFindActivityRange = code.includes("find_activity_range");
+  const isRemoveNthFromEnd = code.includes("removeNthFromEnd");
 
   let wrapperCode;
   if (isMinPathSum) {
@@ -54,9 +54,8 @@ async function generatePythonWrapper(executionDir, code) {
     wrapperCode = generateLongestCommonPrefixWrapper(code);
   }
 
-  await fs.writeFile(path.join(executionDir, 'solution.py'), wrapperCode);
+  await fs.writeFile(path.join(executionDir, "solution.py"), wrapperCode);
 }
-
 
 function generateRemoveNthFromEndWrapper(code) {
   return `
@@ -134,9 +133,8 @@ if __name__ == "__main__":
     
     # Output result
     print(f"[{result[0]},{result[1]}]")
-`
+`;
 }
-
 
 function generateGPUOptimizerWrapper(code) {
   return `
@@ -156,7 +154,7 @@ if __name__ == "__main__":
     
     # Output result
     print(result)
-`
+`;
 }
 
 function generateTrafficFlowWrapper(code) {
@@ -175,9 +173,8 @@ if __name__ == "__main__":
     
     # Output result
     print(result)
-`
+`;
 }
-
 
 // Add new wrapper generator for Reverse String
 function generateReverseStringWrapper(code) {
@@ -196,7 +193,7 @@ if __name__ == "__main__":
     
     # Output result (space-separated characters)
     print(' '.join(chars))
-`
+`;
 }
 
 // Add new wrapper generator for Two Sum
@@ -217,7 +214,7 @@ if __name__ == "__main__":
     
     # Output result
     print(f"[{result[0]},{result[1]}]")
-`
+`;
 }
 
 // Add new wrapper generator for 3Sum
@@ -256,7 +253,7 @@ if __name__ == "__main__":
   
   # Output result
   print(format_result(result))
-`
+`;
 }
 
 // Add new wrapper generator for Valid Anagram
@@ -277,7 +274,7 @@ if __name__ == "__main__":
   
   # Output result
   print(str(result).lower())
-`
+`;
 }
 
 // Add new wrapper generator for Permutation in String
@@ -298,7 +295,7 @@ if __name__ == "__main__":
   
   # Output result
   print(str(result).lower())
-`
+`;
 }
 
 // Add new wrapper generator for Fruit Into Baskets
@@ -319,7 +316,7 @@ if __name__ == "__main__":
   
   # Output result
   print(result)
-`
+`;
 }
 
 function generateClosestValueWrapper(code) {
@@ -340,7 +337,7 @@ if __name__ == "__main__":
     
     # Output result
     print(result)
-`
+`;
 }
 
 function generateConsecutiveCharsWrapper(code) {
@@ -359,7 +356,7 @@ if __name__ == "__main__":
     
     # Output result
     print(result)
-`
+`;
 }
 
 function generateDiagonalTraversalWrapper(code) {
@@ -428,7 +425,7 @@ if __name__ == "__main__":
     
     # Output result
     print(format_result(result))
-`
+`;
 }
 
 function generateLISWrapper(code) {
@@ -448,7 +445,7 @@ if __name__ == "__main__":
     
     # Output result
     print(result)
-`
+`;
 }
 
 function generateMinPathSumWrapper(code) {
@@ -473,7 +470,7 @@ if __name__ == "__main__":
     
     # Output result
     print(result)
-`
+`;
 }
 
 function generateLongestCommonPrefixWrapper(code) {
@@ -492,9 +489,9 @@ if __name__ == "__main__":
     
     # Output result
     print(result)
-`
+`;
 }
 
 module.exports = {
-  generatePythonWrapper
+  generatePythonWrapper,
 };

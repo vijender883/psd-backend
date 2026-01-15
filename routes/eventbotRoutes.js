@@ -1,12 +1,19 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const eventbotController = require('../controllers/eventbotController');
-router.post('/registerUser', eventbotController.addRegisteredUser);
-router.post('/getRegisteredUserList', eventbotController.getRegisteredUserList);
-router.post('/checkinUser', eventbotController.checkinUser);
-router.post('/chat/save', eventbotController.saveChat);
-router.post('/chat/list', eventbotController.getChatList);
-router.post('/validateRegisteredEmailId', eventbotController.validateRegisteredUserEmailId);
-router.get('/getRegisteredUserCount', eventbotController.getRegisteredUserCount);
-router.get('/getCheckedInUserCount', eventbotController.getCheckedInUserCount); router.get('/getCheckedInUsers', eventbotController.getCheckedInUsers);
+const eventbotController = require("../controllers/eventbotController");
+router.post("/registerUser", eventbotController.addRegisteredUser);
+router.post("/getRegisteredUserList", eventbotController.getRegisteredUserList);
+router.post("/checkinUser", eventbotController.checkinUser);
+router.post("/chat/save", eventbotController.saveChat);
+router.post("/chat/list", eventbotController.getChatList);
+router.post(
+  "/validateRegisteredEmailId",
+  eventbotController.validateRegisteredUserEmailId
+);
+router.get(
+  "/getRegisteredUserCount",
+  eventbotController.getRegisteredUserCount
+);
+router.get("/getCheckedInUserCount", eventbotController.getCheckedInUserCount);
+router.get("/getCheckedInUsers", eventbotController.getCheckedInUsers);
 module.exports = router;

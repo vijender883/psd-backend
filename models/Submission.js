@@ -1,17 +1,17 @@
 // models/Submission.js
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 // Connection error handling
-mongoose.connection.on('error', (err) => {
-  console.error('MongoDB connection error:', err);
+mongoose.connection.on("error", (err) => {
+  console.error("MongoDB connection error:", err);
 });
 
-mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected');
+mongoose.connection.on("disconnected", () => {
+  console.log("MongoDB disconnected");
 });
 
 // Handle application termination
-process.on('SIGINT', async () => {
+process.on("SIGINT", async () => {
   await mongoose.connection.close();
   process.exit(0);
 });
@@ -19,11 +19,11 @@ process.on('SIGINT', async () => {
 const SubmissionSchema = new mongoose.Schema({
   username: {
     type: String,
-    required: true
+    required: true,
   },
   userId: {
     type: String,
-    required: true
+    required: true,
   },
   show: {
     type: Boolean,
@@ -33,81 +33,83 @@ const SubmissionSchema = new mongoose.Schema({
   isSubmitted: {
     type: Boolean,
     required: true,
-    default: false
+    default: false,
   },
   problemId: {
     type: String,
-    required: true
+    required: true,
   },
   code: {
     type: String,
-    required: true
+    required: true,
   },
   pseudocode: {
     type: String,
-    default: ''
+    default: "",
   },
   timeComplexity: {
     type: String,
-    default: ''
+    default: "",
   },
   spaceComplexity: {
     type: String,
-    default: ''
+    default: "",
   },
   geminiReview: {
     type: String,
-    default: ''
+    default: "",
   },
   language: {
     type: String,
     required: true,
-    default: 'java',
-    enum: ['java', 'python', 'javascript', 'apex']
+    default: "java",
+    enum: ["java", "python", "javascript", "apex"],
   },
   executionTime: {
     type: Number,
-    required: true
+    required: true,
   },
   score: {
     type: Number,
-    required: true
+    required: true,
   },
   passedTests: {
     type: Number,
-    required: true
+    required: true,
   },
   totalTests: {
     type: Number,
-    required: true
+    required: true,
   },
-  results: [{
-    testCase: Number,
-    passed: Boolean,
-    input: String,
-    expectedOutput: String,
-    yourOutput: String,
-    executionTime: Number,
-    error: {
-      message: String,
-      stack: String
-    }
-  }],
+  results: [
+    {
+      testCase: Number,
+      passed: Boolean,
+      input: String,
+      expectedOutput: String,
+      yourOutput: String,
+      executionTime: Number,
+      error: {
+        message: String,
+        stack: String,
+      },
+    },
+  ],
   processingComplete: {
     type: Boolean,
     required: true,
-    default: false
+    default: false,
   },
   error: {
     message: String,
-    stack: String
+    stack: String,
   },
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 SubmissionSchema.index({ userId: 1, problemId: 1 }, { unique: true });
 
-module.exports = mongoose.model('Submission', SubmissionSchema);
+module.exports = mongoose.model("Submission", SubmissionSchema);

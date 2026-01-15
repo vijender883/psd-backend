@@ -1,16 +1,16 @@
 // services/javaWrapper.js
-const fs = require('fs').promises;
-const path = require('path');
+const fs = require("fs").promises;
+const path = require("path");
 
 async function generateJavaWrapper(executionDir, code) {
-  const isMinPathSum = code.includes('MinPathSum');
-  const isDiagonalTraversal = code.includes('DiagonalTraversal');
-  const isLIS = code.includes('LengthOfLIS');
-  const isConsecutiveChars = code.includes('countConsecutiveChars');
-  const isClosestValue = code.includes('ClosestValueFinder');
-  const isPermutationInString = code.includes('PermutationInString'); // Add this
-  const isFruitIntoBaskets = code.includes('FruitIntoBaskets'); // Add this
-  
+  const isMinPathSum = code.includes("MinPathSum");
+  const isDiagonalTraversal = code.includes("DiagonalTraversal");
+  const isLIS = code.includes("LengthOfLIS");
+  const isConsecutiveChars = code.includes("countConsecutiveChars");
+  const isClosestValue = code.includes("ClosestValueFinder");
+  const isPermutationInString = code.includes("PermutationInString"); // Add this
+  const isFruitIntoBaskets = code.includes("FruitIntoBaskets"); // Add this
+
   let wrapperCode;
   if (isMinPathSum) {
     wrapperCode = generateMinPathSumWrapper(code);
@@ -29,8 +29,8 @@ async function generateJavaWrapper(executionDir, code) {
   } else {
     wrapperCode = generateLongestCommonPrefixWrapper(code);
   }
-  
-  await fs.writeFile(path.join(executionDir, 'Solution.java'), wrapperCode);
+
+  await fs.writeFile(path.join(executionDir, "Solution.java"), wrapperCode);
 }
 
 function generateClosestValueWrapper(code) {
@@ -159,7 +159,7 @@ public class Solution {
         sb.append("]");
         return sb.toString();
     }
-}`
+}`;
 }
 
 function generateLISWrapper(code) {
@@ -308,5 +308,5 @@ public class Solution {
 }
 
 module.exports = {
-  generateJavaWrapper
+  generateJavaWrapper,
 };

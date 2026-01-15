@@ -1,21 +1,33 @@
 // services/llmService.js
-const { OpenAI } = require('openai');
-const dotenv = require('dotenv');
+const { OpenAI } = require("openai");
+const dotenv = require("dotenv");
 dotenv.config();
 
 // Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-async function analyzeProblemAndSolution(problem, code, timeComplexity, spaceComplexity, language = 'java') {
-  console.log(`[LLM] Starting analyzeProblemAndSolution for problem: ${problem.id}`);
-  console.log(`[LLM] Code length: ${code.length} characters, Language: ${language}`);
-  console.log(`[LLM] Claimed time complexity: ${timeComplexity}, space complexity: ${spaceComplexity}`);
-  
+async function analyzeProblemAndSolution(
+  problem,
+  code,
+  timeComplexity,
+  spaceComplexity,
+  language = "java"
+) {
+  console.log(
+    `[LLM] Starting analyzeProblemAndSolution for problem: ${problem.id}`
+  );
+  console.log(
+    `[LLM] Code length: ${code.length} characters, Language: ${language}`
+  );
+  console.log(
+    `[LLM] Claimed time complexity: ${timeComplexity}, space complexity: ${spaceComplexity}`
+  );
+
   try {
-    console.time('[LLM] OpenAI API call');
-    
+    console.time("[LLM] OpenAI API call");
+
     const systemPrompt = `You are an expert at analyzing code solutions. 
     You will analyze the given problem statement, solution code (in ${language}), and complexity claims.
     Respond with a JSON object containing your analysis. Please keep the explanations short and straight. Be strict but fair in your assessment.`;
@@ -50,44 +62,64 @@ async function analyzeProblemAndSolution(problem, code, timeComplexity, spaceCom
       "optimizedSolution": string
     }`;
 
-    console.log(`[LLM] Sending request to OpenAI API (model: gpt-4-turbo-preview)`);
-    
+    console.log(
+      `[LLM] Sending request to OpenAI API (model: gpt-4-turbo-preview)`
+    );
+
     const response = await openai.chat.completions.create({
       model: "gpt-4-turbo-preview",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
+        { role: "user", content: userPrompt },
       ],
       response_format: { type: "json_object" },
-      temperature: 0.2
+      temperature: 0.2,
     });
-    
-    console.timeEnd('[LLM] OpenAI API call');
-    console.log(`[LLM] Received response from OpenAI API, token usage: ${
-      response.usage ? 
-      `${response.usage.prompt_tokens} prompt tokens, ${response.usage.completion_tokens} completion tokens` : 
-      'Usage data not available'
-    }`);
+
+    console.timeEnd("[LLM] OpenAI API call");
+    console.log(
+      `[LLM] Received response from OpenAI API, token usage: ${
+        response.usage
+          ? `${response.usage.prompt_tokens} prompt tokens, ${response.usage.completion_tokens} completion tokens`
+          : "Usage data not available"
+      }`
+    );
 
     const analysisText = response.choices[0].message.content;
-    console.log(`[LLM] Raw response (first 300 chars): ${analysisText.substring(0, 300)}...`);
-    
-    const analysis = JSON.parse(analysisText);
-    
-    console.log('[LLM] Analysis results:');
-    console.log(`[LLM] - Time complexity accurate: ${analysis.isTimeComplexityAccurate}`);
-    console.log(`[LLM] - Space complexity accurate: ${analysis.isSpaceComplexityAccurate}`);
-    console.log(`[LLM] - Actual time complexity: ${analysis.actualTimeComplexity}`);
-    console.log(`[LLM] - Actual space complexity: ${analysis.actualSpaceComplexity}`);
-    console.log(`[LLM] - Has improvement suggestion: ${!!analysis.improvement}`);
-    console.log(`[LLM] - Has optimized solution: ${!!analysis.optimizedSolution}`);
-    
-    return analysis;
+    console.log(
+      `[LLM] Raw response (first 300 chars): ${analysisText.substring(
+        0,
+        300
+      )}...`
+    );
 
+    const analysis = JSON.parse(analysisText);
+
+    console.log("[LLM] Analysis results:");
+    console.log(
+      `[LLM] - Time complexity accurate: ${analysis.isTimeComplexityAccurate}`
+    );
+    console.log(
+      `[LLM] - Space complexity accurate: ${analysis.isSpaceComplexityAccurate}`
+    );
+    console.log(
+      `[LLM] - Actual time complexity: ${analysis.actualTimeComplexity}`
+    );
+    console.log(
+      `[LLM] - Actual space complexity: ${analysis.actualSpaceComplexity}`
+    );
+    console.log(
+      `[LLM] - Has improvement suggestion: ${!!analysis.improvement}`
+    );
+    console.log(
+      `[LLM] - Has optimized solution: ${!!analysis.optimizedSolution}`
+    );
+
+    return analysis;
   } catch (error) {
-    console.error('[LLM] Analysis error:', error);
-    console.log('[LLM] Returning default analysis due to error');
-    
+    console.error("[LLM] Analysis error:", error);
+    console.log("[LLM] Returning default analysis due to error");
+
     // Return a safe default if LLM analysis fails
     return {
       improvement: "Unable to analyze the code due to service error",
@@ -96,7 +128,7 @@ async function analyzeProblemAndSolution(problem, code, timeComplexity, spaceCom
       actualTimeComplexity: timeComplexity,
       actualSpaceComplexity: spaceComplexity,
       explanation: "Analysis service unavailable: " + error.message,
-      optimizedSolution: "// Original code (analysis failed)\n" + code
+      optimizedSolution: "// Original code (analysis failed)\n" + code,
     };
   }
 }
