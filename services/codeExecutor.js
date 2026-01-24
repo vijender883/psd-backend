@@ -351,7 +351,10 @@ function runJavaProgram(executionDir, input) {
 // Run Python program
 function runPythonProgram(executionDir, input) {
   return new Promise((resolve, reject) => {
-    const process = spawn('python3', ['solution.py'], {
+    // Use 'py' launcher for Windows compatibility if python3 is not found
+    const pythonCommand = process.platform === 'win32' ? 'py' : 'python3';
+
+    const childProcess = spawn(pythonCommand, ['solution.py'], {
       cwd: executionDir,
       timeout: EXECUTION_TIMEOUT
     });
@@ -361,19 +364,19 @@ function runPythonProgram(executionDir, input) {
 
     // Provide input if needed
     if (input) {
-      process.stdin.write(input);
-      process.stdin.end();
+      childProcess.stdin.write(input);
+      childProcess.stdin.end();
     }
 
-    process.stdout.on('data', (data) => {
+    childProcess.stdout.on('data', (data) => {
       stdout += data.toString();
     });
 
-    process.stderr.on('data', (data) => {
+    childProcess.stderr.on('data', (data) => {
       stderr += data.toString();
     });
 
-    process.on('close', (code) => {
+    childProcess.on('close', (code) => {
       if (code !== 0) {
         // Format the stderr to show actual Python error
         const errorMessage = stderr.trim() || `Python execution failed with exit code ${code}`;
@@ -383,7 +386,7 @@ function runPythonProgram(executionDir, input) {
       }
     });
 
-    process.on('error', (err) => {
+    childProcess.on('error', (err) => {
       reject(new Error(`Failed to start Python execution process: ${err.message}`));
     });
   });
@@ -510,12 +513,12 @@ function runJavaScriptProgram(executionDir, input) {
       // DEBUG LOGGING START
       console.log(`[JS EXEC] Original Input: "${input.replace(/\n/g, '\\n')}"`);
       console.log(`[JS EXEC] OS EOL: "${os.EOL.replace(/\n/g, '\\n')}"`);
-      
+
       // We assume the test case input from the problem structure (e.g., '[1, 2, 3]\n2')
       // uses the literal characters \n to denote a line break, so we replace the
       // two characters '\\n' with the actual OS EOL character.
       const sanitizedInput = input.replace(/\\n/g, os.EOL); // Use os.EOL
-      
+
       console.log(`[JS EXEC] Sanitized Input (literal \\n replacement): "${sanitizedInput.replace(/\n/g, '\\n')}"`);
       // DEBUG LOGGING END
 
@@ -546,5 +549,5 @@ module.exports = {
   executeJavaCode,
   executePythonCode,
   executeJavaScriptCode,
-  executeApexCode 
+  executeApexCode
 };
