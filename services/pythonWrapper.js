@@ -11,7 +11,7 @@ async function generatePythonWrapper(executionDir, code) {
   const isPermutationInString = code.includes('check_inclusion');
   const isFruitIntoBaskets = code.includes('total_fruit');
   const isValidAnagram = code.includes('is_anagram');
-  const isThreeSum = code.includes('three_sum'); 
+  const isThreeSum = code.includes('three_sum');
   const isReverseString = code.includes('reverse_string');
   const isTwoSum = code.includes('two_sum');
   const isGPUOptimizer = code.includes('minimum_gpu_capacity');
@@ -212,11 +212,15 @@ if __name__ == "__main__":
     target = int(input().strip())
     
     # Create solution object and call function
-    solver = TwoSum()
+    solver = Solution()
     result = solver.two_sum(nums, target)
     
     # Output result
-    print(f"[{result[0]},{result[1]}]")
+    if result:
+        result.sort()
+        print(f"{result[0]} {result[1]}")
+    else:
+        print("")
 `
 }
 
