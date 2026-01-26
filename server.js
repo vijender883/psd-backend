@@ -1,4 +1,6 @@
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const { initializeDirectories } = require('./services/codeExecutor');
@@ -15,15 +17,36 @@ dotenv.config();
 
 // Create Express app
 const app = express();
+const server = http.createServer(app);
 
 const allowedOrigins = [
   'http://localhost:3000',  // Local development
   'http://localhost:3002',  // Local development
+  'http://localhost:5173',  // Vite default
+  'http://localhost:5174',  // Vite alternative
   'https://devui.alumnx.com',
   'https://alumnx.com',
   'https://psd-ui-omega.vercel.app',
   'https://practicalsystemdesign.com'
 ];
+
+const io = new Server(server, {
+  cors: {
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn("[CORS] Origin not allowed:", origin);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
+
+// Store io in app to access it in routes
+app.set('io', io);
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -37,20 +60,22 @@ app.use(cors({
 }));
 app.use(express.json());
 
+app.get('/ver', (req, res) => res.json({ version: "socket-v2" }));
+
 // Connect to MongoDB Atlas
 mongoose.connect(process.env.MONGODB_URI, {
   retryWrites: true,
   w: 'majority'
 })
-.then(() => {
-  console.log('MongoDB Atlas connected successfully');
-  const { host, name } = mongoose.connection;
-  console.log(`Connected to database: ${name} at host: ${host}`);
-})
-.catch(err => {
-  console.error('MongoDB Atlas connection error:', err);
-  process.exit(1);
-});
+  .then(() => {
+    console.log('MongoDB Atlas connected successfully');
+    const { host, name } = mongoose.connection;
+    console.log(`Connected to database: ${name} at host: ${host}`);
+  })
+  .catch(err => {
+    console.error('MongoDB Atlas connection error:', err);
+    process.exit(1);
+  });
 
 // Initialize code execution directories
 initializeDirectories()
@@ -94,13 +119,22 @@ app.use((err, req, res, next) => {
 });
 
 // Print routes for debugging
-app._router.stack.forEach(function(r){
-  if (r.route && r.route.path){
+app._router.stack.forEach(function (r) {
+  if (r.route && r.route.path) {
     console.log(r.route.path)
   }
 });
 
+// Socket.IO Logic
+io.on('connection', (socket) => {
+  console.log('A user connected:', socket.id);
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
+
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

@@ -3,16 +3,17 @@ const express = require('express');
 const router = express.Router();
 const Simulation = require('../models/Simulation');
 const SimulationParticipant = require('../models/SimulationParticipant'); // Keep for backward compatibility
+const ActiveDSA = require('../models/ActiveDSA');
 
 // Initialize simulations
 const initializeSimulations = async () => {
   try {
     // Check if simulations already exist
     const count = await Simulation.countDocuments();
-    
+
     if (count === 0) {
       console.log('No simulations found. Creating initial simulations...');
-      
+
       // Create initial simulations if none exist
       await Simulation.create([
         {
@@ -40,7 +41,7 @@ const initializeSimulations = async () => {
           resultsAvailableTime: null
         }
       ]);
-      
+
       console.log('Simulations initialized successfully');
     } else {
       console.log(`Found ${count} existing simulations. Skipping initialization.`);
@@ -63,30 +64,30 @@ initializeSimulations();
 router.post('/participants', async (req, res) => {
   try {
     const { userId, simulationId } = req.body;
-    
+
     if (!userId || !simulationId) {
       return res.status(400).json({
         success: false,
         error: 'userId and simulationId are required'
       });
     }
-    
+
     console.log('Registering user for simulation:', { userId, simulationId });
-    
+
     // Find the simulation
     let simulation = await Simulation.findOne({ simulationId });
-    
+
     if (!simulation) {
       return res.status(404).json({
         success: false,
         error: 'Simulation not found'
       });
     }
-    
+
     // Check if user is already registered
     if (simulation.participationIds.includes(userId)) {
       console.log('User already registered:', { userId, simulationId });
-      
+
       // Still create/update SimulationParticipant for backward compatibility
       let participant;
       try {
@@ -98,7 +99,7 @@ router.post('/participants', async (req, res) => {
       } catch (err) {
         console.error('Error updating SimulationParticipant:', err);
       }
-      
+
       return res.json({
         success: true,
         registered: true,
@@ -106,14 +107,14 @@ router.post('/participants', async (req, res) => {
         participant
       });
     }
-    
+
     // Add user to the simulation
     simulation = await Simulation.findOneAndUpdate(
       { simulationId },
       { $addToSet: { participationIds: userId } },
       { new: true }
     );
-    
+
     // Create SimulationParticipant for backward compatibility
     let participant;
     try {
@@ -129,7 +130,7 @@ router.post('/participants', async (req, res) => {
         console.error('Error creating SimulationParticipant:', error);
       }
     }
-    
+
     res.status(201).json({
       success: true,
       registered: true,
@@ -137,7 +138,7 @@ router.post('/participants', async (req, res) => {
       participant,
       simulation
     });
-    
+
   } catch (error) {
     console.error('Error registering for simulation:', error);
     res.status(500).json({
@@ -151,42 +152,42 @@ router.post('/participants', async (req, res) => {
 router.get('/participants/:userId/:simulationId', async (req, res) => {
   try {
     const { userId, simulationId } = req.params;
-    
+
     console.log('Checking if user is registered:', { userId, simulationId });
-    
+
     if (!userId || userId === 'undefined' || userId === 'null') {
       return res.status(400).json({
         success: false,
         error: 'Invalid userId provided'
       });
     }
-    
+
     if (!simulationId) {
       return res.status(400).json({
         success: false,
         error: 'simulationId is required'
       });
     }
-    
+
     // Find the simulation
     const simulation = await Simulation.findOne({ simulationId });
-    
+
     if (!simulation) {
       return res.status(404).json({
         success: false,
         error: 'Simulation not found'
       });
     }
-    
+
     // Check if user is registered
     const isRegistered = simulation.participationIds.includes(userId);
-    
+
     if (isRegistered) {
       console.log('User is registered:', { userId, simulationId });
-      
+
       // Get participant details for backward compatibility
       const participant = await SimulationParticipant.findOne({ userId, simulationId });
-      
+
       res.json({
         success: true,
         registered: true,
@@ -215,26 +216,26 @@ router.put('/participants/:userId/:simulationId/mcq', async (req, res) => {
   try {
     const { userId, simulationId } = req.params;
     const { mcqAttemptId } = req.body;
-    
+
     console.log('Updating MCQ attempt ID:', { userId, simulationId, mcqAttemptId });
-    
+
     if (!mcqAttemptId) {
       return res.status(400).json({
         success: false,
         error: 'mcqAttemptId is required'
       });
     }
-    
+
     // Find the simulation first to ensure user is registered
     const simulation = await Simulation.findOne({ simulationId });
-    
+
     if (!simulation) {
       return res.status(404).json({
         success: false,
         error: 'Simulation not found'
       });
     }
-    
+
     // If user is not registered, add them
     if (!simulation.participationIds.includes(userId)) {
       await Simulation.updateOne(
@@ -242,17 +243,17 @@ router.put('/participants/:userId/:simulationId/mcq', async (req, res) => {
         { $addToSet: { participationIds: userId } }
       );
     }
-    
+
     // Update the SimulationParticipant for backward compatibility
     const participant = await SimulationParticipant.findOneAndUpdate(
       { userId, simulationId },
-      { 
+      {
         $set: { mcqAttemptId },
         $setOnInsert: { userId, simulationId }
       },
       { upsert: true, new: true }
     );
-    
+
     res.json({
       success: true,
       participant
@@ -271,26 +272,26 @@ router.put('/participants/:userId/:simulationId/dsa', async (req, res) => {
   try {
     const { userId, simulationId } = req.params;
     const { dsaSubmissionId } = req.body;
-    
+
     console.log('Adding DSA submission ID:', { userId, simulationId, dsaSubmissionId });
-    
+
     if (!dsaSubmissionId) {
       return res.status(400).json({
         success: false,
         error: 'dsaSubmissionId is required'
       });
     }
-    
+
     // Find the simulation first to ensure user is registered
     const simulation = await Simulation.findOne({ simulationId });
-    
+
     if (!simulation) {
       return res.status(404).json({
         success: false,
         error: 'Simulation not found'
       });
     }
-    
+
     // If user is not registered, add them
     if (!simulation.participationIds.includes(userId)) {
       await Simulation.updateOne(
@@ -298,17 +299,17 @@ router.put('/participants/:userId/:simulationId/dsa', async (req, res) => {
         { $addToSet: { participationIds: userId } }
       );
     }
-    
+
     // Update the SimulationParticipant for backward compatibility
     const participant = await SimulationParticipant.findOneAndUpdate(
       { userId, simulationId },
-      { 
+      {
         $addToSet: { dsaSubmissionIds: dsaSubmissionId },
         $setOnInsert: { userId, simulationId }
       },
       { upsert: true, new: true }
     );
-    
+
     res.json({
       success: true,
       participant
@@ -326,16 +327,16 @@ router.put('/participants/:userId/:simulationId/dsa', async (req, res) => {
 router.get('/:simulationId', async (req, res) => {
   try {
     const { simulationId } = req.params;
-    
+
     const simulation = await Simulation.findOne({ simulationId });
-    
+
     if (!simulation) {
       return res.status(404).json({
         success: false,
         error: 'Simulation not found'
       });
     }
-    
+
     res.json({
       success: true,
       simulation
@@ -353,7 +354,7 @@ router.get('/:simulationId', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const simulations = await Simulation.find();
-    
+
     res.json({
       success: true,
       simulations
@@ -372,27 +373,27 @@ router.put('/:simulationId/mcq-tests', async (req, res) => {
   try {
     const { simulationId } = req.params;
     const { mcqTests } = req.body;
-    
+
     if (!Array.isArray(mcqTests)) {
       return res.status(400).json({
         success: false,
         error: 'mcqTests must be an array'
       });
     }
-    
+
     const simulation = await Simulation.findOneAndUpdate(
       { simulationId },
       { $set: { 'testsId.mcqTests': mcqTests } },
       { new: true }
     );
-    
+
     if (!simulation) {
       return res.status(404).json({
         success: false,
         error: 'Simulation not found'
       });
     }
-    
+
     res.json({
       success: true,
       simulation
@@ -411,27 +412,27 @@ router.put('/:simulationId/dsa-tests', async (req, res) => {
   try {
     const { simulationId } = req.params;
     const { dsaTests } = req.body;
-    
+
     if (!Array.isArray(dsaTests)) {
       return res.status(400).json({
         success: false,
         error: 'dsaTests must be an array'
       });
     }
-    
+
     const simulation = await Simulation.findOneAndUpdate(
       { simulationId },
       { $set: { 'testsId.dsaTests': dsaTests } },
       { new: true }
     );
-    
+
     if (!simulation) {
       return res.status(404).json({
         success: false,
         error: 'Simulation not found'
       });
     }
-    
+
     res.json({
       success: true,
       simulation
@@ -449,24 +450,24 @@ router.put('/:simulationId/dsa-tests', async (req, res) => {
 router.get('/:simulationId/status', async (req, res) => {
   try {
     const { simulationId } = req.params;
-    
+
     const simulation = await Simulation.findOne({ simulationId });
-    
+
     if (!simulation) {
       return res.status(404).json({
         success: false,
         error: 'Simulation not found'
       });
     }
-    
+
     // Get current date/time
     const now = new Date();
-    
+
     // Simple status check
     const resultsAvailable = simulation.areResultsAvailable();
-    const timeUntilAvailable = simulation.resultsAvailableTime ? 
+    const timeUntilAvailable = simulation.resultsAvailableTime ?
       Math.max(0, simulation.resultsAvailableTime - now) : 0;
-    
+
     res.json({
       success: true,
       data: {
@@ -490,26 +491,26 @@ router.put('/:simulationId/availability', async (req, res) => {
   try {
     const { simulationId } = req.params;
     const { resultsAvailableTime } = req.body;
-    
+
     const updates = {};
-    
+
     if (resultsAvailableTime !== undefined) {
       updates.resultsAvailableTime = resultsAvailableTime ? new Date(resultsAvailableTime) : null;
     }
-    
+
     const simulation = await Simulation.findOneAndUpdate(
       { simulationId },
       { $set: updates },
       { new: true }
     );
-    
+
     if (!simulation) {
       return res.status(404).json({
         success: false,
         error: 'Simulation not found'
       });
     }
-    
+
     res.json({
       success: true,
       simulation
@@ -520,6 +521,74 @@ router.put('/:simulationId/availability', async (req, res) => {
       success: false,
       error: 'Failed to update simulation availability'
     });
+  }
+});
+
+// GET active DSA status
+router.get('/v2/active-dsa/status', async (req, res) => {
+  try {
+    const activeData = await ActiveDSA.findOne({ isActive: true });
+    res.json({
+      success: true,
+      activeData: activeData || null,
+      data: activeData || null // Keep both for safety
+    });
+  } catch (error) {
+    console.error('[ACTIVATION] Status fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ACTIVATE a DSA problem
+router.post('/v2/active-dsa/activate', async (req, res) => {
+  try {
+    const { problemId, title, simulationId = "1", duration = 30 } = req.body;
+
+    if (!problemId) return res.status(400).json({ success: false, error: 'problemId is required' });
+
+    console.log(`[ACTIVATION] Activating problem ${problemId}: ${title} (Sim: ${simulationId})`);
+
+    // Clear ALL active problems first to ensure no duplicates/stale data
+    await ActiveDSA.deleteMany({});
+
+    // Create the new active problem
+    const activeData = await ActiveDSA.create({
+      problemId,
+      title,
+      simulationId,
+      isActive: true,
+      duration,
+      activationTime: new Date()
+    });
+
+    res.json({
+      success: true,
+      message: 'Problem activated successfully',
+      activeData,
+      data: activeData // Keep both for safety
+    });
+  } catch (error) {
+    console.error('[ACTIVATION] Activation error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DEACTIVATE a DSA problem
+router.post('/v2/active-dsa/deactivate', async (req, res) => {
+  try {
+    const { problemId } = req.body;
+
+    console.log(`[ACTIVATION] Deactivating problem ${problemId}`);
+
+    await ActiveDSA.deleteMany({});
+
+    res.json({
+      success: true,
+      message: 'Problems deactivated successfully'
+    });
+  } catch (error) {
+    console.error('[ACTIVATION] Deactivation error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
