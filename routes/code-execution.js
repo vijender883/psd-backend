@@ -20,8 +20,9 @@ function initializeTestConfig(simulationId) {
 
   if (!testConfigurations[simulationId]) {
     testConfigurations[simulationId] = {
-      scheduledStartTime: new Date('2025-10-01T04:30:00Z').toISOString(),
-      testDuration: 60 * 60, // 3 minutes (changed from 60 minutes for testing)
+      // Set start time to now so the test is always active for development
+      scheduledStartTime: new Date().toISOString(),
+      testDuration: 60 * 60 * 24, // 24 hours duration for testing
       allowLateEntry: false
     };
     configChanged = true;
@@ -160,6 +161,77 @@ router.get('/submission/results/:id', async (req, res) => {
         message: 'Failed to fetch submission',
         stack: error.message
       }
+    });
+  }
+});
+
+// Check submission status endpoint
+router.post('/simulation/problem', async (req, res) => {
+  try {
+    const { simulationId, problemId, userId } = req.body;
+
+    // First try to find problem in global problems list (fallback)
+    let problem = problems[problemId];
+
+    // If not found, try to find in simulation specific questions if needed
+    // (This part depends on if we strictly want simulation-scoped problems)
+
+    if (!problem) {
+      // Try fetching from simulation DB object if not in static list
+      const simulation = await Simulation.findOne({ simulationId });
+      if (simulation) {
+        const dsaQ = simulation.getDSAQuestionById(problemId);
+        if (dsaQ) problem = dsaQ.toObject();
+      }
+    }
+
+    if (!problem) {
+      return res.status(404).json({
+        success: false,
+        error: 'Problem not found'
+      });
+    }
+
+    // Check submission status if userId provided
+    let isSubmitted = false;
+    let submittedCode = null;
+    let submissionId = null;
+
+    if (userId) {
+      const submission = await Submission.findOne({
+        userId: userId.trim(),
+        problemId: problemId
+      });
+
+      if (submission && submission.isSubmitted) {
+        isSubmitted = true;
+        submittedCode = submission.code;
+        submissionId = submission._id;
+      }
+    }
+
+    // Retrieve problem details
+    const { testCases, templates, solution, ...problemData } = problem;
+
+    // Determine template to send (default to Python or first available)
+    const functionTemplate = problem.templates?.python || problem.templates?.java || Object.values(problem.templates || {})[0] || "";
+
+    res.json({
+      success: true,
+      problem: {
+        ...problemData,
+        functionTemplate
+      },
+      code: submittedCode,
+      isSubmitted,
+      submissionId
+    });
+
+  } catch (error) {
+    console.error('Error fetching problem details:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch problem details'
     });
   }
 });
@@ -352,6 +424,58 @@ router.post('/run', async (req, res) => {
   }
 });
 
+
+// Route alias for frontend compatibility
+router.post('/simulations/run', async (req, res) => {
+  // Use the same logic as /run endpoint
+  const { code, problemId, language = 'python', timeComplexity, spaceComplexity } = req.body;
+
+  // Input validation
+  if (!code || !problemId) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        message: 'Missing required fields',
+        stack: 'Code and problemId are required'
+      }
+    });
+  }
+
+  const problem = problems[problemId];
+  if (!problem) {
+    return res.status(404).json({
+      success: false,
+      error: {
+        message: 'Problem not found',
+        stack: `No problem found with ID: ${problemId}`
+      }
+    });
+  }
+
+  try {
+    // Take only first two test cases
+    const limitedTestCases = problem.testCases.slice(0, 2);
+
+    // Execute code against limited test cases, passing the language parameter
+    const result = await executeCode(code, limitedTestCases, language);
+
+    if (!result.success) {
+      return res.json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Code execution error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Execution failed',
+        stack: error.message
+      }
+    });
+  }
+});
+
 // Get a specific problem with language parameter
 router.get('/problems/:id', (req, res) => {
   const { id } = req.params;
@@ -453,6 +577,7 @@ router.post('/analyze', async (req, res) => {
       pseudocode: (pseudocode !== undefined && pseudocode !== null) ? pseudocode : '',
       timeComplexity: (timeComplexity !== undefined && timeComplexity !== null) ? timeComplexity : (existingSubmission.timeComplexity || ''),
       spaceComplexity: (spaceComplexity !== undefined && spaceComplexity !== null) ? spaceComplexity : (existingSubmission.spaceComplexity || ''),
+      timeTaken: req.body.timeTaken || 0,
       language,
       executionTime: 0,
       score: 0,
@@ -517,6 +642,115 @@ router.post('/analyze', async (req, res) => {
     });
   }
 });
+
+// Route alias for submission compatibility
+router.post('/simulations/submit-problem', async (req, res) => {
+  // Use the same logic as /analyze endpoint
+  const { code, pseudocode, timeComplexity, spaceComplexity, problemId, username, userId, language = 'python' } = req.body;
+
+  console.log(`Received submission request (legacy route) from ${username} (ID: ${userId}) for problem ${problemId}`);
+
+  const problem = problems[problemId];
+  if (!problem) {
+    console.log(`Problem ${problemId} not found`);
+    return res.status(404).json({
+      success: false,
+      error: 'Problem not found'
+    });
+  }
+
+  try {
+    // First, check if this user has already submitted for this problem
+    const existingSubmission = await Submission.findOne({
+      userId: userId.trim(),
+      problemId: problemId
+    });
+
+    if (existingSubmission) {
+      // User has already submitted for this problem
+      console.log(`User ${username} (ID: ${userId}) has already submitted for problem ${problemId}, submission ID: ${existingSubmission._id}`);
+      return res.json({
+        success: true,
+        message: "You have already submitted a solution for this problem",
+        submissionId: existingSubmission._id,
+        alreadySubmitted: true
+      });
+    }
+
+    console.log(`Creating new submission record for ${username} (ID: ${userId}) on problem ${problemId}`);
+
+    // Create a submission record immediately without waiting for execution
+    const submission = new Submission({
+      username,
+      userId,
+      problemId,
+      code,
+      pseudocode: (pseudocode !== undefined && pseudocode !== null) ? pseudocode : '',
+      timeComplexity: (timeComplexity !== undefined && timeComplexity !== null) ? timeComplexity : (existingSubmission?.timeComplexity || ''),
+      spaceComplexity: (spaceComplexity !== undefined && spaceComplexity !== null) ? spaceComplexity : (existingSubmission?.spaceComplexity || ''),
+      timeTaken: req.body.timeTaken || 0,
+      language,
+      executionTime: 0,
+      score: 0,
+      passedTests: 0,
+      totalTests: problem.testCases.length,
+      results: [],
+      show: false,
+      processingComplete: false,
+      isSubmitted: true
+    });
+
+    await submission.save();
+    console.log(`Submission record created with ID: ${submission._id}`);
+
+    // Start processing in the background without waiting for it to complete
+    console.log(`Initiating background processing for submission ${submission._id}`);
+    processSubmissionAsync(submission._id, code, problem, language)
+      .catch(err => console.error(`Background processing error for submission ${submission._id}:`, err));
+
+    // Return success immediately
+    console.log(`Returning success response to client for submission ${submission._id}`);
+    res.json({
+      success: true,
+      message: "Submission received successfully",
+      submissionId: submission._id,
+      pendingApproval: true
+    });
+
+  } catch (error) {
+    // Check if this is a duplicate key error (MongoDB error code 11000)
+    if (error.code === 11000) {
+      console.log(`Duplicate submission detected from ${username} for problem ${problemId}`);
+      try {
+        const existingSubmission = await Submission.findOne({
+          username: username.trim(),
+          problemId: problemId
+        });
+
+        if (existingSubmission) {
+          return res.json({
+            success: true,
+            message: "You have already submitted a solution for this problem",
+            submissionId: existingSubmission._id,
+            alreadySubmitted: true
+          });
+        }
+      } catch (findError) {
+        console.error('Error finding existing submission:', findError);
+      }
+    }
+
+    console.error('Submission processing error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Submission processing failed',
+        stack: error.message
+      }
+    });
+  }
+});
+
 
 router.get('/debug/submission/:id', async (req, res) => {
   try {
@@ -728,6 +962,81 @@ router.get('/leaderboard/:problemId', async (req, res) => {
   }
 });
 
+// Get problems for a specific simulation - FIXED AND CONSOLIDATED
+router.get('/simulation/:simulationId/problems', async (req, res) => {
+  try {
+    const { simulationId } = req.params;
+    const simulation = await Simulation.findOne({ simulationId });
+
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Simulation not found'
+      });
+    }
+
+    // Get unique problem IDs from both sources
+    const problemIdsSet = new Set();
+
+    // 1. From dsa_questions (full objects)
+    if (simulation.dsa_questions && simulation.dsa_questions.length > 0) {
+      simulation.dsa_questions.forEach(q => problemIdsSet.add(q.id));
+    }
+
+    // 2. From testsId.dsaTests (legacy IDs)
+    if (simulation.testsId && simulation.testsId.dsaTests && simulation.testsId.dsaTests.length > 0) {
+      simulation.testsId.dsaTests.forEach(id => problemIdsSet.add(id));
+    }
+
+    // 3. From currently active DSA challenge (for this simulation)
+    try {
+      const ActiveDSA = require('../models/ActiveDSA');
+      const activeChallenge = await ActiveDSA.findOne({ simulationId, isActive: true });
+      if (activeChallenge) {
+        problemIdsSet.add(activeChallenge.problemId);
+      }
+    } catch (err) {
+      console.warn('Error fetching active challenge for problem list:', err.message);
+    }
+
+    res.json({
+      success: true,
+      simulationId,
+      problemIds: Array.from(problemIdsSet)
+    });
+  } catch (error) {
+    console.error('Error fetching simulation problems:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch simulation problems'
+    });
+  }
+});
+
+// Route alias for frontend compatibility
+router.get('/simulation-time/:simulationId', async (req, res) => {
+  try {
+    const { simulationId } = req.params;
+
+    // Initialize if not exists and schedule visibility update
+    const config = initializeTestConfig(simulationId);
+
+    res.json({
+      success: true,
+      data: {
+        scheduled_start_time: config.scheduledStartTime
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching scheduled start time:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch scheduled start time'
+    });
+  }
+});
+
 router.get('/scheduledStartTime/:simulationId', async (req, res) => {
   try {
     const { simulationId } = req.params;
@@ -764,6 +1073,7 @@ router.get('/scheduledStartTime/:simulationId', async (req, res) => {
     });
   }
 });
+
 
 // Get a specific problem from simulation with language parameter
 router.get('/simulation/:simulationId/problems/:problemId', async (req, res) => {
@@ -827,63 +1137,6 @@ router.get('/simulation/:simulationId/problems/:problemId', async (req, res) => 
   }
 });
 
-router.get('/simulation/:simulationId/problems', async (req, res) => {
-  try {
-    const { simulationId } = req.params;
-    const cacheKey = `simulation_${simulationId}_problems`;
-
-    // Check cache first
-    if (problemsCache.has(cacheKey)) {
-      return res.json(problemsCache.get(cacheKey));
-    }
-
-    // Find the simulation
-    const simulation = await Simulation.findOne({ simulationId });
-    if (!simulation) {
-      return res.status(404).json({
-        success: false,
-        error: 'Simulation not found'
-      });
-    }
-
-    // Extract and format the DSA questions to match /problems payload structure
-    const problemList = simulation.dsa_questions.map(problem => {
-      // Convert Mongoose document to plain object if needed
-      const problemObj = problem.toObject ? problem.toObject() : problem;
-
-      // Remove internal fields (testCases, templates, solution) like in /problems endpoint
-      const { testCases, templates, solution, ...problemData } = problemObj;
-
-      return {
-        id: problemData.id,
-        title: problemData.title,
-        description: problemData.description,
-        inputFormat: problemData.inputFormat,
-        outputFormat: problemData.outputFormat,
-        constraints: problemData.constraints || [],
-        examples: problemData.examples || [],
-        miscellaneous: problemData.miscellaneous || {},
-        showSolution: !!solution // Boolean indicating if solution exists
-      };
-    });
-
-    // Cache the response
-    problemsCache.set(cacheKey, problemList);
-    setTimeout(() => problemsCache.delete(cacheKey), CACHE_TTL);
-
-    res.json(problemList);
-
-  } catch (error) {
-    console.error('Error fetching simulation problems:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Failed to fetch simulation problems',
-        stack: error.message
-      }
-    });
-  }
-});
 
 router.post('/simulations/:simulationId/:userId/:username/run', async (req, res) => {
   const { simulationId, userId, username } = req.params;
@@ -1234,37 +1487,9 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
   }
 });
 
-// New endpoint: Get leaderboard for a specific simulation
-router.get('/simulations/:simulationId/leaderboard', async (req, res) => {
-  try {
-    const { simulationId } = req.params;
-    const limit = parseInt(req.query.limit) || 50;
+// NOTE: Leaderboard endpoint moved to /api/leaderboard/simulations/:simulationId/leaderboard
+// This duplicate route has been removed to avoid conflicts
 
-    console.log(`Fetching leaderboard for simulation ${simulationId} with limit ${limit}`);
-
-    // Get leaderboard data using the Leaderboard model
-    const leaderboard = await Leaderboard.getLeaderboard(simulationId, limit);
-
-    res.json({
-      success: true,
-      data: {
-        simulationId: simulationId,
-        leaderboard: leaderboard,
-        totalEntries: leaderboard.length
-      }
-    });
-
-  } catch (error) {
-    console.error(`Error fetching leaderboard for simulation ${simulationId}:`, error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Failed to fetch leaderboard data',
-        stack: error.message
-      }
-    });
-  }
-});
 
 
 

@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 
 const LeaderboardSchema = new mongoose.Schema({
-  userid: {
+  userId: {
     type: String,
     required: true
   },
@@ -10,105 +10,76 @@ const LeaderboardSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  simulationid: {
+  simulationId: {
     type: String,
     required: true
   },
-  score: {
+  college: {
+    type: String,
+    default: 'Not specified'
+  },
+  mcqScore: {
+    type: Number,
+    default: 0
+  },
+  dsaScores: {
+    type: Map,
+    of: Number,
+    default: {}
+  },
+  totalScore: {
     type: Number,
     required: true,
     default: 0
   },
-  submitted_time: {
+  totalPassedTests: {
+    type: Number,
+    default: 0
+  },
+  totalTestsCount: {
+    type: Number,
+    default: 0
+  },
+  totalTimeTaken: {
+    type: Number,
+    default: 0
+  },
+  lastSubmissionTime: {
     type: Date,
     required: true,
     default: Date.now
   }
-}, { 
+}, {
   timestamps: true,
   collection: 'leaderboard_data'
 });
 
-// Create compound index on userid and simulationid for efficient lookups
-LeaderboardSchema.index({ userid: 1, simulationid: 1 }, { unique: true });
+// Create compound index on userId and simulationId for efficient lookups
+LeaderboardSchema.index({ userId: 1, simulationId: 1 }, { unique: true });
 
-// Create index on simulationid for leaderboard queries
-LeaderboardSchema.index({ simulationid: 1 });
+// Create index on simulationId for leaderboard queries
+LeaderboardSchema.index({ simulationId: 1 });
 
 // Static method to add or update leaderboard entry
-LeaderboardSchema.statics.add_to_leaderboard = async function(simulationid, userid, username, score, submitted_time) {
+LeaderboardSchema.statics.add_to_leaderboard = async function (simulationId, userId, username, score, submittedTime) {
   try {
-    console.log(`📊 Updating leaderboard: simulation=${simulationid}, user=${userid}, username=${username}, score=${score}`);
-    
-    // Try to find existing entry
-    const existingEntry = await this.findOne({ userid, simulationid });
-    
-    if (existingEntry) {
-      // Update existing entry: add new score to existing score
-      const newScore = existingEntry.score + score;
-      console.log(`✅ Found existing entry. Old score: ${existingEntry.score}, New score: ${newScore}`);
-      
-      const updatedEntry = await this.findOneAndUpdate(
-        { userid, simulationid },
-        { 
-          username, // Update username in case it changed
-          score: newScore,
-          submitted_time: submitted_time 
-        },
-        { new: true }
-      );
-      
-      console.log(`🔄 Updated leaderboard entry for user ${userid} (${username}) in simulation ${simulationid}`);
-      return updatedEntry;
-    } else {
-      // Create new entry
-      const newEntry = new this({
-        userid,
-        username,
-        simulationid,
-        score,
-        submitted_time
-      });
-      
-      const savedEntry = await newEntry.save();
-      console.log(`🆕 Created new leaderboard entry for user ${userid} (${username}) in simulation ${simulationid}`);
-      return savedEntry;
-    }
-  } catch (error) {
-    console.error(`❌ Error in add_to_leaderboard for user ${userid} (${username}) in simulation ${simulationid}:`, error);
-    throw error;
+    // We'll reuse the existing updateSingleUserLeaderboard logic indirectly
+    // By simply ensuring an entry exists. The route's GET will "heal" it.
+    // However, for immediate update, we can do a basic upsert here.
+    return await this.findOneAndUpdate(
+      { userId: userId.trim(), simulationId },
+      {
+        $set: {
+          username: username,
+          lastSubmissionTime: submittedTime
+        }
+      },
+      { upsert: true, new: true }
+    );
+  } catch (err) {
+    console.error('Error in add_to_leaderboard:', err);
+    throw err;
   }
-};
-
-// Static method to get leaderboard for a simulation with ranks
-LeaderboardSchema.statics.getLeaderboard = async function(simulationid, limit = 50) {
-  try {
-    const leaderboard = await this.find({ simulationid })
-      .sort({ score: -1, submitted_time: 1 }) // Higher score first, then earlier submission time
-      .limit(limit)
-      .select('userid username score submitted_time -_id');
-    
-    // Add rank to each entry
-    const leaderboardWithRanks = leaderboard.map((entry, index) => ({
-      rank: index + 1,
-      userid: entry.userid,
-      username: entry.username,
-      score: entry.score,
-      submitted_time: entry.submitted_time
-    }));
-    
-    return leaderboardWithRanks;
-  } catch (error) {
-    console.error(`❌ Error fetching leaderboard for simulation ${simulationid}:`, error);
-    throw error;
-  }
-};
-
-// Instance method to increment score
-LeaderboardSchema.methods.incrementScore = function(additionalScore, newSubmittedTime) {
-  this.score += additionalScore;
-  this.submitted_time = newSubmittedTime || new Date();
-  return this.save();
 };
 
 module.exports = mongoose.model('Leaderboard', LeaderboardSchema);
