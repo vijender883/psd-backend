@@ -6,6 +6,8 @@ const SimulationParticipant = require('../models/SimulationParticipant'); // Kee
 const ActiveDSA = require('../models/ActiveDSA');
 
 // Initialize simulations
+const { problems } = require('../models/problems');
+
 const initializeSimulations = async () => {
   try {
     // Check if simulations already exist
@@ -22,8 +24,13 @@ const initializeSimulations = async () => {
           description: "Test your DSA skills with coding and MCQ tests",
           testsId: {
             mcqTests: [], // Will be dynamically populated
-            dsaTests: ["countconsecutive", "closestvalueinrotatedarray"]
+            dsaTests: ["countconsecutive", "closestvalueinrotatedarray", "twosum"]
           },
+          dsa_questions: [
+            problems['countconsecutive'],
+            problems['closestvalueinrotatedarray'],
+            problems['twosum']
+          ].filter(Boolean),
           participationIds: [],
           // Add the new field with null default (results available immediately)
           resultsAvailableTime: null
@@ -36,6 +43,10 @@ const initializeSimulations = async () => {
             mcqTests: [], // Will be dynamically populated
             dsaTests: ["longestincreasing", "longestcommonprefix"]
           },
+          dsa_questions: [
+            problems['longestincreasing'],
+            problems['longestcommonprefix']
+          ].filter(Boolean),
           participationIds: [],
           // Add the new field with null default (results available immediately)
           resultsAvailableTime: null
@@ -44,7 +55,41 @@ const initializeSimulations = async () => {
 
       console.log('Simulations initialized successfully');
     } else {
-      console.log(`Found ${count} existing simulations. Skipping initialization.`);
+      console.log(`Found ${count} existing simulations. Verifying data integrity...`);
+
+      // Force update simulation 1 to ensure dsa_questions are populated
+      const sim1 = await Simulation.findOne({ simulationId: "1" });
+      if (sim1) {
+        console.log("Checking Simulation 1 for missing problems...");
+        let needSave = false;
+
+        // Ensure IDs are present
+        const requiredIds = ["countconsecutive", "closestvalueinrotatedarray", "twosum"];
+        requiredIds.forEach(id => {
+          if (!sim1.testsId.dsaTests.includes(id)) {
+            sim1.testsId.dsaTests.push(id);
+            needSave = true;
+            console.log(`Added missing ID: ${id}`);
+          }
+        });
+
+        // Ensure content is present in dsa_questions
+        requiredIds.forEach(id => {
+          const exists = sim1.dsa_questions.some(q => q.id === id);
+          if (!exists && problems[id]) {
+            sim1.dsa_questions.push(problems[id]);
+            needSave = true;
+            console.log(`Added missing problem content: ${id}`);
+          }
+        });
+
+        if (needSave) {
+          await sim1.save();
+          console.log("Simulation 1 updated with missing data.");
+        } else {
+          console.log("Simulation 1 is up to date.");
+        }
+      }
     }
   } catch (error) {
     console.error('Error initializing simulations:', error);

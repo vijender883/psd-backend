@@ -1,5 +1,75 @@
 // models/problems.js
 const problems = {
+  'twosum': {
+    id: "twosum",
+    title: "Two Sum",
+    description: "Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.\n\nYou may assume that each input would have **exactly one solution**, and you may not use the *same* element twice.\n\nYou can return the answer in any order.",
+    inputFormat: "The first line contains space-separated integers representing the array `nums`.\nThe second line contains a single integer `target`.",
+    outputFormat: "Return the indices of the two numbers as space-separated integers.",
+    constraints: [
+      "2 <= nums.length <= 10^4",
+      "-10^9 <= nums[i] <= 10^9",
+      "-10^9 <= target <= 10^9",
+      "Only one valid answer exists."
+    ],
+    examples: [
+      {
+        name: "Example 1",
+        input: "2 7 11 15\n9",
+        output: "0 1"
+      },
+      {
+        name: "Example 2",
+        input: "3 2 4\n6",
+        output: "1 2"
+      },
+      {
+        name: "Example 3",
+        input: "3 3\n6",
+        output: "0 1"
+      }
+    ],
+    miscellaneous: {
+      name: "Follow-up",
+      description: "Can you come up with an algorithm that is less than O(n²) time complexity?"
+    },
+    templates: {
+      java: "class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        // Write your code here\n    }\n}",
+      python: "class Solution:\n    def two_sum(self, nums, target):\n        # Write your code here\n        pass"
+    },
+    solution: `class Solution:
+    def two_sum(self, nums, target):
+        prevMap = {}  # val : index
+        
+        for i, n in enumerate(nums):
+            diff = target - n
+            if diff in prevMap:
+                return [prevMap[diff], i]
+            prevMap[n] = i
+        return []`,
+    testCases: [
+      {
+        input: "2 7 11 15\n9",
+        expectedOutput: "0 1",
+        description: "Basic case"
+      },
+      {
+        input: "3 2 4\n6",
+        expectedOutput: "1 2",
+        description: "Not sorted array"
+      },
+      {
+        input: "3 3\n6",
+        expectedOutput: "0 1",
+        description: "Same elements"
+      },
+      {
+        input: "-1 -2 -3 -4 -5\n-8",
+        expectedOutput: "2 4",
+        description: "Negative numbers"
+      }
+    ]
+  },
   'traffic_flow_analysis': {
     id: "traffic_flow_analysis",
     title: "Smart City Traffic Flow Analysis",
