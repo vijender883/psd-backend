@@ -1249,6 +1249,54 @@ Find the element in the array that is closest in value to the target. If there a
         description: 'Completely different characters'
       }
     ]
+  },
+  'twosum': {
+    id: 'twosum',
+    title: 'Two Sum',
+    description: 'Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`. You may assume that each input would have exactly one solution, and you may not use the same element twice. You can return the answer in any order.',
+    inputFormat: 'The first line contains space-separated integers representing the array.\nThe second line contains a single integer target.',
+    outputFormat: 'Return two space-separated integers representing the indices.',
+    constraints: [
+      '2 <= nums.length <= 10^4',
+      '-10^9 <= nums[i] <= 10^9',
+      '-10^9 <= target <= 10^9',
+      'Only one valid answer exists.'
+    ],
+    examples: [
+      {
+        name: 'Example 1',
+        input: '2 7 11 15\n9',
+        output: '0 1'
+      },
+      {
+        name: 'Example 2',
+        input: '3 2 4\n6',
+        output: '1 2'
+      }
+    ],
+    templates: {
+      java: 'class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        // Your code here\n    }\n}',
+      python: 'class Solution:\n    def two_sum(self, nums, target):\n        # Your code here\n        pass',
+      javascript: 'function twoSum(nums, target) {\n    // Your code here\n}'
+    },
+    solution: 'function twoSum(nums, target) {\n    const map = new Map();\n    for (let i = 0; i < nums.length; i++) {\n        const complement = target - nums[i];\n        if (map.has(complement)) {\n            return [map.get(complement), i];\n        }\n        map.set(nums[i], i);\n    }\n}',
+    testCases: [
+      {
+        input: '2 7 11 15\n9',
+        expectedOutput: '0 1',
+        description: 'Target is sum of first two elements'
+      },
+      {
+        input: '3 2 4\n6',
+        expectedOutput: '1 2',
+        description: 'Target is sum of last two elements'
+      },
+      {
+        input: '3 3\n6',
+        expectedOutput: '0 1',
+        description: 'Two identical elements'
+      }
+    ]
   }
 };
 

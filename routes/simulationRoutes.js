@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const Simulation = require('../models/Simulation');
 const SimulationParticipant = require('../models/SimulationParticipant'); // Keep for backward compatibility
+const ActiveDSA = require('../models/ActiveDSA');
 
 // Initialize simulations
 const { problems } = require('../models/problems');
@@ -565,6 +566,74 @@ router.put('/:simulationId/availability', async (req, res) => {
       success: false,
       error: 'Failed to update simulation availability'
     });
+  }
+});
+
+// GET active DSA status
+router.get('/v2/active-dsa/status', async (req, res) => {
+  try {
+    const activeData = await ActiveDSA.findOne({ isActive: true });
+    res.json({
+      success: true,
+      activeData: activeData || null,
+      data: activeData || null // Keep both for safety
+    });
+  } catch (error) {
+    console.error('[ACTIVATION] Status fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ACTIVATE a DSA problem
+router.post('/v2/active-dsa/activate', async (req, res) => {
+  try {
+    const { problemId, title, simulationId = "1", duration = 30 } = req.body;
+
+    if (!problemId) return res.status(400).json({ success: false, error: 'problemId is required' });
+
+    console.log(`[ACTIVATION] Activating problem ${problemId}: ${title} (Sim: ${simulationId})`);
+
+    // Clear ALL active problems first to ensure no duplicates/stale data
+    await ActiveDSA.deleteMany({});
+
+    // Create the new active problem
+    const activeData = await ActiveDSA.create({
+      problemId,
+      title,
+      simulationId,
+      isActive: true,
+      duration,
+      activationTime: new Date()
+    });
+
+    res.json({
+      success: true,
+      message: 'Problem activated successfully',
+      activeData,
+      data: activeData // Keep both for safety
+    });
+  } catch (error) {
+    console.error('[ACTIVATION] Activation error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DEACTIVATE a DSA problem
+router.post('/v2/active-dsa/deactivate', async (req, res) => {
+  try {
+    const { problemId } = req.body;
+
+    console.log(`[ACTIVATION] Deactivating problem ${problemId}`);
+
+    await ActiveDSA.deleteMany({});
+
+    res.json({
+      success: true,
+      message: 'Problems deactivated successfully'
+    });
+  } catch (error) {
+    console.error('[ACTIVATION] Deactivation error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

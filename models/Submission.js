@@ -25,6 +25,10 @@ const SubmissionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  timeTaken: {
+    type: Number,
+    default: 0
+  },
   show: {
     type: Boolean,
     required: true,

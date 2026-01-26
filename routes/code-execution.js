@@ -577,6 +577,7 @@ router.post('/analyze', async (req, res) => {
       pseudocode: (pseudocode !== undefined && pseudocode !== null) ? pseudocode : '',
       timeComplexity: (timeComplexity !== undefined && timeComplexity !== null) ? timeComplexity : (existingSubmission.timeComplexity || ''),
       spaceComplexity: (spaceComplexity !== undefined && spaceComplexity !== null) ? spaceComplexity : (existingSubmission.spaceComplexity || ''),
+      timeTaken: req.body.timeTaken || 0,
       language,
       executionTime: 0,
       score: 0,
@@ -687,6 +688,7 @@ router.post('/simulations/submit-problem', async (req, res) => {
       pseudocode: (pseudocode !== undefined && pseudocode !== null) ? pseudocode : '',
       timeComplexity: (timeComplexity !== undefined && timeComplexity !== null) ? timeComplexity : (existingSubmission?.timeComplexity || ''),
       spaceComplexity: (spaceComplexity !== undefined && spaceComplexity !== null) ? spaceComplexity : (existingSubmission?.spaceComplexity || ''),
+      timeTaken: req.body.timeTaken || 0,
       language,
       executionTime: 0,
       score: 0,
@@ -960,7 +962,7 @@ router.get('/leaderboard/:problemId', async (req, res) => {
   }
 });
 
-// Get problems for a specific simulation
+// Get problems for a specific simulation - FIXED AND CONSOLIDATED
 router.get('/simulation/:simulationId/problems', async (req, res) => {
   try {
     const { simulationId } = req.params;
@@ -973,19 +975,34 @@ router.get('/simulation/:simulationId/problems', async (req, res) => {
       });
     }
 
-    // Get problem IDs from dsa_questions first, then fallback to testsId.dsaTests
-    let problemIds = [];
+    // Get unique problem IDs from both sources
+    const problemIdsSet = new Set();
 
+    // 1. From dsa_questions (full objects)
     if (simulation.dsa_questions && simulation.dsa_questions.length > 0) {
-      problemIds = simulation.dsa_questions.map(q => q.id);
-    } else if (simulation.testsId && simulation.testsId.dsaTests && simulation.testsId.dsaTests.length > 0) {
-      problemIds = simulation.testsId.dsaTests;
+      simulation.dsa_questions.forEach(q => problemIdsSet.add(q.id));
+    }
+
+    // 2. From testsId.dsaTests (legacy IDs)
+    if (simulation.testsId && simulation.testsId.dsaTests && simulation.testsId.dsaTests.length > 0) {
+      simulation.testsId.dsaTests.forEach(id => problemIdsSet.add(id));
+    }
+
+    // 3. From currently active DSA challenge (for this simulation)
+    try {
+      const ActiveDSA = require('../models/ActiveDSA');
+      const activeChallenge = await ActiveDSA.findOne({ simulationId, isActive: true });
+      if (activeChallenge) {
+        problemIdsSet.add(activeChallenge.problemId);
+      }
+    } catch (err) {
+      console.warn('Error fetching active challenge for problem list:', err.message);
     }
 
     res.json({
       success: true,
       simulationId,
-      problemIds
+      problemIds: Array.from(problemIdsSet)
     });
   } catch (error) {
     console.error('Error fetching simulation problems:', error);
@@ -1057,33 +1074,6 @@ router.get('/scheduledStartTime/:simulationId', async (req, res) => {
   }
 });
 
-// Add this endpoint to your code-execution.js file
-router.get('/simulation/:simulationId/problems', async (req, res) => {
-  try {
-    const { simulationId } = req.params;
-
-    const simulation = await Simulation.findOne({ simulationId });
-    if (!simulation) {
-      return res.status(404).json({
-        success: false,
-        error: 'Simulation not found'
-      });
-    }
-
-    // Return the list of problem IDs
-    res.json({
-      success: true,
-      problemIds: simulation.testsId.dsaTests
-    });
-
-  } catch (error) {
-    console.error('Error fetching simulation problems:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch simulation problems'
-    });
-  }
-});
 
 // Get a specific problem from simulation with language parameter
 router.get('/simulation/:simulationId/problems/:problemId', async (req, res) => {
@@ -1147,63 +1137,6 @@ router.get('/simulation/:simulationId/problems/:problemId', async (req, res) => 
   }
 });
 
-router.get('/simulation/:simulationId/problems', async (req, res) => {
-  try {
-    const { simulationId } = req.params;
-    const cacheKey = `simulation_${simulationId}_problems`;
-
-    // Check cache first
-    if (problemsCache.has(cacheKey)) {
-      return res.json(problemsCache.get(cacheKey));
-    }
-
-    // Find the simulation
-    const simulation = await Simulation.findOne({ simulationId });
-    if (!simulation) {
-      return res.status(404).json({
-        success: false,
-        error: 'Simulation not found'
-      });
-    }
-
-    // Extract and format the DSA questions to match /problems payload structure
-    const problemList = simulation.dsa_questions.map(problem => {
-      // Convert Mongoose document to plain object if needed
-      const problemObj = problem.toObject ? problem.toObject() : problem;
-
-      // Remove internal fields (testCases, templates, solution) like in /problems endpoint
-      const { testCases, templates, solution, ...problemData } = problemObj;
-
-      return {
-        id: problemData.id,
-        title: problemData.title,
-        description: problemData.description,
-        inputFormat: problemData.inputFormat,
-        outputFormat: problemData.outputFormat,
-        constraints: problemData.constraints || [],
-        examples: problemData.examples || [],
-        miscellaneous: problemData.miscellaneous || {},
-        showSolution: !!solution // Boolean indicating if solution exists
-      };
-    });
-
-    // Cache the response
-    problemsCache.set(cacheKey, problemList);
-    setTimeout(() => problemsCache.delete(cacheKey), CACHE_TTL);
-
-    res.json(problemList);
-
-  } catch (error) {
-    console.error('Error fetching simulation problems:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Failed to fetch simulation problems',
-        stack: error.message
-      }
-    });
-  }
-});
 
 router.post('/simulations/:simulationId/:userId/:username/run', async (req, res) => {
   const { simulationId, userId, username } = req.params;
@@ -1554,37 +1487,9 @@ router.post('/simulations/:simulationId/analyze', async (req, res) => {
   }
 });
 
-// New endpoint: Get leaderboard for a specific simulation
-router.get('/simulations/:simulationId/leaderboard', async (req, res) => {
-  try {
-    const { simulationId } = req.params;
-    const limit = parseInt(req.query.limit) || 50;
+// NOTE: Leaderboard endpoint moved to /api/leaderboard/simulations/:simulationId/leaderboard
+// This duplicate route has been removed to avoid conflicts
 
-    console.log(`Fetching leaderboard for simulation ${simulationId} with limit ${limit}`);
-
-    // Get leaderboard data using the Leaderboard model
-    const leaderboard = await Leaderboard.getLeaderboard(simulationId, limit);
-
-    res.json({
-      success: true,
-      data: {
-        simulationId: simulationId,
-        leaderboard: leaderboard,
-        totalEntries: leaderboard.length
-      }
-    });
-
-  } catch (error) {
-    console.error(`Error fetching leaderboard for simulation ${simulationId}:`, error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Failed to fetch leaderboard data',
-        stack: error.message
-      }
-    });
-  }
-});
 
 
 
