@@ -19,22 +19,9 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:3002',
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'https://devui.alumnx.com',
-  'https://alumnx.com',
-  'https://www.alumnx.com',  // Added www version
-  'https://psd-ui-omega.vercel.app',
-  'https://practicalsystemdesign.com'
-];
-
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins, // Simplified to array for consistency
+    origin: true, // Allow all origins
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -43,11 +30,11 @@ const io = new Server(server, {
 // Store io in app to access it in routes
 app.set('io', io);
 
-// Enable CORS for all routes with pre-flight support
+// Enable CORS for all routes - ALLOW ALL ORIGINS
 app.use(cors({
-  origin: allowedOrigins,
+  origin: true, // Allow all origins
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
 }));
 
