@@ -988,16 +988,7 @@ router.get('/simulation/:simulationId/problems', async (req, res) => {
       simulation.testsId.dsaTests.forEach(id => problemIdsSet.add(id));
     }
 
-    // 3. From currently active DSA challenge (for this simulation)
-    try {
-      const ActiveDSA = require('../models/ActiveDSA');
-      const activeChallenge = await ActiveDSA.findOne({ simulationId, isActive: true });
-      if (activeChallenge) {
-        problemIdsSet.add(activeChallenge.problemId);
-      }
-    } catch (err) {
-      console.warn('Error fetching active challenge for problem list:', err.message);
-    }
+
 
     res.json({
       success: true,
