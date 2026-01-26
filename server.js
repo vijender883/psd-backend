@@ -20,26 +20,20 @@ const app = express();
 const server = http.createServer(app);
 
 const allowedOrigins = [
-  'http://localhost:3000',  // Local development
-  'http://localhost:3002',  // Local development
-  'http://localhost:5173',  // Vite default
-  'http://localhost:5174',  // Vite alternative
+  'http://localhost:3000',
+  'http://localhost:3002',
+  'http://localhost:5173',
+  'http://localhost:5174',
   'https://devui.alumnx.com',
   'https://alumnx.com',
+  'https://www.alumnx.com',  // Added www version
   'https://psd-ui-omega.vercel.app',
   'https://practicalsystemdesign.com'
 ];
 
 const io = new Server(server, {
   cors: {
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn("[CORS] Origin not allowed:", origin);
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
+    origin: allowedOrigins, // Simplified to array for consistency
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -48,16 +42,15 @@ const io = new Server(server, {
 // Store io in app to access it in routes
 app.set('io', io);
 
+// Enable CORS for all routes with pre-flight support
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
 }));
+
+app.options('*', cors()); // Explicitly handle pre-flight across all routes
 app.use(express.json());
 
 app.get('/ver', (req, res) => res.json({ version: "socket-v2" }));
