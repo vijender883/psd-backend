@@ -1,4 +1,5 @@
 const express = require('express');
+
 const cors = require('cors');
 const dotenv = require('dotenv');
 const { initializeDirectories } = require('./services/codeExecutor');
@@ -24,7 +25,7 @@ const allowedOrigins = [
   'https://devui.alumnx.com',
   'https://alumnx.com',
   'https://psd-ui-omega.vercel.app',
-  'https://practicalsystemdesign.com'
+  'https://prac ticalsystemdesign.com'
 ];
 
 app.use(cors({
@@ -38,9 +39,11 @@ app.use(cors({
   credentials: true
 }));
 
+
+app.options('*', cors()); // Explicitly handle pre-flight across all routes
 app.use(express.json());
 
-app.get('/ver', (req, res) => res.json({ version: "v1.1" }));
+app.get('/ver', (req, res) => res.json({ version: "v1.1-fixed" }));
 
 // Connect to MongoDB Atlas
 mongoose.connect(process.env.MONGODB_URI, {
@@ -104,6 +107,8 @@ app._router.stack.forEach(function (r) {
     console.log(r.route.path)
   }
 });
+
+
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

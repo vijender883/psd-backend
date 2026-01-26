@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const Simulation = require('../models/Simulation');
 const SimulationParticipant = require('../models/SimulationParticipant'); // Keep for backward compatibility
+const ActiveDSA = require('../models/ActiveDSA');
 
 // Initialize simulations
 const initializeSimulations = async () => {
@@ -523,5 +524,75 @@ router.put('/:simulationId/availability', async (req, res) => {
   }
 });
 
+
+// --- V2 Active DSA Control ---
+
+// GET /api/simulations/v2/active-dsa/status
+router.get('/v2/active-dsa/status', async (req, res) => {
+  try {
+    const activeData = await ActiveDSA.findOne().sort({ createdAt: -1 });
+    res.json({
+      success: true,
+      activeData: activeData || null
+    });
+  } catch (error) {
+    console.error('[DSA] Error fetching status:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch status' });
+  }
+});
+
+// POST /api/simulations/v2/active-dsa/activate
+router.post('/v2/active-dsa/activate', async (req, res) => {
+  const { problemId, title, simulationId, duration } = req.body;
+
+  if (!problemId || !title) {
+    return res.status(400).json({
+      success: false,
+      error: 'problemId and title are required'
+    });
+  }
+
+  try {
+    // Clear any existing active challenges
+    await ActiveDSA.deleteMany({});
+
+    const newActiveDSA = new ActiveDSA({
+      problemId,
+      title,
+      simulationId: simulationId || "1",
+      duration: duration || 30,
+      activatedAt: new Date()
+    });
+
+    await newActiveDSA.save();
+
+    console.log('[DSA] Activated problem (persisted):', newActiveDSA);
+
+    res.json({
+      success: true,
+      message: 'Problem activated and persisted successfully',
+      activeData: newActiveDSA
+    });
+  } catch (error) {
+    console.error('[DSA] Error activating problem:', error);
+    res.status(500).json({ success: false, error: 'Failed to activate problem' });
+  }
+});
+
+// POST /api/simulations/v2/active-dsa/deactivate
+router.post('/v2/active-dsa/deactivate', async (req, res) => {
+  try {
+    await ActiveDSA.deleteMany({});
+    console.log('[DSA] Deactivated all active problems');
+
+    res.json({
+      success: true,
+      message: 'Problem deactivated successfully from database'
+    });
+  } catch (error) {
+    console.error('[DSA] Error deactivating problem:', error);
+    res.status(500).json({ success: false, error: 'Failed to deactivate problem' });
+  }
+});
 
 module.exports = router;
