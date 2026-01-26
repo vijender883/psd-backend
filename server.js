@@ -1,6 +1,4 @@
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const { initializeDirectories } = require('./services/codeExecutor');
@@ -17,31 +15,32 @@ dotenv.config();
 
 // Create Express app
 const app = express();
-const server = http.createServer(app);
 
-const io = new Server(server, {
-  cors: {
-    origin: true, // Allow all origins
-    methods: ["GET", "POST"],
-    credentials: true
-  }
-});
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3002',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://devui.alumnx.com',
+  'https://alumnx.com',
+  'https://psd-ui-omega.vercel.app',
+  'https://practicalsystemdesign.com'
+];
 
-// Store io in app to access it in routes
-app.set('io', io);
-
-// Enable CORS for all routes - ALLOW ALL ORIGINS
 app.use(cors({
-  origin: true, // Allow all origins
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
 }));
 
-app.options('*', cors()); // Explicitly handle pre-flight across all routes
 app.use(express.json());
 
-app.get('/ver', (req, res) => res.json({ version: "socket-v2" }));
+app.get('/ver', (req, res) => res.json({ version: "v1.1" }));
 
 // Connect to MongoDB Atlas
 mongoose.connect(process.env.MONGODB_URI, {
@@ -106,16 +105,7 @@ app._router.stack.forEach(function (r) {
   }
 });
 
-// Socket.IO Logic
-io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
-
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
-  });
-});
-
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
