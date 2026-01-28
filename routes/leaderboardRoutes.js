@@ -6,6 +6,7 @@ const Submission = require('../models/Submission');
 const SimulationParticipant = require('../models/SimulationParticipant');
 const Simulation = require('../models/Simulation');
 const QuizAttempt = require('../models/QuizAttempt');
+const ActiveDSA = require('../models/ActiveDSA'); // Added ActiveDSA
 
 // Constants for score weighting
 const MCQ_WEIGHT = 0.3;  // 30% weight for MCQ scores
@@ -39,9 +40,26 @@ async function getProblemsForSimulation(simulationId) {
   try {
     if (!simulationId) return [];
     const simulation = await Simulation.findOne({ simulationId: simulationId.toString() });
-    const problemIds = simulation?.testsId?.dsaTests || simulation?.dsa_questions?.map(q => q.id) || [];
-    return problemIds;
+
+    const problemIdsSet = new Set();
+
+    // 1. From testsId.dsaTests (legacy)
+    if (simulation?.testsId?.dsaTests) {
+      simulation.testsId.dsaTests.forEach(id => problemIdsSet.add(id));
+    }
+
+    // 2. From dsa_questions
+    if (simulation?.dsa_questions) {
+      simulation.dsa_questions.forEach(q => problemIdsSet.add(q.id));
+    }
+
+    // 3. From ActiveDSA (scheduled)
+    const activeProblems = await ActiveDSA.find({ simulationId, isActive: true });
+    activeProblems.forEach(p => problemIdsSet.add(p.problemId));
+
+    return Array.from(problemIdsSet);
   } catch (error) {
+    console.error('Error fetching problems for simulation:', error);
     return [];
   }
 }
@@ -56,10 +74,11 @@ async function updateSingleUserLeaderboard(userId, simulationId, usernameHint = 
   try {
     const problemIds = await getProblemsForSimulation(simulationId);
 
-    // Get DSA submissions
+    // Get DSA submissions - only count finalized ones
     const dsaSubmissions = await Submission.find({
       userId: userId.trim(),
-      problemId: { $in: problemIds }
+      problemId: { $in: problemIds },
+      isSubmitted: true // Added isSubmitted filter
     });
 
     const dsaScores = {};
@@ -72,7 +91,7 @@ async function updateSingleUserLeaderboard(userId, simulationId, usernameHint = 
       const score = submission.totalTests > 0 ? Math.round((submission.passedTests / submission.totalTests) * 100) : 0;
       dsaScores[submission.problemId] = score;
       totalDsaScore += score;
-      totalTimeTaken += (submission.timeTaken || 0);
+      totalTimeTaken += (submission.executionTime || 0); // Changed from timeTaken to executionTime
       totalPassedTests += (submission.passedTests || 0);
       totalTestsCount += (submission.totalTests || 0);
     }
@@ -147,7 +166,10 @@ router.get('/simulations/:simulationId/leaderboard', async (req, res) => {
 
     // 1. Find ALL unique userIds who have submitted for this simulation's problems
     const problemIds = await getProblemsForSimulation(simulationId);
-    const uniqueSubmitters = await Submission.distinct('userId', { problemId: { $in: problemIds } });
+    const uniqueSubmitters = await Submission.distinct('userId', {
+      problemId: { $in: problemIds },
+      isSubmitted: true // Added isSubmitted filter
+    });
 
     // 2. Update/Heal entries for everyone we found
     await Promise.all(uniqueSubmitters.map(uid => updateSingleUserLeaderboard(uid, simulationId)));
