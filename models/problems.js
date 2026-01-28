@@ -1297,6 +1297,68 @@ Find the element in the array that is closest in value to the target. If there a
         description: 'Two identical elements'
       }
     ]
+  },
+  'target_difference': {
+    id: 'target_difference',
+    title: 'Target Difference',
+    description: 'You are given an array of integers and a target difference k. Find all unique pairs of indices (i, j) where i < j and the absolute difference between the values |nums[i] - nums[j]| equals k.',
+    inputFormat: 'The first line contains space-separated integers representing the array.\nThe second line contains a single integer k.',
+    outputFormat: 'Return a space-separated list of index pairs, where each pair is represented as "i j" and sorted by i, then j. For example, "0 1 1 2".',
+    constraints: [
+      '2 <= nums.length <= 10^4',
+      '-10^9 <= nums[i] <= 10^9',
+      '0 <= k <= 10^9'
+    ],
+    examples: [
+      {
+        name: 'Example 1',
+        input: '1 5 3 7 9\n2',
+        output: '0 2 1 2 1 3 3 4'
+      },
+      {
+        name: 'Example 2',
+        input: '4 4 4\n0',
+        output: '0 1 0 2 1 2'
+      }
+    ],
+    templates: {
+      java: 'class Solution {\n    public List<int[]> targetDifference(int[] nums, int k) {\n        // Your code here\n    }\n}',
+      python: 'class Solution:\n    def target_difference(self, nums, k):\n        # Your code here\n        pass',
+      javascript: 'function targetDifference(nums, k) {\n    // Your code here\n}'
+    },
+    solution: `function targetDifference(nums, k) {
+    const result = [];
+    for (let i = 0; i < nums.length; i++) {
+        for (let j = i + 1; j < nums.length; j++) {
+            if (Math.abs(nums[i] - nums[j]) === k) {
+                result.push([i, j]);
+            }
+        }
+    }
+    return result;
+}`,
+    testCases: [
+      {
+        input: '1 5 3 7 9\n2',
+        expectedOutput: '0 2 1 2 1 3 3 4',
+        description: 'Pairs with difference 2'
+      },
+      {
+        input: '10 15 20 25\n5',
+        expectedOutput: '0 1 1 2 2 3',
+        description: 'Consecutive pairs differ by 5'
+      },
+      {
+        input: '4 4 4\n0',
+        expectedOutput: '0 1 0 2 1 2',
+        description: 'All pairs have difference 0'
+      },
+      {
+        input: '1 3 7 2\n6',
+        expectedOutput: '0 2',
+        description: '|1-7|=6'
+      }
+    ]
   }
 };
 

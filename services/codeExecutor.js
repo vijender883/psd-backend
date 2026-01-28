@@ -4,6 +4,23 @@ const fs = require('fs').promises;
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
+// Helper for robust output comparison
+const compareOutputs = (actual, expected) => {
+  if (actual === expected) return true;
+  if (actual == null || expected == null) return false;
+
+  const normalize = (str) => {
+    return str
+      .toString()
+      .trim()
+      .replace(/[\r\n\t]+/g, ' ') // Replace newlines/tabs with space
+      .replace(/\s{2,}/g, ' ')     // Collapse multiple spaces
+      .trim();
+  };
+
+  return normalize(actual) === normalize(expected);
+};
+
 // Add a simple queue implementation
 class ExecutionQueue {
   constructor(maxConcurrent = 10) {
@@ -65,17 +82,17 @@ async function executeCode(code, testCases, language, problemId = null) {
     if (language === 'python') {
       return executePythonCode(code, testCases, problemId);
     } else if (language === 'javascript') {
-      return executeJavaScriptCode(code, testCases);
+      return executeJavaScriptCode(code, testCases, problemId);
     } else if (language === 'apex') {
       return executeApexCode(code, testCases);
     } else {
-      return executeJavaCode(code, testCases);
+      return executeJavaCode(code, testCases, problemId);
     }
   });
 }
 
 // Execute Java code
-async function executeJavaCode(code, testCases) {
+async function executeJavaCode(code, testCases, problemId = null) {
   const submissionId = uuidv4();
   const executionDir = path.join(BASE_DIR, submissionId);
 
@@ -84,7 +101,7 @@ async function executeJavaCode(code, testCases) {
     await fs.mkdir(executionDir, { recursive: true });
 
     // Generate wrapped Java code
-    await generateJavaWrapper(executionDir, code);
+    await generateJavaWrapper(executionDir, code, problemId);
 
     // Compile code
     await compileJavaCode(executionDir);
@@ -185,7 +202,7 @@ const EXECUTION_TIMEOUT = 8000;     // Increase from 5000
 // Compile Java code
 function compileJavaCode(executionDir) {
   return new Promise((resolve, reject) => {
-    const child = spawn('javac', ['Solution.java'], {
+    const child = spawn('javac', ['Main.java'], {
       cwd: executionDir,
       timeout: COMPILATION_TIMEOUT
     });
@@ -239,7 +256,7 @@ async function runJavaTestCases(executionDir, testCases) {
       // Check if output matches expected output
       const normalizedOutput = output.trim();
       const normalizedExpected = testCase.expectedOutput.trim();
-      const passed = normalizedOutput === normalizedExpected;
+      const passed = compareOutputs(normalizedOutput, normalizedExpected);
 
       result.passed = passed;
       result.yourOutput = normalizedOutput;
@@ -296,7 +313,7 @@ async function runPythonTestCases(executionDir, testCases) {
       console.log(`Match: ${normalizedOutput === normalizedExpected}`);
       console.log('-----------------------');
 
-      const passed = normalizedOutput === normalizedExpected;
+      const passed = compareOutputs(normalizedOutput, normalizedExpected);
 
       result.passed = passed;
       result.yourOutput = normalizedOutput;
@@ -320,7 +337,7 @@ async function runPythonTestCases(executionDir, testCases) {
 // Run Java program
 function runJavaProgram(executionDir, input) {
   return new Promise((resolve, reject) => {
-    const child = spawn('java', ['-Xmx256m', '-Xss64m', 'Solution'], {
+    const child = spawn('java', ['-Xmx256m', '-Xss64m', 'Main'], {
       cwd: executionDir,
       timeout: EXECUTION_TIMEOUT
     });
@@ -427,13 +444,13 @@ async function cleanupDirectory(dir) {
 
 
 // Add new function
-async function executeJavaScriptCode(code, testCases) {
+async function executeJavaScriptCode(code, testCases, problemId = null) {
   const submissionId = uuidv4();
   const executionDir = path.join(BASE_DIR, submissionId);
 
   try {
     await fs.mkdir(executionDir, { recursive: true });
-    await generateJavaScriptWrapper(executionDir, code);
+    await generateJavaScriptWrapper(executionDir, code, problemId);
     const results = await runJavaScriptTestCases(executionDir, testCases);
 
     return {
@@ -480,7 +497,7 @@ async function runJavaScriptTestCases(executionDir, testCases) {
 
       const normalizedOutput = output.trim();
       const normalizedExpected = testCase.expectedOutput.trim();
-      const passed = normalizedOutput === normalizedExpected;
+      const passed = compareOutputs(normalizedOutput, normalizedExpected);
 
       result.passed = passed;
       result.yourOutput = normalizedOutput;
