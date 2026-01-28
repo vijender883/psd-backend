@@ -2,56 +2,125 @@
 const fs = require('fs').promises;
 const path = require('path');
 
-async function generatePythonWrapper(executionDir, code) {
-  const isMinPathSum = code.includes('min_path_sum');
-  const isDiagonalTraversal = code.includes('diagonal_traversal');
-  const isLIS = code.includes('length_of_lis');
-  const isConsecutiveChars = code.includes('count_consecutive_chars');
-  const isClosestValue = code.includes('find_closest_element');
-  const isPermutationInString = code.includes('check_inclusion');
-  const isFruitIntoBaskets = code.includes('total_fruit');
-  const isValidAnagram = code.includes('is_anagram');
-  const isThreeSum = code.includes('three_sum');
-  const isReverseString = code.includes('reverse_string');
-  const isTwoSum = code.includes('two_sum');
-  const isGPUOptimizer = code.includes('minimum_gpu_capacity');
-  const isTrafficFlow = code.includes('longest_balanced_stretch');
-  const isFindActivityRange = code.includes('find_activity_range');
-  const isRemoveNthFromEnd = code.includes('removeNthFromEnd');
-
+async function generatePythonWrapper(executionDir, code, problemId = null) {
   let wrapperCode;
-  if (isMinPathSum) {
-    wrapperCode = generateMinPathSumWrapper(code);
-  } else if (isDiagonalTraversal) {
-    wrapperCode = generateDiagonalTraversalWrapper(code);
-  } else if (isLIS) {
-    wrapperCode = generateLISWrapper(code);
-  } else if (isConsecutiveChars) {
-    wrapperCode = generateConsecutiveCharsWrapper(code);
-  } else if (isClosestValue) {
-    wrapperCode = generateClosestValueWrapper(code);
-  } else if (isPermutationInString) {
-    wrapperCode = generatePermutationInStringWrapper(code);
-  } else if (isFruitIntoBaskets) {
-    wrapperCode = generateFruitIntoBasketsWrapper(code);
-  } else if (isValidAnagram) {
-    wrapperCode = generateValidAnagramWrapper(code);
-  } else if (isThreeSum) {
-    wrapperCode = generateThreeSumWrapper(code);
-  } else if (isReverseString) {
-    wrapperCode = generateReverseStringWrapper(code);
-  } else if (isTwoSum) {
-    wrapperCode = generateTwoSumWrapper(code);
-  } else if (isGPUOptimizer) {
-    wrapperCode = generateGPUOptimizerWrapper(code);
-  } else if (isTrafficFlow) {
-    wrapperCode = generateTrafficFlowWrapper(code);
-  } else if (isFindActivityRange) {
-    wrapperCode = generateFindActivityRangeWrapper(code);
-  } else if (isRemoveNthFromEnd) {
-    wrapperCode = generateRemoveNthFromEndWrapper(code);
-  } else {
-    wrapperCode = generateLongestCommonPrefixWrapper(code);
+
+  if (problemId) {
+    switch (problemId) {
+      case 'min_path_sum': // Fallback for legacy ID if any
+      case 'minimumpathsum':
+        wrapperCode = generateMinPathSumWrapper(code);
+        break;
+      case 'diagonal_traversal':
+      case 'diagonaltraversal':
+        wrapperCode = generateDiagonalTraversalWrapper(code);
+        break;
+      case 'length_of_lis':
+      case 'longestincreasing':
+        wrapperCode = generateLISWrapper(code);
+        break;
+      case 'count_consecutive_chars':
+      case 'countconsecutive':
+        wrapperCode = generateConsecutiveCharsWrapper(code);
+        break;
+      case 'find_closest_element':
+      case 'closestvalueinrotatedarray':
+        wrapperCode = generateClosestValueWrapper(code);
+        break;
+      case 'check_inclusion':
+        wrapperCode = generatePermutationInStringWrapper(code);
+        break;
+      case 'total_fruit':
+        wrapperCode = generateFruitIntoBasketsWrapper(code);
+        break;
+      case 'is_anagram':
+        wrapperCode = generateValidAnagramWrapper(code);
+        break;
+      case 'three_sum':
+        wrapperCode = generateThreeSumWrapper(code);
+        break;
+      case 'reverse_string':
+        wrapperCode = generateReverseStringWrapper(code);
+        break;
+      case 'two_sum':
+      case 'twosum':
+        wrapperCode = generateTwoSumWrapper(code);
+        break;
+      case 'minimum_gpu_capacity':
+        wrapperCode = generateGPUOptimizerWrapper(code);
+        break;
+      case 'longest_balanced_stretch':
+      case 'traffic_flow_analysis':
+        wrapperCode = generateTrafficFlowWrapper(code);
+        break;
+      case 'find_activity_range':
+        wrapperCode = generateFindActivityRangeWrapper(code);
+        break;
+      case 'removeNthFromEnd':
+      case 'deletenthfromend':
+        wrapperCode = generateRemoveNthFromEndWrapper(code);
+        break;
+      case 'longestcommonprefix':
+        wrapperCode = generateLongestCommonPrefixWrapper(code);
+        break;
+      case 'flattenobject':
+        // No python wrapper for flatten object yet?
+        wrapperCode = generateLongestCommonPrefixWrapper(code); // Fallback
+        break;
+    }
+  }
+
+  if (!wrapperCode) {
+    // Fallback to legacy detection if problemId not found or not provided
+    const isMinPathSum = code.includes('min_path_sum');
+    const isDiagonalTraversal = code.includes('diagonal_traversal');
+    const isLIS = code.includes('length_of_lis');
+    const isConsecutiveChars = code.includes('count_consecutive_chars');
+    const isClosestValue = code.includes('find_closest_element');
+    const isPermutationInString = code.includes('check_inclusion');
+    const isFruitIntoBaskets = code.includes('total_fruit');
+    const isValidAnagram = code.includes('is_anagram');
+    const isThreeSum = code.includes('three_sum');
+    const isReverseString = code.includes('reverse_string');
+    const isTwoSum = code.includes('two_sum');
+    const isGPUOptimizer = code.includes('minimum_gpu_capacity');
+    const isTrafficFlow = code.includes('longest_balanced_stretch');
+    const isFindActivityRange = code.includes('find_activity_range');
+    const isRemoveNthFromEnd = code.includes('removeNthFromEnd');
+
+    if (isMinPathSum) {
+      wrapperCode = generateMinPathSumWrapper(code);
+    } else if (isDiagonalTraversal) {
+      wrapperCode = generateDiagonalTraversalWrapper(code);
+    } else if (isLIS) {
+      wrapperCode = generateLISWrapper(code);
+    } else if (isConsecutiveChars) {
+      wrapperCode = generateConsecutiveCharsWrapper(code);
+    } else if (isClosestValue) {
+      wrapperCode = generateClosestValueWrapper(code);
+    } else if (isPermutationInString) {
+      wrapperCode = generatePermutationInStringWrapper(code);
+    } else if (isFruitIntoBaskets) {
+      wrapperCode = generateFruitIntoBasketsWrapper(code);
+    } else if (isValidAnagram) {
+      wrapperCode = generateValidAnagramWrapper(code);
+    } else if (isThreeSum) {
+      wrapperCode = generateThreeSumWrapper(code);
+    } else if (isReverseString) {
+      wrapperCode = generateReverseStringWrapper(code);
+    } else if (isTwoSum) {
+      wrapperCode = generateTwoSumWrapper(code);
+    } else if (isGPUOptimizer) {
+      wrapperCode = generateGPUOptimizerWrapper(code);
+    } else if (isTrafficFlow) {
+      wrapperCode = generateTrafficFlowWrapper(code);
+    } else if (isFindActivityRange) {
+      wrapperCode = generateFindActivityRangeWrapper(code);
+    } else if (isRemoveNthFromEnd) {
+      wrapperCode = generateRemoveNthFromEndWrapper(code);
+    } else {
+      wrapperCode = generateLongestCommonPrefixWrapper(code);
+    }
   }
 
   await fs.writeFile(path.join(executionDir, 'solution.py'), wrapperCode);
@@ -129,7 +198,7 @@ if __name__ == "__main__":
     target_time = int(line[-1])
     
     # Create solution object and call function
-    solver = FindActivityRange()
+    solver = Solution()
     result = solver.find_activity_range(activity_log, target_time)
     
     # Output result
@@ -151,7 +220,7 @@ if __name__ == "__main__":
     k = int(input().strip())
     
     # Create solution object and call function
-    solver = GPUResourceOptimizer()
+    solver = Solution()
     result = solver.minimum_gpu_capacity(gpu_memory, model_requirements, k)
     
     # Output result
@@ -170,7 +239,7 @@ if __name__ == "__main__":
     traffic_density = list(map(int, input().strip().split()))
     
     # Create solution object and call function
-    solver = TrafficFlowAnalyzer()
+    solver = Solution()
     result = solver.longest_balanced_stretch(traffic_density)
     
     # Output result
@@ -191,7 +260,7 @@ if __name__ == "__main__":
     chars = input().strip().split()
     
     # Create solution object and call function
-    solver = ReverseString()
+    solver = Solution()
     solver.reverse_string(chars)
     
     # Output result (space-separated characters)
@@ -216,11 +285,7 @@ if __name__ == "__main__":
     result = solver.two_sum(nums, target)
     
     # Output result
-    if result:
-        result.sort()
-        print(f"{result[0]} {result[1]}")
-    else:
-        print("")
+    print(f"{min(result)} {max(result)}")
 `
 }
 
@@ -255,7 +320,7 @@ if __name__ == "__main__":
   nums = list(map(int, input().strip().split()))
   
   # Create solution object and call function
-  solver = ThreeSum()
+  solver = Solution()
   result = solver.three_sum(nums)
   
   # Output result
@@ -276,7 +341,7 @@ if __name__ == "__main__":
   t = input().strip()
   
   # Create solution object and call function
-  solver = ValidAnagram()
+  solver = Solution()
   result = solver.is_anagram(s, t)
   
   # Output result
@@ -297,7 +362,7 @@ if __name__ == "__main__":
   s2 = input().strip()
   
   # Create solution object and call function
-  solver = PermutationInString()
+  solver = Solution()
   result = solver.check_inclusion(s1, s2)
   
   # Output result
@@ -318,7 +383,7 @@ if __name__ == "__main__":
   fruits = list(map(int, input().strip().split()))
   
   # Create solution object and call function
-  solver = FruitIntoBaskets()
+  solver = Solution()
   result = solver.total_fruit(fruits)
   
   # Output result
@@ -339,7 +404,7 @@ if __name__ == "__main__":
     target = int(input().strip())
     
     # Create solution object and call function
-    solver = ClosestValueFinder()
+    solver = Solution()
     result = solver.find_closest_element(nums, target)
     
     # Output result
@@ -358,7 +423,7 @@ if __name__ == "__main__":
     s = input().strip()
     
     # Create solution object and call function
-    solver = CountConsecutive()
+    solver = Solution()
     result = solver.count_consecutive_chars(s)
     
     # Output result
@@ -427,7 +492,7 @@ if __name__ == "__main__":
     root = build_tree(values)
     
     # Create solution object and call function
-    solver = DiagonalTraversal()
+    solver = Solution()
     result = solver.diagonal_traversal(root)
     
     # Output result
@@ -447,7 +512,7 @@ if __name__ == "__main__":
     nums = list(map(int, input().strip().split()))
     
     # Create solution object and call function
-    solver = LengthOfLIS()
+    solver = Solution()
     result = solver.length_of_lis(nums)
     
     # Output result
@@ -472,7 +537,7 @@ if __name__ == "__main__":
         grid.append(row)
     
     # Create solution object and call function
-    solver = MinPathSum()
+    solver = Solution()
     result = solver.min_path_sum(grid)
     
     # Output result
@@ -491,13 +556,14 @@ if __name__ == "__main__":
     strs = input().strip().split()
     
     # Create solution object and call function
-    solver = LongestCommonPrefix()
+    solver = Solution()
     result = solver.longest_common_prefix(strs)
     
     # Output result
     print(result)
 `
 }
+
 
 module.exports = {
   generatePythonWrapper

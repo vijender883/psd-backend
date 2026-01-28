@@ -60,10 +60,10 @@ const { generateJavaScriptWrapper } = require('./javascriptWrapper');
 const { executeApexCode } = require('./apexExecutor');
 
 // Modify executeCode function
-async function executeCode(code, testCases, language) {
+async function executeCode(code, testCases, language, problemId = null) {
   return executionQueue.enqueue(() => {
     if (language === 'python') {
-      return executePythonCode(code, testCases);
+      return executePythonCode(code, testCases, problemId);
     } else if (language === 'javascript') {
       return executeJavaScriptCode(code, testCases);
     } else if (language === 'apex') {
@@ -134,7 +134,7 @@ async function executeJavaCode(code, testCases) {
 }
 
 // Execute Python code
-async function executePythonCode(code, testCases) {
+async function executePythonCode(code, testCases, problemId = null) {
   const submissionId = uuidv4();
   const executionDir = path.join(BASE_DIR, submissionId);
 
@@ -143,7 +143,7 @@ async function executePythonCode(code, testCases) {
     await fs.mkdir(executionDir, { recursive: true });
 
     // Generate wrapped Python code
-    await generatePythonWrapper(executionDir, code);
+    await generatePythonWrapper(executionDir, code, problemId);
 
     // Run test cases
     const results = await runPythonTestCases(executionDir, testCases);
@@ -185,18 +185,18 @@ const EXECUTION_TIMEOUT = 8000;     // Increase from 5000
 // Compile Java code
 function compileJavaCode(executionDir) {
   return new Promise((resolve, reject) => {
-    const process = spawn('javac', ['Solution.java'], {
+    const child = spawn('javac', ['Solution.java'], {
       cwd: executionDir,
       timeout: COMPILATION_TIMEOUT
     });
 
     let stderr = '';
 
-    process.stderr.on('data', (data) => {
+    child.stderr.on('data', (data) => {
       stderr += data.toString();
     });
 
-    process.on('close', (code) => {
+    child.on('close', (code) => {
       if (code !== 0) {
         reject(new Error(`Compilation failed: ${stderr}`));
       } else {
@@ -204,7 +204,7 @@ function compileJavaCode(executionDir) {
       }
     });
 
-    process.on('error', (err) => {
+    child.on('error', (err) => {
       reject(new Error(`Failed to start compilation process: ${err.message}`));
     });
   });
@@ -288,6 +288,14 @@ async function runPythonTestCases(executionDir, testCases) {
       // Check if output matches expected output
       const normalizedOutput = output.trim();
       const normalizedExpected = testCase.expectedOutput.trim();
+
+      console.log('--- TEST CASE DEBUG ---');
+      console.log(`Input: ${testCase.input}`);
+      console.log(`Expected: '${normalizedExpected}'`);
+      console.log(`Actual: '${normalizedOutput}'`);
+      console.log(`Match: ${normalizedOutput === normalizedExpected}`);
+      console.log('-----------------------');
+
       const passed = normalizedOutput === normalizedExpected;
 
       result.passed = passed;
@@ -312,7 +320,7 @@ async function runPythonTestCases(executionDir, testCases) {
 // Run Java program
 function runJavaProgram(executionDir, input) {
   return new Promise((resolve, reject) => {
-    const process = spawn('java', ['-Xmx256m', '-Xss64m', 'Solution'], {
+    const child = spawn('java', ['-Xmx256m', '-Xss64m', 'Solution'], {
       cwd: executionDir,
       timeout: EXECUTION_TIMEOUT
     });
@@ -322,19 +330,19 @@ function runJavaProgram(executionDir, input) {
 
     // Provide input if needed
     if (input) {
-      process.stdin.write(input);
-      process.stdin.end();
+      child.stdin.write(input);
+      child.stdin.end();
     }
 
-    process.stdout.on('data', (data) => {
+    child.stdout.on('data', (data) => {
       stdout += data.toString();
     });
 
-    process.stderr.on('data', (data) => {
+    child.stderr.on('data', (data) => {
       stderr += data.toString();
     });
 
-    process.on('close', (code) => {
+    child.on('close', (code) => {
       if (code !== 0) {
         reject(new Error(`Execution failed with code ${code}: ${stderr}`));
       } else {
@@ -342,7 +350,7 @@ function runJavaProgram(executionDir, input) {
       }
     });
 
-    process.on('error', (err) => {
+    child.on('error', (err) => {
       reject(new Error(`Failed to start execution process: ${err.message}`));
     });
   });
@@ -351,10 +359,13 @@ function runJavaProgram(executionDir, input) {
 // Run Python program
 function runPythonProgram(executionDir, input) {
   return new Promise((resolve, reject) => {
-    // Use 'py' launcher for Windows compatibility if python3 is not found
-    const pythonCommand = process.platform === 'win32' ? 'py' : 'python3';
+    // on Windows, try 'python' first, but if it's the Store shim, it might fail or print the "install" message.
+    // If we detect that, we could try 'py'.
+    // For now, let's default to 'python' but allow environment variable override
+    const pythonCommand = process.env.PYTHON_CMD || (process.platform === 'win32' ? 'py' : 'python3'); // Changed default to 'py' for win32
+    console.log(`[Python Executor] Using command: ${pythonCommand}`);
 
-    const childProcess = spawn(pythonCommand, ['solution.py'], {
+    const child = spawn(pythonCommand, ['solution.py'], {
       cwd: executionDir,
       timeout: EXECUTION_TIMEOUT
     });
@@ -364,19 +375,19 @@ function runPythonProgram(executionDir, input) {
 
     // Provide input if needed
     if (input) {
-      childProcess.stdin.write(input);
-      childProcess.stdin.end();
+      child.stdin.write(input);
+      child.stdin.end();
     }
 
-    childProcess.stdout.on('data', (data) => {
+    child.stdout.on('data', (data) => {
       stdout += data.toString();
     });
 
-    childProcess.stderr.on('data', (data) => {
+    child.stderr.on('data', (data) => {
       stderr += data.toString();
     });
 
-    childProcess.on('close', (code) => {
+    child.on('close', (code) => {
       if (code !== 0) {
         // Format the stderr to show actual Python error
         const errorMessage = stderr.trim() || `Python execution failed with exit code ${code}`;
@@ -386,7 +397,7 @@ function runPythonProgram(executionDir, input) {
       }
     });
 
-    childProcess.on('error', (err) => {
+    child.on('error', (err) => {
       reject(new Error(`Failed to start Python execution process: ${err.message}`));
     });
   });
@@ -492,7 +503,7 @@ async function runJavaScriptTestCases(executionDir, testCases) {
 
 function runJavaScriptProgram(executionDir, input) {
   return new Promise((resolve, reject) => {
-    const process = spawn('node', ['solution.js'], {
+    const child = spawn('node', ['solution.js'], {
       cwd: executionDir,
       timeout: EXECUTION_TIMEOUT
     });
@@ -500,11 +511,11 @@ function runJavaScriptProgram(executionDir, input) {
     let stdout = '';
     let stderr = '';
 
-    process.stdout.on('data', (data) => {
+    child.stdout.on('data', (data) => {
       stdout += data.toString();
     });
 
-    process.stderr.on('data', (data) => {
+    child.stderr.on('data', (data) => {
       stderr += data.toString();
     });
 
@@ -523,12 +534,12 @@ function runJavaScriptProgram(executionDir, input) {
       // DEBUG LOGGING END
 
       // **MANDATORY: Write the input ONCE**
-      process.stdin.write(sanitizedInput);
-      process.stdin.end();
+      child.stdin.write(sanitizedInput);
+      child.stdin.end();
     }
     // --- END CONSOLIDATED INPUT HANDLING ---
 
-    process.on('close', (code) => {
+    child.on('close', (code) => {
       if (code !== 0) {
         const errorMessage = stderr.trim() || `JavaScript execution failed with exit code ${code}`;
         reject(new Error(errorMessage));
@@ -537,7 +548,7 @@ function runJavaScriptProgram(executionDir, input) {
       }
     });
 
-    process.on('error', (err) => {
+    child.on('error', (err) => {
       reject(new Error(`Failed to start JavaScript execution process: ${err.message}`));
     });
   });
