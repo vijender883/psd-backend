@@ -605,24 +605,26 @@ router.post('/v2/active-dsa/activate', async (req, res) => {
     // Also clear them if you want to keep DB small, but marking as inactive is better for history
     // await ActiveDSA.deleteMany({}); 
 
-    const newActiveDSA = new ActiveDSA({
-      problemId,
-      title,
-      simulationId: simulationId || "1",
-      duration: duration || 30,
-      activatedAt: new Date(),
-      availableAt: new Date(availableAt),
-      isActive: true
-    });
+    // Upsert: Update if exists, create if not. This prevents 500 duplicate key errors.
+    const activeData = await ActiveDSA.findOneAndUpdate(
+      { problemId },
+      {
+        title,
+        simulationId: simulationId || "1",
+        duration: duration || 30,
+        activatedAt: new Date(),
+        availableAt: new Date(availableAt),
+        isActive: true
+      },
+      { upsert: true, new: true, runValidators: true }
+    );
 
-    await newActiveDSA.save();
-
-    console.log('[DSA] Activated problem (scheduled):', newActiveDSA);
+    console.log('[DSA] Activated/Updated problem (scheduled):', activeData);
 
     res.json({
       success: true,
       message: 'Problem scheduled successfully',
-      activeData: newActiveDSA
+      activeData: activeData
     });
   } catch (error) {
     console.error('[DSA] Error activating problem:', error);
