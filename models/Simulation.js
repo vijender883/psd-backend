@@ -157,9 +157,6 @@ const SimulationSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Create index on simulationId for faster lookups
-SimulationSchema.index({ simulationId: 1 });
-
 // Add method to check if results are available
 SimulationSchema.methods.areResultsAvailable = function () {
   if (!this.resultsAvailableTime) return true; // If not set, default to available

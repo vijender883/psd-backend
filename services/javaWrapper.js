@@ -10,7 +10,7 @@ async function generateJavaWrapper(executionDir, code) {
   const isClosestValue = code.includes('ClosestValueFinder');
   const isPermutationInString = code.includes('PermutationInString'); // Add this
   const isFruitIntoBaskets = code.includes('FruitIntoBaskets'); // Add this
-  
+
   let wrapperCode;
   if (isMinPathSum) {
     wrapperCode = generateMinPathSumWrapper(code);
@@ -29,7 +29,7 @@ async function generateJavaWrapper(executionDir, code) {
   } else {
     wrapperCode = generateLongestCommonPrefixWrapper(code);
   }
-  
+
   await fs.writeFile(path.join(executionDir, 'Solution.java'), wrapperCode);
 }
 
@@ -306,6 +306,7 @@ public class Solution {
     }
 }`;
 }
+
 
 module.exports = {
   generateJavaWrapper

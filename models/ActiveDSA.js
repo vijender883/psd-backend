@@ -20,6 +20,14 @@ const ActiveDSASchema = new mongoose.Schema({
     activatedAt: {
         type: Date,
         default: Date.now
+    },
+    availableAt: {
+        type: Date,
+        required: true
+    },
+    isActive: {
+        type: Boolean,
+        default: true
     }
 }, { timestamps: true });
 

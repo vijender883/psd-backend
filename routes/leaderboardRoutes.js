@@ -84,7 +84,20 @@ async function updateSingleUserLeaderboard(userId, simulationId, usernameHint = 
       mcqScore = await calculateMcqScore(participant.mcqAttemptId);
     }
 
-    let finalUsername = usernameHint || (dsaSubmissions.length > 0 ? dsaSubmissions[0].username : ("User_" + userId.substring(0, 6)));
+    // Prioritize the explicitly provided username (e.g. from the current active session)
+    // Then fallback to the most recent submission's username
+    // Finally fallback to a generic user ID string if all else fails
+    let finalUsername = usernameHint;
+
+    if (!finalUsername && dsaSubmissions.length > 0) {
+      // Sort submissions by date descending to get the very latest username used
+      dsaSubmissions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      finalUsername = dsaSubmissions[0].username;
+    }
+
+    if (!finalUsername) {
+      finalUsername = "User_" + userId.substring(0, 6);
+    }
     let finalCollege = participant?.college || 'Not specified';
     const totalScore = calculateWeightedTotalScore(mcqScore, totalDsaScore);
 

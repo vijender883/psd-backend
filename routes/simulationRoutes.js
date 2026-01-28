@@ -530,10 +530,11 @@ router.put('/:simulationId/availability', async (req, res) => {
 // GET /api/simulations/v2/active-dsa/status
 router.get('/v2/active-dsa/status', async (req, res) => {
   try {
-    const activeData = await ActiveDSA.findOne().sort({ createdAt: -1 });
+    // Return ALL active challenges, sorted by availability time
+    const activeData = await ActiveDSA.find({ isActive: true }).sort({ availableAt: 1 });
     res.json({
       success: true,
-      activeData: activeData || null
+      activeData: activeData // Returns an array now
     });
   } catch (error) {
     console.error('[DSA] Error fetching status:', error);
@@ -543,51 +544,65 @@ router.get('/v2/active-dsa/status', async (req, res) => {
 
 // POST /api/simulations/v2/active-dsa/activate
 router.post('/v2/active-dsa/activate', async (req, res) => {
-  const { problemId, title, simulationId, duration } = req.body;
+  const { problemId, title, simulationId, duration, availableAt } = req.body;
 
-  if (!problemId || !title) {
+  if (!problemId || !title || !availableAt) {
     return res.status(400).json({
       success: false,
-      error: 'problemId and title are required'
+      error: 'problemId, title, and availableAt are required'
     });
   }
 
   try {
-    // Clear any existing active challenges
-    await ActiveDSA.deleteMany({});
+    // DO NOT deactivate others. We want multiple active challenges.
+    // await ActiveDSA.updateMany({ isActive: true }, { isActive: false });
+
+    // Also clear them if you want to keep DB small, but marking as inactive is better for history
+    // await ActiveDSA.deleteMany({}); 
 
     const newActiveDSA = new ActiveDSA({
       problemId,
       title,
       simulationId: simulationId || "1",
       duration: duration || 30,
-      activatedAt: new Date()
+      activatedAt: new Date(),
+      availableAt: new Date(availableAt),
+      isActive: true
     });
 
     await newActiveDSA.save();
 
-    console.log('[DSA] Activated problem (persisted):', newActiveDSA);
+    console.log('[DSA] Activated problem (scheduled):', newActiveDSA);
 
     res.json({
       success: true,
-      message: 'Problem activated and persisted successfully',
+      message: 'Problem scheduled successfully',
       activeData: newActiveDSA
     });
   } catch (error) {
     console.error('[DSA] Error activating problem:', error);
-    res.status(500).json({ success: false, error: 'Failed to activate problem' });
+    res.status(500).json({ success: false, error: 'Failed to schedule problem' });
   }
 });
 
 // POST /api/simulations/v2/active-dsa/deactivate
 router.post('/v2/active-dsa/deactivate', async (req, res) => {
+  const { problemId } = req.body;
+
   try {
-    await ActiveDSA.deleteMany({});
-    console.log('[DSA] Deactivated all active problems');
+    if (problemId) {
+      await ActiveDSA.updateMany({ problemId: problemId, isActive: true }, { isActive: false });
+      console.log(`[DSA] Deactivated problem: ${problemId}`);
+    } else {
+      // Fallback for safety or legacy: ONLY if explicit "all" flag? 
+      // For now, let's just deactivate all if no ID is passed, to match old behavior but warn.
+      console.log('[DSA] No problemId provided, deactivating ALL active problems (Legacy Mode)');
+      await ActiveDSA.updateMany({ isActive: true }, { isActive: false });
+    }
 
     res.json({
       success: true,
-      message: 'Problem deactivated successfully from database'
+      message: 'Problem deactivated successfully'
     });
   } catch (error) {
     console.error('[DSA] Error deactivating problem:', error);
