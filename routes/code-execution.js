@@ -801,7 +801,7 @@ async function processSubmissionAsync(submissionId, code, problem, language) {
     console.log(`Processing problem: ${problem.id} - ${problem.title}`);
 
     // Execute code
-    const result = await executeCode(code, problem.testCases, language);
+    const result = await executeCode(code, problem.testCases, language, problem.id);
     console.log(`Code execution completed with ${result.results ? result.results.filter(r => r.passed).length : 0}/${result.results ? result.results.length : 0} tests passed`);
 
     // Calculate metrics

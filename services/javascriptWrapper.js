@@ -3,19 +3,19 @@ const fs = require('fs').promises;
 const path = require('path');
 
 async function generateJavaScriptWrapper(executionDir, code) {
-    let wrapperCode;
+  let wrapperCode;
 
-    if (code.includes('function chunk')) {
-        wrapperCode = generateArrayChunkWrapper(code);
-    } else if (code.includes('function flattenObject')) {
-        wrapperCode = generateFlattenObjectWrapper(code);
-    } else if (code.includes('function removeNthFromEnd') || code.includes('removeNthFromEnd')) {
-        wrapperCode = generateRemoveNthFromEndWrapper(code);
-    } else {
-        wrapperCode = generateFallbackWrapper(code); 
-    }
+  if (code.includes('function chunk')) {
+    wrapperCode = generateArrayChunkWrapper(code);
+  } else if (code.includes('function flattenObject')) {
+    wrapperCode = generateFlattenObjectWrapper(code);
+  } else if (code.includes('function removeNthFromEnd') || code.includes('removeNthFromEnd')) {
+    wrapperCode = generateRemoveNthFromEndWrapper(code);
+  } else {
+    wrapperCode = generateFallbackWrapper(code);
+  }
 
-    await fs.writeFile(path.join(executionDir, 'solution.js'), wrapperCode);
+  await fs.writeFile(path.join(executionDir, 'solution.js'), wrapperCode);
 }
 
 // --- Specific Wrapper Functions ---
@@ -26,7 +26,7 @@ async function generateJavaScriptWrapper(executionDir, code) {
  */
 
 function generateRemoveNthFromEndWrapper(code) {
-    return `
+  return `
 const readline = require('readline');
 
 // Definition for singly-linked list
@@ -117,7 +117,7 @@ rl.on('close', () => {
 
 
 function generateArrayChunkWrapper(code) {
-    return `
+  return `
 const readline = require('readline');
 
 ${code}
@@ -174,7 +174,7 @@ rl.on('close', () => {
  * Input format: Single line: JSON object
  */
 function generateFlattenObjectWrapper(code) {
-    return `
+  return `
 const readline = require('readline');
 
 ${code}
@@ -226,11 +226,11 @@ rl.on('close', () => {
  * This is primarily to avoid the ReferenceError.
  */
 function generateFallbackWrapper(code) {
-    // Attempt to dynamically find the function name for simple execution
-    const functionMatch = code.match(/function\s+(\w+)\s*\(([^)]*)\)|const\s+(\w+)\s*=\s*function\s*\(([^)]*)\)/);
-    const functionName = functionMatch ? (functionMatch[1] || functionMatch[3] || 'solution') : 'solution';
+  // Attempt to dynamically find the function name for simple execution
+  const functionMatch = code.match(/function\s+(\w+)\s*\(([^)]*)\)|const\s+(\w+)\s*=\s*function\s*\(([^)]*)\)/);
+  const functionName = functionMatch ? (functionMatch[1] || functionMatch[3] || 'solution') : 'solution';
 
-    return `
+  return `
 const readline = require('readline');
 
 ${code}
@@ -276,7 +276,8 @@ rl.on('close', () => {
 `;
 }
 
+
 // Export the main function
 module.exports = {
-    generateJavaScriptWrapper
+  generateJavaScriptWrapper
 };

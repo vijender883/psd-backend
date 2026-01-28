@@ -1085,7 +1085,7 @@ Find the element in the array that is closest in value to the target. If there a
   'validanagram': {
     id: 'validanagram',
     title: 'Valid Anagram',
-    description: 'Given two strings `s` and `t`, return `true` if `t` is an anagram of `s`, and `false` otherwise.\n\nAn Anagram is a word or phrase formed by rearranging the letters of a different word or phrase, using all the original letters exactly once.',
+    description: 'Given two strings `s` and `t`, return `true` if `t` is an anagram of `s`, and `false` otherwise.\\n\\nAn Anagram is a word or phrase formed by rearranging the letters of a different word or phrase, using all the original letters exactly once.',
     inputFormat: 'Two lines containing strings s and t, each consisting of lowercase English letters.',
     outputFormat: 'Return true if t is an anagram of s, or false otherwise.',
     constraints: [
@@ -1095,12 +1095,12 @@ Find the element in the array that is closest in value to the target. If there a
     examples: [
       {
         name: 'Example 1',
-        input: 's = \"anagram\"\nt = \"nagaram\"',
+        input: 's = \"anagram\"\\nt = \"nagaram\"',
         output: 'true'
       },
       {
         name: 'Example 2',
-        input: 's = \"rat\"\nt = \"car\"',
+        input: 's = \"rat\"\\nt = \"car\"',
         output: 'false'
       }
     ],
@@ -1109,8 +1109,8 @@ Find the element in the array that is closest in value to the target. If there a
       description: 'Could you solve it in O(n) time using only O(1) extra space? What if the inputs contain Unicode characters?'
     },
     templates: {
-      java: 'class ValidAnagram {\n    public boolean isAnagram(String s, String t) {\n        // Write your code here\n    }\n}',
-      python: 'class ValidAnagram:\n    def is_anagram(self, s, t):\n        # Write your code here\n        pass'
+      java: 'class ValidAnagram {\\n    public boolean isAnagram(String s, String t) {\\n        // Write your code here\\n    }\\n}',
+      python: 'class ValidAnagram:\\n    def is_anagram(self, s, t):\\n        # Write your code here\\n        pass'
     },
     solution: `class ValidAnagram {
     public boolean isAnagram(String s, String t) {
@@ -1139,42 +1139,42 @@ Find the element in the array that is closest in value to the target. If there a
 }`,
     testCases: [
       {
-        input: 'anagram\nnagaram',
+        input: 'anagram\\nnagaram',
         expectedOutput: 'true',
         description: 'Example test case 1 - valid anagram'
       },
       {
-        input: 'rat\ncar',
+        input: 'rat\\ncar',
         expectedOutput: 'false',
         description: 'Example test case 2 - not an anagram'
       },
       {
-        input: 'listen\nsilent',
+        input: 'listen\\nsilent',
         expectedOutput: 'true',
         description: 'Classic anagram pair'
       },
       {
-        input: 'evil\nvile',
+        input: 'evil\\nvile',
         expectedOutput: 'true',
         description: 'Another valid anagram'
       },
       {
-        input: 'a\nab',
+        input: 'a\\nab',
         expectedOutput: 'false',
         description: 'Different lengths'
       },
       {
-        input: 'ab\nba',
+        input: 'ab\\nba',
         expectedOutput: 'true',
         description: 'Simple two character anagram'
       },
       {
-        input: 'aab\naba',
+        input: 'aab\\naba',
         expectedOutput: 'true',
         description: 'Anagram with repeated characters'
       },
       {
-        input: 'abc\ndef',
+        input: 'abc\\ndef',
         expectedOutput: 'false',
         description: 'Completely different characters'
       }
