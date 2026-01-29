@@ -1359,6 +1359,69 @@ Find the element in the array that is closest in value to the target. If there a
         description: '|1-7|=6'
       }
     ]
+  },
+  'largest_element': {
+    id: "largest_element",
+    title: "Find Largest Element in Array",
+    description: "Given an array of integers `nums`, find the largest element in the array.",
+    inputFormat: "A single line containing space-separated integers representing the array `nums`.",
+    outputFormat: "Return the largest integer in the array.",
+    constraints: [
+      "1 <= nums.length <= 10^5",
+      "-10^9 <= nums[i] <= 10^9"
+    ],
+    examples: [
+      {
+        name: "Example 1",
+        input: "2 5 1 3 0",
+        output: "5"
+      },
+      {
+        name: "Example 2",
+        input: "8 10 5 7 9",
+        output: "10"
+      }
+    ],
+    templates: {
+      java: "class Solution {\n    public int findLargest(int[] nums) {\n        // Write your code here\n    }\n}",
+      python: "class Solution:\n    def find_largest(self, nums):\n        # Write your code here\n        pass"
+    },
+    solution: `class Solution:
+    def find_largest(self, nums):
+        if not nums:
+            return None
+        max_val = nums[0]
+        for n in nums:
+            if n > max_val:
+                max_val = n
+        return max_val`,
+    testCases: [
+      {
+        input: "2 5 1 3 0",
+        expectedOutput: "5",
+        description: "Basic case"
+      },
+      {
+        input: "8 10 5 7 9",
+        expectedOutput: "10",
+        description: "Large values"
+      },
+      {
+        input: "-1 -5 -10 -2",
+        expectedOutput: "-1",
+        description: "Negative numbers"
+      },
+      {
+        input: "100",
+        expectedOutput: "100",
+        description: "Single element"
+      },
+      {
+        input: "5 5 5 5",
+        expectedOutput: "5",
+        description: "All same elements"
+      }
+    ]
   }
 };
 

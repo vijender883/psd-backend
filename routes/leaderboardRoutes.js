@@ -163,12 +163,38 @@ router.post('/simulations/:simulationId/leaderboard/update', async (req, res) =>
 router.get('/simulations/:simulationId/leaderboard', async (req, res) => {
   try {
     const { simulationId } = req.params;
+    const { problemId } = req.query;
+
+    if (problemId) {
+      // Problem-specific leaderboard
+      const submissions = await Submission.find({
+        problemId: problemId,
+        isSubmitted: true
+      }).sort({
+        passedTests: -1,
+        executionTime: 1,
+        createdAt: 1
+      });
+
+      const leaderboard = submissions.map((sub, index) => ({
+        rank: index + 1,
+        userId: sub.userId,
+        username: sub.username,
+        totalPassedTests: sub.passedTests,
+        totalTestsCount: sub.totalTests,
+        totalTimeTaken: sub.executionTime || 0,
+        totalScore: sub.totalTests > 0 ? Math.round((sub.passedTests / sub.totalTests) * 100) : 0,
+        lastSubmissionTime: sub.createdAt
+      }));
+
+      return res.json({ success: true, leaderboard });
+    }
 
     // 1. Find ALL unique userIds who have submitted for this simulation's problems
     const problemIds = await getProblemsForSimulation(simulationId);
     const uniqueSubmitters = await Submission.distinct('userId', {
       problemId: { $in: problemIds },
-      isSubmitted: true // Added isSubmitted filter
+      isSubmitted: true
     });
 
     // 2. Update/Heal entries for everyone we found

@@ -69,6 +69,9 @@ async function generatePythonWrapper(executionDir, code, problemId = null) {
       case 'target_difference':
         wrapperCode = generateTargetDifferenceWrapper(code);
         break;
+      case 'largest_element':
+        wrapperCode = generateLargestElementWrapper(code);
+        break;
       default:
         wrapperCode = generateFallbackWrapper(code);
     }
@@ -148,7 +151,7 @@ if __name__ == "__main__":
 }
 
 function generateLongestCommonPrefixWrapper(code) {
-  return generateGenericWrapper(code, 'longest_common_prefix', 'LongestPrefix', ['strs'], res => 'print(res if res is not None else "")');
+  return generateGenericWrapper(code, 'longest_common_prefix', 'LongestPrefix', ['strs'], res => `print(${res} if ${res} is not None else "")`);
 }
 
 function generateMinPathSumWrapper(code) {
@@ -217,11 +220,11 @@ if __name__ == "__main__":
 }
 
 function generateLISWrapper(code) {
-  return generateGenericWrapper(code, 'length_of_lis', 'LengthOfLIS', ['nums'], res => 'print(res)');
+  return generateGenericWrapper(code, 'length_of_lis', 'LengthOfLIS', ['nums'], res => `print(${res})`);
 }
 
 function generateConsecutiveCharsWrapper(code) {
-  return generateGenericWrapper(code, 'count_consecutive_chars', 'CountConsecutive', ['s'], res => 'print(list(res) if res is not None else [])');
+  return generateGenericWrapper(code, 'count_consecutive_chars', 'CountConsecutive', ['s'], res => `print(list(${res}) if ${res} is not None else [])`);
 }
 
 function generateClosestValueWrapper(code) {
@@ -296,7 +299,7 @@ if __name__ == "__main__":
 }
 
 function generateThreeSumWrapper(code) {
-  return generateGenericWrapper(code, 'three_sum', 'Solution', ['nums'], res => 'print(res)');
+  return generateGenericWrapper(code, 'three_sum', 'Solution', ['nums'], res => `print(${res})`);
 }
 
 function generateReverseStringWrapper(code) {
@@ -304,15 +307,19 @@ function generateReverseStringWrapper(code) {
 }
 
 function generateGPUOptimizerWrapper(code) {
-  return generateGenericWrapper(code, 'minimum_gpu_capacity', 'Solution', ['workloads', 'k'], res => 'print(res)');
+  return generateGenericWrapper(code, 'minimum_gpu_capacity', 'Solution', ['workloads', 'k'], res => `print(${res})`);
 }
 
 function generateTrafficFlowWrapper(code) {
-  return generateGenericWrapper(code, 'longest_balanced_stretch', 'TrafficFlowAnalyzer', ['traffic_density'], res => 'print(res)');
+  return generateGenericWrapper(code, 'longest_balanced_stretch', 'TrafficFlowAnalyzer', ['traffic_density'], res => `print(${res})`);
+}
+
+function generateLargestElementWrapper(code) {
+  return generateGenericWrapper(code, 'find_largest', 'Solution', ['nums'], res => `print(${res})`);
 }
 
 function generateFindActivityRangeWrapper(code) {
-  return generateGenericWrapper(code, 'find_activity_range', 'Solution', ['activities'], res => 'print(res)');
+  return generateGenericWrapper(code, 'find_activity_range', 'Solution', ['activities'], res => `print(${res})`);
 }
 
 function generateRemoveNthFromEndWrapper(code) {
