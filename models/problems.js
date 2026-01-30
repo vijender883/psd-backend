@@ -1422,6 +1422,64 @@ Find the element in the array that is closest in value to the target. If there a
         description: "All same elements"
       }
     ]
+  },
+  'second_smallest_largest': {
+    id: "second_smallest_largest",
+    title: "Find Second Smallest and Second Largest",
+    description: "Given an array, find the second smallest and second largest element in the array. Return [-1, -1] in the event that either of them doesn’t exist.",
+    inputFormat: "A single line containing space-separated integers representing the array.",
+    outputFormat: "Return a list of two integers: [second_smallest, second_largest]. Return [-1, -1] if they don't exist.",
+    constraints: [
+      "1 <= nums.length <= 10^5",
+      "-10^9 <= nums[i] <= 10^9"
+    ],
+    examples: [
+      {
+        name: "Example 1",
+        input: "1 2 4 7 7 5",
+        output: "Second Smallest : 2\nSecond Largest : 5"
+      },
+      {
+        name: "Example 2",
+        input: "1",
+        output: "Second Smallest : -1\nSecond Largest : -1"
+      }
+    ],
+    templates: {
+      python: "class Solution:\n    def find_second_smallest_largest(self, nums):\n        # Return a list of two values: [second_smallest, second_largest]\n        # Example: return [2, 5]\n        pass"
+    },
+    testCases: [
+      {
+        input: "1 2 4 7 7 5",
+        expectedOutput: "Second Smallest : 2\nSecond Largest : 5",
+        description: "Standard case with duplicates"
+      },
+      {
+        input: "1",
+        expectedOutput: "Second Smallest : -1\nSecond Largest : -1",
+        description: "Single element"
+      },
+      {
+        input: "1 1 1",
+        expectedOutput: "Second Smallest : -1\nSecond Largest : -1",
+        description: "All same elements"
+      },
+      {
+        input: "10 20 30 40 50",
+        expectedOutput: "Second Smallest : 20\nSecond Largest : 40",
+        description: "Sorted array"
+      },
+      {
+        input: "50 40 30 20 10",
+        expectedOutput: "Second Smallest : 20\nSecond Largest : 40",
+        description: "Reverse sorted array"
+      },
+      {
+        input: "-10 -5 0 5 10",
+        expectedOutput: "Second Smallest : -5\nSecond Largest : 5",
+        description: "Negative numbers"
+      }
+    ]
   }
 };
 
