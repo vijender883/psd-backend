@@ -72,6 +72,9 @@ async function generatePythonWrapper(executionDir, code, problemId = null) {
       case 'largest_element':
         wrapperCode = generateLargestElementWrapper(code);
         break;
+      case 'second_smallest_largest':
+        wrapperCode = generateSecondSmallestLargestWrapper(code);
+        break;
       default:
         wrapperCode = generateFallbackWrapper(code);
     }
@@ -320,6 +323,10 @@ function generateLargestElementWrapper(code) {
 
 function generateFindActivityRangeWrapper(code) {
   return generateGenericWrapper(code, 'find_activity_range', 'Solution', ['activities'], res => `print(${res})`);
+}
+
+function generateSecondSmallestLargestWrapper(code) {
+  return generateGenericWrapper(code, 'find_second_smallest_largest', 'Solution', ['nums'], res => `print(f"Second Smallest : {${res}[0]}\\nSecond Largest : {${res}[1]}" if ${res} and len(${res}) == 2 else "Second Smallest : -1\\nSecond Largest : -1")`);
 }
 
 function generateRemoveNthFromEndWrapper(code) {
