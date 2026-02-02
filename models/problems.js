@@ -1297,7 +1297,257 @@ Find the element in the array that is closest in value to the target. If there a
         description: 'Two identical elements'
       }
     ]
-  }
+  },
+  'target_difference': {
+    id: 'target_difference',
+    title: 'Target Difference',
+    description: 'You are given an array of integers and a target difference k. Find all unique pairs of indices (i, j) where i < j and the absolute difference between the values |nums[i] - nums[j]| equals k.',
+    inputFormat: 'The first line contains space-separated integers representing the array.\nThe second line contains a single integer k.',
+    outputFormat: 'Return a space-separated list of index pairs, where each pair is represented as "i j" and sorted by i, then j. For example, "0 1 1 2".',
+    constraints: [
+      '2 <= nums.length <= 10^4',
+      '-10^9 <= nums[i] <= 10^9',
+      '0 <= k <= 10^9'
+    ],
+    examples: [
+      {
+        name: 'Example 1',
+        input: '1 5 3 7 9\n2',
+        output: '0 2 1 2 1 3 3 4'
+      },
+      {
+        name: 'Example 2',
+        input: '4 4 4\n0',
+        output: '0 1 0 2 1 2'
+      }
+    ],
+    templates: {
+      java: 'class Solution {\n    public List<int[]> targetDifference(int[] nums, int k) {\n        // Your code here\n    }\n}',
+      python: 'class Solution:\n    def target_difference(self, nums, k):\n        # Your code here\n        pass',
+      javascript: 'function targetDifference(nums, k) {\n    // Your code here\n}'
+    },
+    solution: `function targetDifference(nums, k) {
+    const result = [];
+    for (let i = 0; i < nums.length; i++) {
+        for (let j = i + 1; j < nums.length; j++) {
+            if (Math.abs(nums[i] - nums[j]) === k) {
+                result.push([i, j]);
+            }
+        }
+    }
+    return result;
+}`,
+    testCases: [
+      {
+        input: '1 5 3 7 9\n2',
+        expectedOutput: '0 2 1 2 1 3 3 4',
+        description: 'Pairs with difference 2'
+      },
+      {
+        input: '10 15 20 25\n5',
+        expectedOutput: '0 1 1 2 2 3',
+        description: 'Consecutive pairs differ by 5'
+      },
+      {
+        input: '4 4 4\n0',
+        expectedOutput: '0 1 0 2 1 2',
+        description: 'All pairs have difference 0'
+      },
+      {
+        input: '1 3 7 2\n6',
+        expectedOutput: '0 2',
+        description: '|1-7|=6'
+      }
+    ]
+  },
+  'largest_element': {
+    id: "largest_element",
+    title: "Find Largest Element in Array",
+    description: "Given an array of integers `nums`, find the largest element in the array.",
+    inputFormat: "A single line containing space-separated integers representing the array `nums`.",
+    outputFormat: "Return the largest integer in the array.",
+    constraints: [
+      "1 <= nums.length <= 10^5",
+      "-10^9 <= nums[i] <= 10^9"
+    ],
+    examples: [
+      {
+        name: "Example 1",
+        input: "2 5 1 3 0",
+        output: "5"
+      },
+      {
+        name: "Example 2",
+        input: "8 10 5 7 9",
+        output: "10"
+      }
+    ],
+    templates: {
+      java: "class Solution {\n    public int findLargest(int[] nums) {\n        // Write your code here\n    }\n}",
+      python: "class Solution:\n    def find_largest(self, nums):\n        # Write your code here\n        pass"
+    },
+    solution: `class Solution:
+    def find_largest(self, nums):
+        if not nums:
+            return None
+        max_val = nums[0]
+        for n in nums:
+            if n > max_val:
+                max_val = n
+        return max_val`,
+    testCases: [
+      {
+        input: "2 5 1 3 0",
+        expectedOutput: "5",
+        description: "Basic case"
+      },
+      {
+        input: "8 10 5 7 9",
+        expectedOutput: "10",
+        description: "Large values"
+      },
+      {
+        input: "-1 -5 -10 -2",
+        expectedOutput: "-1",
+        description: "Negative numbers"
+      },
+      {
+        input: "100",
+        expectedOutput: "100",
+        description: "Single element"
+      },
+      {
+        input: "5 5 5 5",
+        expectedOutput: "5",
+        description: "All same elements"
+      }
+    ]
+  },
+  'second_smallest_largest': {
+    id: "second_smallest_largest",
+    title: "Find Second Smallest and Second Largest",
+    description: "Given an array, find the second smallest and second largest element in the array. Return [-1, -1] in the event that either of them doesn’t exist.",
+    inputFormat: "A single line containing space-separated integers representing the array.",
+    outputFormat: "Return a list of two integers: [second_smallest, second_largest]. Return [-1, -1] if they don't exist.",
+    constraints: [
+      "1 <= nums.length <= 10^5",
+      "-10^9 <= nums[i] <= 10^9"
+    ],
+    examples: [
+      {
+        name: "Example 1",
+        input: "1 2 4 7 7 5",
+        output: "Second Smallest : 2\nSecond Largest : 5"
+      },
+      {
+        name: "Example 2",
+        input: "1",
+        output: "Second Smallest : -1\nSecond Largest : -1"
+      }
+    ],
+    templates: {
+      python: "class Solution:\n    def find_second_smallest_largest(self, nums):\n        # Return a list of two values: [second_smallest, second_largest]\n        # Example: return [2, 5]\n        pass"
+    },
+    testCases: [
+      {
+        input: "1 2 4 7 7 5",
+        expectedOutput: "Second Smallest : 2\nSecond Largest : 5",
+        description: "Standard case with duplicates"
+      },
+      {
+        input: "1",
+        expectedOutput: "Second Smallest : -1\nSecond Largest : -1",
+        description: "Single element"
+      },
+      {
+        input: "1 1 1",
+        expectedOutput: "Second Smallest : -1\nSecond Largest : -1",
+        description: "All same elements"
+      },
+      {
+        input: "10 20 30 40 50",
+        expectedOutput: "Second Smallest : 20\nSecond Largest : 40",
+        description: "Sorted array"
+      },
+      {
+        input: "50 40 30 20 10",
+        expectedOutput: "Second Smallest : 20\nSecond Largest : 40",
+        description: "Reverse sorted array"
+      },
+      {
+        input: "-10 -5 0 5 10",
+        expectedOutput: "Second Smallest : -5\nSecond Largest : 5",
+        description: "Negative numbers"
+      }
+    ]
+  },
+  'pair_product_target': {
+    id: "pair_product_target",
+    title: "Array Pair for Target Product",
+    description: "Given an array of positive integers nums and a target integer target, return the indices of two numbers such that their product equals the target.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.",
+    inputFormat: "The first line contains space-separated integers representing the array `nums`.\nThe second line contains a single integer `target`.",
+    outputFormat: "Return the indices of the two numbers as space-separated integers.",
+    constraints: [
+      "2 <= nums.length <= 10^4",
+      "1 <= nums[i] <= 10^6",
+      "1 <= target <= 10^9",
+      "Only one valid answer exists."
+    ],
+    examples: [
+      {
+        name: "Example 1",
+        input: "2 3 4 5 6\n20",
+        output: "2 3"
+      },
+      {
+        name: "Example 2",
+        input: "1 7 3 9 2\n14",
+        output: "1 4"
+      }
+    ],
+    miscellaneous: {
+      name: "Follow-up",
+      description: "Can you solve this in O(n) time complexity?"
+    },
+    templates: {
+      java: "class Solution {\n    public int[] productPair(int[] nums, int target) {\n        // Write your code here\n    }\n}",
+      python: "class Solution:\n    def product_pair(self, nums, target):\n        # Write your code here\n        pass"
+    },
+    solution: `class Solution:
+    def product_pair(self, nums, target):
+        prevMap = {}  # val : index
+        
+        for i, n in enumerate(nums):
+            if n == 0: continue # Avoid division by zero if applicable, though constraints say positive.
+            if target % n == 0:
+                needed = target // n
+                if needed in prevMap:
+                    return [prevMap[needed], i]
+            prevMap[n] = i
+        return []`,
+    testCases: [
+      {
+        input: "2 3 4 5 6\n20",
+        expectedOutput: "2 3",
+        description: "Basic case: 4 * 5 = 20"
+      },
+      {
+        input: "1 7 3 9 2\n14",
+        expectedOutput: "1 4",
+        description: "Indices 1 and 4: 7 * 2 = 14"
+      },
+      {
+        input: "10 20 30\n600",
+        expectedOutput: "1 2",
+        description: "20 * 30 = 600"
+      },
+      {
+        input: "5 2 10\n10",
+        expectedOutput: "0 1",
+        description: "5 * 2 = 10"
+      }
+    ]
+  },
 };
 
 // Convert problem list to include language-specific templates

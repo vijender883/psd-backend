@@ -7,7 +7,7 @@ async function generatePythonWrapper(executionDir, code, problemId = null) {
 
   if (problemId) {
     switch (problemId) {
-      case 'min_path_sum': // Fallback for legacy ID if any
+      case 'min_path_sum':
       case 'minimumpathsum':
         wrapperCode = generateMinPathSumWrapper(code);
         break;
@@ -28,12 +28,15 @@ async function generatePythonWrapper(executionDir, code, problemId = null) {
         wrapperCode = generateClosestValueWrapper(code);
         break;
       case 'check_inclusion':
+      case 'permutationinstring':
         wrapperCode = generatePermutationInStringWrapper(code);
         break;
       case 'total_fruit':
+      case 'fruitintobaskets':
         wrapperCode = generateFruitIntoBasketsWrapper(code);
         break;
       case 'is_anagram':
+      case 'validanagram':
         wrapperCode = generateValidAnagramWrapper(code);
         break;
       case 'three_sum':
@@ -63,461 +66,98 @@ async function generatePythonWrapper(executionDir, code, problemId = null) {
       case 'longestcommonprefix':
         wrapperCode = generateLongestCommonPrefixWrapper(code);
         break;
-      case 'flattenobject':
-        // No python wrapper for flatten object yet?
-        wrapperCode = generateLongestCommonPrefixWrapper(code); // Fallback
+      case 'target_difference':
+        wrapperCode = generateTargetDifferenceWrapper(code);
         break;
+      case 'largest_element':
+        wrapperCode = generateLargestElementWrapper(code);
+        break;
+      case 'second_smallest_largest':
+        wrapperCode = generateSecondSmallestLargestWrapper(code);
+        break;
+      case 'pair_product_target':
+        wrapperCode = generatePairProductTargetWrapper(code);
+        break;
+      default:
+        wrapperCode = generateFallbackWrapper(code);
     }
   }
 
   if (!wrapperCode) {
-    // Fallback to legacy detection if problemId not found or not provided
-    const isMinPathSum = code.includes('min_path_sum');
-    const isDiagonalTraversal = code.includes('diagonal_traversal');
-    const isLIS = code.includes('length_of_lis');
-    const isConsecutiveChars = code.includes('count_consecutive_chars');
-    const isClosestValue = code.includes('find_closest_element');
-    const isPermutationInString = code.includes('check_inclusion');
-    const isFruitIntoBaskets = code.includes('total_fruit');
-    const isValidAnagram = code.includes('is_anagram');
-    const isThreeSum = code.includes('three_sum');
-    const isReverseString = code.includes('reverse_string');
-    const isTwoSum = code.includes('two_sum');
-    const isGPUOptimizer = code.includes('minimum_gpu_capacity');
-    const isTrafficFlow = code.includes('longest_balanced_stretch');
-    const isFindActivityRange = code.includes('find_activity_range');
-    const isRemoveNthFromEnd = code.includes('removeNthFromEnd');
-
-    if (isMinPathSum) {
-      wrapperCode = generateMinPathSumWrapper(code);
-    } else if (isDiagonalTraversal) {
-      wrapperCode = generateDiagonalTraversalWrapper(code);
-    } else if (isLIS) {
-      wrapperCode = generateLISWrapper(code);
-    } else if (isConsecutiveChars) {
-      wrapperCode = generateConsecutiveCharsWrapper(code);
-    } else if (isClosestValue) {
-      wrapperCode = generateClosestValueWrapper(code);
-    } else if (isPermutationInString) {
-      wrapperCode = generatePermutationInStringWrapper(code);
-    } else if (isFruitIntoBaskets) {
-      wrapperCode = generateFruitIntoBasketsWrapper(code);
-    } else if (isValidAnagram) {
-      wrapperCode = generateValidAnagramWrapper(code);
-    } else if (isThreeSum) {
-      wrapperCode = generateThreeSumWrapper(code);
-    } else if (isReverseString) {
-      wrapperCode = generateReverseStringWrapper(code);
-    } else if (isTwoSum) {
-      wrapperCode = generateTwoSumWrapper(code);
-    } else if (isGPUOptimizer) {
-      wrapperCode = generateGPUOptimizerWrapper(code);
-    } else if (isTrafficFlow) {
-      wrapperCode = generateTrafficFlowWrapper(code);
-    } else if (isFindActivityRange) {
-      wrapperCode = generateFindActivityRangeWrapper(code);
-    } else if (isRemoveNthFromEnd) {
-      wrapperCode = generateRemoveNthFromEndWrapper(code);
-    } else {
-      wrapperCode = generateLongestCommonPrefixWrapper(code);
-    }
+    // Fallback detection
+    if (code.includes('min_path_sum')) wrapperCode = generateMinPathSumWrapper(code);
+    else if (code.includes('diagonal_traversal')) wrapperCode = generateDiagonalTraversalWrapper(code);
+    else if (code.includes('two_sum')) wrapperCode = generateTwoSumWrapper(code);
+    else if (code.includes('target_difference')) wrapperCode = generateTargetDifferenceWrapper(code);
+    else wrapperCode = generateFallbackWrapper(code);
   }
 
   await fs.writeFile(path.join(executionDir, 'solution.py'), wrapperCode);
 }
 
+// --- Specific Wrapper Functions ---
 
-function generateRemoveNthFromEndWrapper(code) {
+function generateTwoSumWrapper(code) {
+  return generateGenericWrapper(code, 'two_sum', 'TwoSum', ['nums', 'target'], result => {
+    return 'print(f"{result[0]} {result[1]}" if result else "")';
+  });
+}
+
+function generateTargetDifferenceWrapper(code) {
   return `
 import sys
 
-# Definition for singly-linked list
-class ListNode:
-    def __init__(self, val=0, next=None):
-        self.val = val
-        self.next = next
-
 ${code}
 
-def build_linked_list(values):
-    """Build linked list from array of values"""
-    if not values:
-        return None
-    
-    dummy = ListNode(0)
-    current = dummy
-    
-    for val in values:
-        current.next = ListNode(val)
-        current = current.next
-    
-    return dummy.next
-
-def linked_list_to_array(head):
-    """Convert linked list to array"""
-    result = []
-    current = head
-    
-    while current is not None:
-        result.append(current.val)
-        current = current.next
-    
-    return result
-
 if __name__ == "__main__":
-    # Read input
-    values = list(map(int, input().strip().split()))
-    n = int(input().strip())
+    line1 = sys.stdin.readline().strip()
+    if not line1: sys.exit(0)
+    try:
+        if line1.startswith('[') and line1.endswith(']'):
+            import json
+            nums = json.loads(line1)
+        else:
+            nums = list(map(int, line1.split()))
+    except: nums = []
     
-    # Build linked list
-    head = build_linked_list(values)
+    line2 = sys.stdin.readline().strip()
+    k = int(line2) if line2 else 0
     
-    # Create solution object and call function
-    solver = Solution()
-    result = solver.removeNthFromEnd(head, n)
-    
-    # Convert result to array and output
-    result_array = linked_list_to_array(result)
-    if result_array:
-        print(' '.join(map(str, result_array)))
-    else:
-        print('')
+    try:
+        if 'Solution' in globals():
+            s = Solution()
+            method = getattr(s, 'target_difference', getattr(s, 'targetDifference', None))
+            result = method(nums, k) if method else target_difference(nums, k)
+        else:
+            result = target_difference(nums, k)
+    except Exception as e:
+        print(f"Runtime Error: {e}", file=sys.stderr)
+        sys.exit(1)
+        
+    if result is None: print("")
+    elif isinstance(result, str): print(result.strip())
+    elif isinstance(result, (list, tuple)):
+        if not result: print("")
+        elif len(result) > 0 and not isinstance(result[0], (list, tuple)):
+            # Flat list [i, j, i2, j2]
+            print(" ".join(map(str, result)))
+        else:
+            try:
+                # Helper to check if it's a list of pairs
+                if all(isinstance(x, (list, tuple)) and len(x) >= 2 for x in result):
+                    res = sorted(result, key=lambda x: (x[0], x[1]))
+                    out = []
+                    for p in res: out.extend([str(p[0]), str(p[1])])
+                    print(" ".join(out))
+                else:
+                    print(" ".join(map(str, result)))
+            except: print(" ".join(map(str, result)))
+    else: print(str(result))
 `;
 }
 
-function generateFindActivityRangeWrapper(code) {
-  return `
-import sys
-
-${code}
-
-if __name__ == "__main__":
-    # Read input
-    line = input().strip().split()
-    activity_log = list(map(int, line[:-1]))
-    target_time = int(line[-1])
-    
-    # Create solution object and call function
-    solver = Solution()
-    result = solver.find_activity_range(activity_log, target_time)
-    
-    # Output result
-    print(f"[{result[0]},{result[1]}]")
-`
-}
-
-
-function generateGPUOptimizerWrapper(code) {
-  return `
-import sys
-
-${code}
-
-if __name__ == "__main__":
-    # Read input
-    gpu_memory = list(map(int, input().strip().split()))
-    model_requirements = list(map(int, input().strip().split()))
-    k = int(input().strip())
-    
-    # Create solution object and call function
-    solver = Solution()
-    result = solver.minimum_gpu_capacity(gpu_memory, model_requirements, k)
-    
-    # Output result
-    print(result)
-`
-}
-
-function generateTrafficFlowWrapper(code) {
-  return `
-import sys
-
-${code}
-
-if __name__ == "__main__":
-    # Read input
-    traffic_density = list(map(int, input().strip().split()))
-    
-    # Create solution object and call function
-    solver = Solution()
-    result = solver.longest_balanced_stretch(traffic_density)
-    
-    # Output result
-    print(result)
-`
-}
-
-
-// Add new wrapper generator for Reverse String
-function generateReverseStringWrapper(code) {
-  return `
-import sys
-
-${code}
-
-if __name__ == "__main__":
-    # Read input
-    chars = input().strip().split()
-    
-    # Create solution object and call function
-    solver = Solution()
-    solver.reverse_string(chars)
-    
-    # Output result (space-separated characters)
-    print(' '.join(chars))
-`
-}
-
-// Add new wrapper generator for Two Sum
-function generateTwoSumWrapper(code) {
-  return `
-import sys
-
-${code}
-
-if __name__ == "__main__":
-    # Read input
-    nums = list(map(int, input().strip().split()))
-    target = int(input().strip())
-    
-    # Create solution object and call function
-    solver = Solution()
-    result = solver.two_sum(nums, target)
-    
-    # Output result
-    print(f"{min(result)} {max(result)}")
-`
-}
-
-// Add new wrapper generator for 3Sum
-function generateThreeSumWrapper(code) {
-  return `
-import sys
-
-${code}
-
-def format_result(result):
-    if not result:
-        return "[]"
-    
-    # Sort each triplet and the overall result for consistent output
-    result = [sorted(triplet) for triplet in result]
-    result.sort()
-    
-    formatted = "["
-    for i, triplet in enumerate(result):
-        formatted += "["
-        formatted += ",".join(str(num) for num in triplet)
-        formatted += "]"
-        if i < len(result) - 1:
-            formatted += ","
-    formatted += "]"
-    
-    return formatted
-
-if __name__ == "__main__":
-  # Read input
-  nums = list(map(int, input().strip().split()))
-  
-  # Create solution object and call function
-  solver = Solution()
-  result = solver.three_sum(nums)
-  
-  # Output result
-  print(format_result(result))
-`
-}
-
-// Add new wrapper generator for Valid Anagram
-function generateValidAnagramWrapper(code) {
-  return `
-import sys
-
-${code}
-
-if __name__ == "__main__":
-  # Read input
-  s = input().strip()
-  t = input().strip()
-  
-  # Create solution object and call function
-  solver = Solution()
-  result = solver.is_anagram(s, t)
-  
-  # Output result
-  print(str(result).lower())
-`
-}
-
-// Add new wrapper generator for Permutation in String
-function generatePermutationInStringWrapper(code) {
-  return `
-import sys
-
-${code}
-
-if __name__ == "__main__":
-  # Read input
-  s1 = input().strip()
-  s2 = input().strip()
-  
-  # Create solution object and call function
-  solver = Solution()
-  result = solver.check_inclusion(s1, s2)
-  
-  # Output result
-  print(str(result).lower())
-`
-}
-
-// Add new wrapper generator for Fruit Into Baskets
-function generateFruitIntoBasketsWrapper(code) {
-  return `
-import sys
-
-${code}
-
-if __name__ == "__main__":
-  # Read input
-  n = int(input().strip())
-  fruits = list(map(int, input().strip().split()))
-  
-  # Create solution object and call function
-  solver = Solution()
-  result = solver.total_fruit(fruits)
-  
-  # Output result
-  print(result)
-`
-}
-
-function generateClosestValueWrapper(code) {
-  return `
-import sys
-
-${code}
-
-if __name__ == "__main__":
-    # Read input
-    n = int(input().strip())
-    nums = list(map(int, input().strip().split()))
-    target = int(input().strip())
-    
-    # Create solution object and call function
-    solver = Solution()
-    result = solver.find_closest_element(nums, target)
-    
-    # Output result
-    print(result)
-`
-}
-
-function generateConsecutiveCharsWrapper(code) {
-  return `
-import sys
-
-${code}
-
-if __name__ == "__main__":
-    # Read input
-    s = input().strip()
-    
-    # Create solution object and call function
-    solver = Solution()
-    result = solver.count_consecutive_chars(s)
-    
-    # Output result
-    print(result)
-`
-}
-
-function generateDiagonalTraversalWrapper(code) {
-  return `
-import sys
-
-# Definition for a binary tree node
-class TreeNode:
-    def __init__(self, val=0, left=None, right=None):
-        self.val = val
-        self.left = left
-        self.right = right
-
-${code}
-
-def build_tree(values):
-    if not values or values[0] == "-1":
-        return None
-    
-    root = TreeNode(int(values[0]))
-    queue = [root]
-    i = 1
-    
-    while queue and i < len(values):
-        node = queue.pop(0)
-        
-        # Left child
-        if i < len(values) and values[i] != "-1":
-            node.left = TreeNode(int(values[i]))
-            queue.append(node.left)
-        i += 1
-        
-        # Right child
-        if i < len(values) and values[i] != "-1":
-            node.right = TreeNode(int(values[i]))
-            queue.append(node.right)
-        i += 1
-    
-    return root
-
-def format_result(result):
-    if not result:
-        return "[]"
-    
-    formatted = "["
-    for i, diagonal in enumerate(result):
-        formatted += "["
-        formatted += ",".join(str(val) for val in diagonal)
-        formatted += "]"
-        if i < len(result) - 1:
-            formatted += ","
-    formatted += "]"
-    
-    return formatted
-
-if __name__ == "__main__":
-    # Read input
-    values = input().strip().split()
-    
-    # Build tree
-    root = build_tree(values)
-    
-    # Create solution object and call function
-    solver = Solution()
-    result = solver.diagonal_traversal(root)
-    
-    # Output result
-    print(format_result(result))
-`
-}
-
-function generateLISWrapper(code) {
-  return `
-import sys
-
-${code}
-
-if __name__ == "__main__":
-    # Read input
-    n = int(input().strip())
-    nums = list(map(int, input().strip().split()))
-    
-    # Create solution object and call function
-    solver = Solution()
-    result = solver.length_of_lis(nums)
-    
-    # Output result
-    print(result)
-`
+function generateLongestCommonPrefixWrapper(code) {
+  return generateGenericWrapper(code, 'longest_common_prefix', 'LongestPrefix', ['strs'], res => `print(${res} if ${res} is not None else "")`);
 }
 
 function generateMinPathSumWrapper(code) {
@@ -527,43 +167,288 @@ import sys
 ${code}
 
 if __name__ == "__main__":
-    # Read dimensions
-    m, n = map(int, input().strip().split())
-    
-    # Read grid
+    line = sys.stdin.readline().split()
+    if not line: sys.exit(0)
+    m, n = map(int, line)
     grid = []
     for _ in range(m):
-        row = list(map(int, input().strip().split()))
-        grid.append(row)
+        grid.append(list(map(int, sys.stdin.readline().split())))
     
-    # Create solution object and call function
-    solver = Solution()
-    result = solver.min_path_sum(grid)
-    
-    # Output result
-    print(result)
-`
+    s = Solution() if 'Solution' in globals() else None
+    obj = s if s else sys.modules[__name__]
+    method = getattr(obj, 'min_path_sum', getattr(obj, 'minPathSum', None))
+    print(method(grid) if method else min_path_sum(grid))
+`;
 }
 
-function generateLongestCommonPrefixWrapper(code) {
+function generateDiagonalTraversalWrapper(code) {
+  return `
+import sys
+import collections
+
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+def build_tree(vals):
+    if not vals or vals[0] == -1: return None
+    root = TreeNode(vals[0])
+    q = collections.deque([root])
+    i = 1
+    while q and i < len(vals):
+        node = q.popleft()
+        if i < len(vals) and vals[i] != -1:
+            node.left = TreeNode(vals[i])
+            q.append(node.left)
+        i += 1
+        if i < len(vals) and vals[i] != -1:
+            node.right = TreeNode(vals[i])
+            q.append(node.right)
+        i += 1
+    return root
+
+${code}
+
+if __name__ == "__main__":
+    line = sys.stdin.readline().strip()
+    if not line: sys.exit(0)
+    vals = list(map(int, line.split()))
+    root = build_tree(vals)
+    
+    s = Solution() if 'Solution' in globals() else (DiagonalTraversal() if 'DiagonalTraversal' in globals() else None)
+    obj = s if s else sys.modules[__name__]
+    method = getattr(obj, 'diagonal_traversal', getattr(obj, 'diagonalTraversal', None))
+    result = method(root)
+    print(result)
+`;
+}
+
+function generateLISWrapper(code) {
+  return generateGenericWrapper(code, 'length_of_lis', 'LengthOfLIS', ['nums'], res => `print(${res})`);
+}
+
+function generateConsecutiveCharsWrapper(code) {
+  return generateGenericWrapper(code, 'count_consecutive_chars', 'CountConsecutive', ['s'], res => `print(list(${res}) if ${res} is not None else [])`);
+}
+
+function generateClosestValueWrapper(code) {
   return `
 import sys
 
 ${code}
 
 if __name__ == "__main__":
-    # Read input strings
-    strs = input().strip().split()
+    n_line = sys.stdin.readline().strip()
+    if not n_line: sys.exit(0)
+    n = int(n_line)
+    nums = list(map(int, sys.stdin.readline().split()))
+    target = int(sys.stdin.readline().strip())
     
-    # Create solution object and call function
-    solver = Solution()
-    result = solver.longest_common_prefix(strs)
-    
-    # Output result
-    print(result)
-`
+    s = Solution() if 'Solution' in globals() else (ClosestValueFinder() if 'ClosestValueFinder' in globals() else None)
+    obj = s if s else sys.modules[__name__]
+    method = getattr(obj, 'find_closest_element', getattr(obj, 'findClosestElement', None))
+    print(method(nums, target))
+`;
 }
 
+function generatePermutationInStringWrapper(code) {
+  return `
+import sys
+
+${code}
+
+if __name__ == "__main__":
+    s1 = sys.stdin.readline().strip()
+    s2 = sys.stdin.readline().strip()
+    
+    s = Solution() if 'Solution' in globals() else (PermutationInString() if 'PermutationInString' in globals() else None)
+    obj = s if s else sys.modules[__name__]
+    method = getattr(obj, 'check_inclusion', getattr(obj, 'checkInclusion', None))
+    print(method(s1, s2))
+`;
+}
+
+function generateFruitIntoBasketsWrapper(code) {
+  return `
+import sys
+
+${code}
+
+if __name__ == "__main__":
+    n_str = sys.stdin.readline()
+    nums = list(map(int, sys.stdin.readline().split()))
+    
+    s = Solution() if 'Solution' in globals() else (FruitIntoBaskets() if 'FruitIntoBaskets' in globals() else None)
+    obj = s if s else sys.modules[__name__]
+    method = getattr(obj, 'total_fruit', getattr(obj, 'totalFruit', None))
+    print(method(nums))
+`;
+}
+
+function generateValidAnagramWrapper(code) {
+  return `
+import sys
+
+${code}
+
+if __name__ == "__main__":
+    s1 = sys.stdin.readline().strip()
+    s2 = sys.stdin.readline().strip()
+    
+    s = Solution() if 'Solution' in globals() else (ValidAnagram() if 'ValidAnagram' in globals() else None)
+    obj = s if s else sys.modules[__name__]
+    method = getattr(obj, 'is_anagram', getattr(obj, 'isAnagram', None))
+    print(str(method(s1, s2)).lower())
+`;
+}
+
+function generateThreeSumWrapper(code) {
+  return generateGenericWrapper(code, 'three_sum', 'Solution', ['nums'], res => `print(${res})`);
+}
+
+function generateReverseStringWrapper(code) {
+  return generateGenericWrapper(code, 'reverse_string', 'Solution', ['s'], res => 'print("".join(s))');
+}
+
+function generateGPUOptimizerWrapper(code) {
+  return generateGenericWrapper(code, 'minimum_gpu_capacity', 'Solution', ['workloads', 'k'], res => `print(${res})`);
+}
+
+function generateTrafficFlowWrapper(code) {
+  return generateGenericWrapper(code, 'longest_balanced_stretch', 'TrafficFlowAnalyzer', ['traffic_density'], res => `print(${res})`);
+}
+
+function generateLargestElementWrapper(code) {
+  return generateGenericWrapper(code, 'find_largest', 'Solution', ['nums'], res => `print(${res})`);
+}
+
+function generateFindActivityRangeWrapper(code) {
+  return generateGenericWrapper(code, 'find_activity_range', 'Solution', ['activities'], res => `print(${res})`);
+}
+
+function generateSecondSmallestLargestWrapper(code) {
+  return generateGenericWrapper(code, 'find_second_smallest_largest', 'Solution', ['nums'], res => `print(f"Second Smallest : {${res}[0]}\\nSecond Largest : {${res}[1]}" if ${res} and len(${res}) == 2 else "Second Smallest : -1\\nSecond Largest : -1")`);
+}
+
+function generateRemoveNthFromEndWrapper(code) {
+  return `
+import sys
+
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+def build_list(vals):
+    if not vals: return None
+    head = ListNode(vals[0])
+    curr = head
+    for v in vals[1:]:
+        curr.next = ListNode(v)
+        curr = curr.next
+    return head
+
+def list_to_vals(head):
+    res = []
+    while head:
+        res.append(str(head.val))
+        head = head.next
+    return " ".join(res)
+
+${code}
+
+if __name__ == "__main__":
+    line1 = sys.stdin.readline().strip()
+    if not line1: sys.exit(0)
+    vals = list(map(int, line1.split()))
+    line2 = sys.stdin.readline().strip()
+    n = int(line2) if line2 else 0
+    head = build_list(vals)
+    
+    s = Solution() if 'Solution' in globals() else None
+    obj = s if s else sys.modules[__name__]
+    method = getattr(obj, 'removeNthFromEnd', getattr(obj, 'remove_nth_from_end', None))
+    result = method(head, n)
+    print(list_to_vals(result))
+`;
+}
+
+function generateFallbackWrapper(code) {
+  return `
+import sys
+import json
+
+${code}
+
+if __name__ == "__main__":
+    input_data = sys.stdin.readline().strip()
+    if not input_data: sys.exit(0)
+    
+    try:
+        args = json.loads(input_data)
+    except:
+        args = input_data
+        
+    if 'Solution' in globals():
+        s = Solution()
+        methods = [m for m in dir(s) if not m.startswith('__')]
+        if methods:
+            res = getattr(s, methods[0])(args)
+            print(res)
+    else:
+        import types
+        funcs = [f for f in globals().values() if isinstance(f, types.FunctionType)]
+        if funcs:
+            print(funcs[0](args))
+`;
+}
+
+function generateGenericWrapper(code, funcName, className, argNames, outputLogic) {
+  const inputReading = argNames.map((arg, idx) => {
+    if (idx === 0) return `    line1 = sys.stdin.readline().strip()\n    if not line1: sys.exit(0)\n    try: ${arg} = list(map(int, line1.split()))\n    except: ${arg} = line1`;
+    return `    line${idx + 1} = sys.stdin.readline().strip()\n    try: ${arg} = int(line${idx + 1})\n    except: ${arg} = line${idx + 1}`;
+  }).join('\n');
+
+  return `
+import sys
+
+${code}
+
+if __name__ == "__main__":
+${inputReading}
+    
+    s = None
+    if '${className}' in globals(): s = ${className}()
+    elif 'Solution' in globals(): s = Solution()
+    
+    obj = s if s else sys.modules[__name__]
+    method = getattr(obj, '${funcName}', getattr(obj, '${funcName.replace(/_([a-z])/g, (m, c) => c.toUpperCase())}', None))
+    
+    try:
+        if method:
+            result = method(${argNames.join(', ')})
+            ${outputLogic('result')}
+        else:
+            # Fallback to direct function call
+            func = globals().get('${funcName}') or globals().get('${funcName.replace(/_([a-z])/g, (m, c) => c.toUpperCase())}')
+            if func:
+                result = func(${argNames.join(', ')})
+                ${outputLogic('result')}
+            else:
+                print("Error: Function not found", file=sys.stderr)
+                sys.exit(1)
+    except Exception as e:
+        print(f"Runtime Error: {e}", file=sys.stderr)
+        sys.exit(1)
+`;
+}
+
+
+function generatePairProductTargetWrapper(code) {
+  return generateGenericWrapper(code, 'product_pair', 'Solution', ['nums', 'target'], res => `print(f"{${res}[0]} {${res}[1]}" if ${res} else "")`);
+}
 
 module.exports = {
   generatePythonWrapper

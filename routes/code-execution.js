@@ -8,6 +8,7 @@ const Submission = require('../models/Submission');
 const { problems, getProblemList } = require('../models/problems');
 const Simulation = require('../models/Simulation');
 const Leaderboard = require('../models/Leaderboard');
+const ActiveDSA = require('../models/ActiveDSA');
 const axios = require('axios');
 
 const problemsCache = new Map();
@@ -405,7 +406,7 @@ router.post('/run', async (req, res) => {
     const limitedTestCases = problem.testCases.slice(0, 2);
 
     // Execute code against limited test cases, passing the language parameter
-    const result = await executeCode(code, limitedTestCases, language);
+    const result = await executeCode(code, limitedTestCases, language, problemId);
 
     if (!result.success) {
       return res.json(result);
@@ -457,7 +458,7 @@ router.post('/simulations/run', async (req, res) => {
     const limitedTestCases = problem.testCases.slice(0, 2);
 
     // Execute code against limited test cases, passing the language parameter
-    const result = await executeCode(code, limitedTestCases, language);
+    const result = await executeCode(code, limitedTestCases, language, problemId);
 
     if (!result.success) {
       return res.json(result);
@@ -988,6 +989,10 @@ router.get('/simulation/:simulationId/problems', async (req, res) => {
       simulation.testsId.dsaTests.forEach(id => problemIdsSet.add(id));
     }
 
+    // 3. From ActiveDSA (scheduled problems for this simulation)
+    const activeProblems = await ActiveDSA.find({ simulationId, isActive: true });
+    activeProblems.forEach(p => problemIdsSet.add(p.problemId));
+
 
 
     res.json({
@@ -1216,7 +1221,7 @@ router.post('/simulations/:simulationId/:userId/:username/run', async (req, res)
     const limitedTestCases = problem.testCases.slice(0, 2);
 
     // Execute code against limited test cases, passing the language parameter
-    const result = await executeCode(code, limitedTestCases, language);
+    const result = await executeCode(code, limitedTestCases, language, problemId);
 
     if (!result.success) {
       return res.json(result);
@@ -1247,7 +1252,7 @@ async function processSimulationSubmissionAsync(submissionId, code, problem, lan
     console.log(`Processing simulation problem: ${problem.id} - ${problem.title}`);
 
     // Execute code using the problem's test cases
-    const result = await executeCode(code, problem.testCases, language);
+    const result = await executeCode(code, problem.testCases, language, problem.id);
     console.log(`Code execution completed with ${result.results ? result.results.filter(r => r.passed).length : 0}/${result.results ? result.results.length : 0} tests passed`);
 
     // Calculate metrics

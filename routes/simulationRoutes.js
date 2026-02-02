@@ -24,12 +24,14 @@ const initializeSimulations = async () => {
           description: "Test your DSA skills with coding and MCQ tests",
           testsId: {
             mcqTests: [], // Will be dynamically populated
-            dsaTests: ["countconsecutive", "closestvalueinrotatedarray", "twosum"]
+            dsaTests: ["countconsecutive", "closestvalueinrotatedarray", "twosum", "largest_element", "second_smallest_largest"]
           },
           dsa_questions: [
             problems['countconsecutive'],
             problems['closestvalueinrotatedarray'],
-            problems['twosum']
+            problems['twosum'],
+            problems['largest_element'],
+            problems['second_smallest_largest']
           ].filter(Boolean),
           participationIds: [],
           // Add the new field with null default (results available immediately)
@@ -64,7 +66,7 @@ const initializeSimulations = async () => {
         let needSave = false;
 
         // Ensure IDs are present
-        const requiredIds = ["countconsecutive", "closestvalueinrotatedarray", "twosum"];
+        const requiredIds = ["countconsecutive", "closestvalueinrotatedarray", "twosum", "largest_element", "second_smallest_largest"];
         requiredIds.forEach(id => {
           if (!sim1.testsId.dsaTests.includes(id)) {
             sim1.testsId.dsaTests.push(id);
@@ -73,19 +75,35 @@ const initializeSimulations = async () => {
           }
         });
 
-        // Ensure content is present in dsa_questions
-        requiredIds.forEach(id => {
-          const exists = sim1.dsa_questions.some(q => q.id === id);
-          if (!exists && problems[id]) {
-            sim1.dsa_questions.push(problems[id]);
-            needSave = true;
-            console.log(`Added missing problem content: ${id}`);
+        // Aggressively sync content in dsa_questions from problems object
+        // This ensures that any edits to descriptions, templates, or expected outputs in problems.js
+        // are reflected in the database and UI.
+        const updatedDsaQuestions = requiredIds.map(id => {
+          if (problems[id]) {
+            console.log(`Syncing definition for: ${id}`);
+            return problems[id];
           }
-        });
+          return null;
+        }).filter(Boolean);
+
+        // Check if there's any change to avoid unnecessary saves
+        // Using a loose check for simulation content
+        if (JSON.stringify(sim1.dsa_questions.map(q => q.id)) !== JSON.stringify(requiredIds) ||
+          sim1.dsa_questions.length !== updatedDsaQuestions.length ||
+          needSave) {
+          sim1.dsa_questions = updatedDsaQuestions;
+          needSave = true;
+        } else {
+          // Even if IDs match, force update if content might have changed (e.g. descriptions)
+          sim1.dsa_questions = updatedDsaQuestions;
+          needSave = true; // Always save when server restarts to be 100% sure sync happens
+        }
 
         if (needSave) {
+          // Explicitly mark as modified if we updated elements in the array
+          sim1.markModified('dsa_questions');
           await sim1.save();
-          console.log("Simulation 1 updated with missing data.");
+          console.log("Simulation 1 updated/synced with latest problem definitions.");
         } else {
           console.log("Simulation 1 is up to date.");
         }
