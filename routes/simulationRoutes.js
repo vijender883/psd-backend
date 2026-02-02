@@ -24,14 +24,15 @@ const initializeSimulations = async () => {
           description: "Test your DSA skills with coding and MCQ tests",
           testsId: {
             mcqTests: [], // Will be dynamically populated
-            dsaTests: ["countconsecutive", "closestvalueinrotatedarray", "twosum", "largest_element", "second_smallest_largest"]
+            dsaTests: ["countconsecutive", "closestvalueinrotatedarray", "twosum", "largest_element", "second_smallest_largest", "pair_product_target"]
           },
           dsa_questions: [
             problems['countconsecutive'],
             problems['closestvalueinrotatedarray'],
             problems['twosum'],
             problems['largest_element'],
-            problems['second_smallest_largest']
+            problems['second_smallest_largest'],
+            problems['pair_product_target']
           ].filter(Boolean),
           participationIds: [],
           // Add the new field with null default (results available immediately)
@@ -66,7 +67,7 @@ const initializeSimulations = async () => {
         let needSave = false;
 
         // Ensure IDs are present
-        const requiredIds = ["countconsecutive", "closestvalueinrotatedarray", "twosum", "largest_element", "second_smallest_largest"];
+        const requiredIds = ["countconsecutive", "closestvalueinrotatedarray", "twosum", "largest_element", "second_smallest_largest", "pair_product_target"];
         requiredIds.forEach(id => {
           if (!sim1.testsId.dsaTests.includes(id)) {
             sim1.testsId.dsaTests.push(id);
