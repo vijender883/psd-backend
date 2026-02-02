@@ -75,6 +75,9 @@ async function generatePythonWrapper(executionDir, code, problemId = null) {
       case 'second_smallest_largest':
         wrapperCode = generateSecondSmallestLargestWrapper(code);
         break;
+      case 'pair_product_target':
+        wrapperCode = generatePairProductTargetWrapper(code);
+        break;
       default:
         wrapperCode = generateFallbackWrapper(code);
     }
@@ -440,6 +443,11 @@ ${inputReading}
         print(f"Runtime Error: {e}", file=sys.stderr)
         sys.exit(1)
 `;
+}
+
+
+function generatePairProductTargetWrapper(code) {
+  return generateGenericWrapper(code, 'product_pair', 'Solution', ['nums', 'target'], res => `print(f"{${res}[0]} {${res}[1]}" if ${res} else "")`);
 }
 
 module.exports = {

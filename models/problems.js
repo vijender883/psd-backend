@@ -1480,7 +1480,74 @@ Find the element in the array that is closest in value to the target. If there a
         description: "Negative numbers"
       }
     ]
-  }
+  },
+  'pair_product_target': {
+    id: "pair_product_target",
+    title: "Array Pair for Target Product",
+    description: "Given an array of positive integers nums and a target integer target, return the indices of two numbers such that their product equals the target.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.",
+    inputFormat: "The first line contains space-separated integers representing the array `nums`.\nThe second line contains a single integer `target`.",
+    outputFormat: "Return the indices of the two numbers as space-separated integers.",
+    constraints: [
+      "2 <= nums.length <= 10^4",
+      "1 <= nums[i] <= 10^6",
+      "1 <= target <= 10^9",
+      "Only one valid answer exists."
+    ],
+    examples: [
+      {
+        name: "Example 1",
+        input: "2 3 4 5 6\n20",
+        output: "2 3"
+      },
+      {
+        name: "Example 2",
+        input: "1 7 3 9 2\n14",
+        output: "1 4"
+      }
+    ],
+    miscellaneous: {
+      name: "Follow-up",
+      description: "Can you solve this in O(n) time complexity?"
+    },
+    templates: {
+      java: "class Solution {\n    public int[] productPair(int[] nums, int target) {\n        // Write your code here\n    }\n}",
+      python: "class Solution:\n    def product_pair(self, nums, target):\n        # Write your code here\n        pass"
+    },
+    solution: `class Solution:
+    def product_pair(self, nums, target):
+        prevMap = {}  # val : index
+        
+        for i, n in enumerate(nums):
+            if n == 0: continue # Avoid division by zero if applicable, though constraints say positive.
+            if target % n == 0:
+                needed = target // n
+                if needed in prevMap:
+                    return [prevMap[needed], i]
+            prevMap[n] = i
+        return []`,
+    testCases: [
+      {
+        input: "2 3 4 5 6\n20",
+        expectedOutput: "2 3",
+        description: "Basic case: 4 * 5 = 20"
+      },
+      {
+        input: "1 7 3 9 2\n14",
+        expectedOutput: "1 4",
+        description: "Indices 1 and 4: 7 * 2 = 14"
+      },
+      {
+        input: "10 20 30\n600",
+        expectedOutput: "1 2",
+        description: "20 * 30 = 600"
+      },
+      {
+        input: "5 2 10\n10",
+        expectedOutput: "0 1",
+        description: "5 * 2 = 10"
+      }
+    ]
+  },
 };
 
 // Convert problem list to include language-specific templates
