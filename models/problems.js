@@ -1548,6 +1548,63 @@ Find the element in the array that is closest in value to the target. If there a
       }
     ]
   },
+  'remove_elements_less_than_value': {
+    id: "remove_elements_less_than_value",
+    title: "Remove Elements Less Than Value",
+    description: "Given an integer array `nums` and an integer `val`, remove all elements less than `val` in `nums` in-place. The order of the elements may be changed. Then return the number of elements in `nums` which are greater than or equal to `val`.\n\nConsider the number of elements in `nums` which are greater than or equal to `val` to be `k`, to get accepted, you need to do the following things:\n\n1. Change the array `nums` such that the first `k` elements of `nums` contain the elements which are greater than or equal to `val`. The remaining elements of `nums` are not important as well as the size of `nums`.\n2. Return `k`.",
+    inputFormat: "The first line contains space-separated integers representing the array `nums`.\nThe second line contains a single integer `val`.",
+    outputFormat: "Return the count `k`. The system will also verify that the first `k` elements of `nums` are >= `val`.",
+    constraints: [
+      "0 <= nums.length <= 100",
+      "0 <= nums[i] <= 100",
+      "0 <= val <= 100"
+    ],
+    examples: [
+      {
+        name: "Example 1",
+        input: "3 2 2 3\n3",
+        output: "2"
+      },
+      {
+        name: "Example 2",
+        input: "0 1 2 2 3 0 4 2\n2",
+        output: "5"
+      }
+    ],
+    templates: {
+      python: "class Solution:\n    def remove_elements(self, nums, val):\n        # Write your code here\n        pass"
+    },
+    solution: `class Solution:
+    def remove_elements(self, nums, val):
+        k = 0
+        for i in range(len(nums)):
+            if nums[i] >= val:
+                nums[k] = nums[i]
+                k += 1
+        return k`,
+    testCases: [
+      {
+        input: "3 2 2 3\n3",
+        expectedOutput: "2",
+        description: "Standard case"
+      },
+      {
+        input: "0 1 2 2 3 0 4 2\n2",
+        expectedOutput: "5",
+        description: "Case with multiple elements to remove"
+      },
+      {
+        input: "1 1 1\n2",
+        expectedOutput: "0",
+        description: "All elements removed"
+      },
+      {
+        input: "5 6 7\n4",
+        expectedOutput: "3",
+        description: "No elements removed"
+      }
+    ]
+  },
 };
 
 // Convert problem list to include language-specific templates

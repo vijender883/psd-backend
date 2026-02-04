@@ -91,7 +91,7 @@ async function updateSingleUserLeaderboard(userId, simulationId, usernameHint = 
       const score = submission.totalTests > 0 ? Math.round((submission.passedTests / submission.totalTests) * 100) : 0;
       dsaScores[submission.problemId] = score;
       totalDsaScore += score;
-      totalTimeTaken += (submission.executionTime || 0); // Changed from timeTaken to executionTime
+      totalTimeTaken += (submission.timeTaken || 0);
       totalPassedTests += (submission.passedTests || 0);
       totalTestsCount += (submission.totalTests || 0);
     }
@@ -182,7 +182,7 @@ router.get('/simulations/:simulationId/leaderboard', async (req, res) => {
         username: sub.username,
         totalPassedTests: sub.passedTests,
         totalTestsCount: sub.totalTests,
-        totalTimeTaken: sub.executionTime || 0,
+        totalTimeTaken: sub.timeTaken || 0,
         totalScore: sub.totalTests > 0 ? Math.round((sub.passedTests / sub.totalTests) * 100) : 0,
         lastSubmissionTime: sub.createdAt
       }));
