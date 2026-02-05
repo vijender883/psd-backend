@@ -24,7 +24,7 @@ const initializeSimulations = async () => {
           description: "Test your DSA skills with coding and MCQ tests",
           testsId: {
             mcqTests: [], // Will be dynamically populated
-            dsaTests: ["countconsecutive", "closestvalueinrotatedarray", "twosum", "largest_element", "second_smallest_largest", "pair_product_target", "remove_elements_less_than_value"]
+            dsaTests: ["countconsecutive", "closestvalueinrotatedarray", "twosum", "largest_element", "second_smallest_largest", "pair_product_target", "remove_elements_less_than_value", "search_insert_duplicates"]
           },
           dsa_questions: [
             problems['countconsecutive'],
@@ -68,7 +68,7 @@ const initializeSimulations = async () => {
         let needSave = false;
 
         // Ensure IDs are present
-        const requiredIds = ["countconsecutive", "closestvalueinrotatedarray", "twosum", "largest_element", "second_smallest_largest", "pair_product_target", "remove_elements_less_than_value"];
+        const requiredIds = ["countconsecutive", "closestvalueinrotatedarray", "twosum", "largest_element", "second_smallest_largest", "pair_product_target", "remove_elements_less_than_value", "search_insert_duplicates"];
         requiredIds.forEach(id => {
           if (!sim1.testsId.dsaTests.includes(id)) {
             sim1.testsId.dsaTests.push(id);
@@ -102,8 +102,9 @@ const initializeSimulations = async () => {
         }
 
         if (needSave) {
-          // Explicitly mark as modified if we updated elements in the array
+          // Explicitly mark as modified if we updated elements in the array or object
           sim1.markModified('dsa_questions');
+          sim1.markModified('testsId');
           await sim1.save();
           console.log("Simulation 1 updated/synced with latest problem definitions.");
         } else {

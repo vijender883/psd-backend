@@ -1605,6 +1605,93 @@ Find the element in the array that is closest in value to the target. If there a
       }
     ]
   },
+  'search_insert_duplicates': {
+    id: "search_insert_duplicates",
+    title: "Search Insert Position with Duplicates",
+    description: "Given a sorted array of integers (which may contain duplicates) and a target value, return the leftmost index if the target is found. If not, return the index where it would be if it were inserted in order (leftmost position).\n\nYou must write an algorithm with O(log n) runtime complexity.",
+    inputFormat: "The first line contains space-separated integers representing the array `nums`.\nThe second line contains a single integer `target`.",
+    outputFormat: "Return a single integer representing the leftmost insertion index.",
+    constraints: [
+      "1 <= nums.length <= 10^4",
+      "-10^4 <= nums[i] <= 10^4",
+      "nums is sorted in ascending order (may contain duplicates)",
+      "-10^4 <= target <= 10^4"
+    ],
+    examples: [
+      {
+        name: "Example 1",
+        input: "1 3 3 3 5 6\n3",
+        output: "1"
+      },
+      {
+        name: "Example 2",
+        input: "1 3 3 3 5 6\n2",
+        output: "1"
+      },
+      {
+        name: "Example 3",
+        input: "1 3 3 3 5 6\n4",
+        output: "4"
+      },
+      {
+        name: "Example 4",
+        input: "1 1 1 1 1\n1",
+        output: "0"
+      }
+    ],
+    templates: {
+      python: "class Solution:\n    def search_insert(self, nums, target):\n        # Write your code here\n        pass",
+      java: "class Solution {\n    public int searchInsert(int[] nums, int target) {\n        // Write your code here\n        return 0;\n    }\n}"
+    },
+    solution: `class Solution:
+    def search_insert(self, nums, target):
+        low = 0
+        high = len(nums)
+        while low < high:
+            mid = (low + high) // 2
+            if nums[mid] < target:
+                low = mid + 1
+            else:
+                high = mid
+        return low`,
+    testCases: [
+      {
+        input: "1 3 3 3 5 6\n3",
+        expectedOutput: "1",
+        description: "Target found at multiple indices"
+      },
+      {
+        input: "1 3 3 3 5 6\n2",
+        expectedOutput: "1",
+        description: "Target not found, insertion point in middle"
+      },
+      {
+        input: "1 3 3 3 5 6\n4",
+        expectedOutput: "4",
+        description: "Target not found, insertion point after duplicates"
+      },
+      {
+        input: "1 1 1 1 1\n1",
+        expectedOutput: "0",
+        description: "All identical elements"
+      },
+      {
+        input: "1 2 3 4 5\n6",
+        expectedOutput: "5",
+        description: "Insert at end"
+      },
+      {
+        input: "1 2 3 4 5\n0",
+        expectedOutput: "0",
+        description: "Insert at beginning"
+      },
+      {
+        input: "5\n5",
+        expectedOutput: "0",
+        description: "Single element array"
+      }
+    ]
+  },
 };
 
 // Convert problem list to include language-specific templates
