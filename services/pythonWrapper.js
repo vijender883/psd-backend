@@ -81,6 +81,9 @@ async function generatePythonWrapper(executionDir, code, problemId = null) {
       case 'remove_elements_less_than_value':
         wrapperCode = generateRemoveElementsLessThanValueWrapper(code);
         break;
+      case 'search_insert_duplicates':
+        wrapperCode = generateSearchInsertDuplicatesWrapper(code);
+        break;
       default:
         wrapperCode = generateFallbackWrapper(code);
     }
@@ -457,6 +460,10 @@ function generateRemoveElementsLessThanValueWrapper(code) {
   return generateGenericWrapper(code, 'remove_elements', 'Solution', ['nums', 'val'], res => {
     return `print(${res}) if all(nums[i] >= val for i in range(${res})) else print(f"Error: First {${res}} elements are not all >= {val}")`;
   });
+}
+
+function generateSearchInsertDuplicatesWrapper(code) {
+  return generateGenericWrapper(code, 'search_insert', 'Solution', ['nums', 'target'], res => `print(${res})`);
 }
 
 module.exports = {
